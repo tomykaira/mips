@@ -16,9 +16,9 @@ module testbench_endtoend();
    // geenrate clock to sequence tests
    always begin
       clk <= 1;
-      #5;
+      #7;
       clk <= 0;
-      #5;
+      #7;
    end
 
 endmodule

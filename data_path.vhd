@@ -52,7 +52,7 @@ architecture struct of data_path is
   signal sign_immediate, sign_immediate_sh : std_logic_vector(31 downto 0);
   signal src_a, src_b, result : std_logic_vector(31 downto 0);
 
-  signal pc_buf, write_data_buf, alu_out_buf : std_logic_vector(31 downto 0);
+  signal pc_buf, write_data_buf, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
 
 begin  -- struct
 
