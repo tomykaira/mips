@@ -20,7 +20,9 @@ begin  -- asynchronous
 
   flip: process (clk, reset)
   begin  -- process flip
-    if clk'event and clk = '1' then
+    if reset = '1' then
+      q <=  conv_std_logic_vector(0, width);
+    elsif clk'event and clk = '1' then
       q <= d;
     end if;
   end process flip;
