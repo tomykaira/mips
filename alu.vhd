@@ -25,9 +25,11 @@ begin  -- behave
 
   c <= control(2);
 
+  bb <= not b when control(2) = '1' else b;
+
   o0 <= a and bb;
   o1 <= a or b;
-  o2 <= a + b + c;
+  o2 <= a + bb + c;
   o3 <= x"0000000" & "000" & o2(31);
 
   out_buf <= o0 when control(1 downto 0) = "00" else
