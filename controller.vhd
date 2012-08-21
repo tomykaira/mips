@@ -1,4 +1,4 @@
-library IEE;
+library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 entity controller is
@@ -16,6 +16,7 @@ architecture struct of controller is
     port (
       op                    : in  STD_LOGIC_VECTOR(5 downto 0);
       mem_to_reg, mem_write : out STD_LOGIC;
+      alu_src               : out STD_LOGIC;
       branch                : out STD_LOGIC;
       reg_dst, reg_write    : out STD_LOGIC;
       jump                  : out STD_LOGIC;
@@ -48,4 +49,6 @@ begin
     funct       => funct,
     alu_op      => alu_op,
     alu_control => alu_control);
+
+  pc_src <= branch and zero;
 end;

@@ -1,12 +1,12 @@
-library IEE;
+library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 entity mips is
 
   port (
-    CLK,  XRST          : in  STD_LOGIC;
+    clk, reset          : in  STD_LOGIC;
     pc                  : out STD_LOGIC_VECTOR(31 downto 0);
-    instruction         : out STD_LOGIC_VECTOR(31 downto 0);
+    instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
     mem_write           : out STD_LOGIC;
     alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
     read_data           : in  STD_LOGIC_VECTOR(31 downto 0));
@@ -26,8 +26,22 @@ architecture struct of mips is
   end component;
 
   component data_path
-    
+    port (
+    clk, reset          : in     std_logic;
+    mem_to_reg, pc_src  : in     std_logic;
+    alu_src, reg_dst    : in     std_logic;
+    reg_write, jump     : in     std_logic;
+    alu_control         : in     std_logic_vector(2 downto 0);
+    zero                : out    std_logic;
+    pc                  : buffer std_logic_vector(31 downto 0);
+    instruction         : in     std_logic_vector(31 downto 0);
+    alu_out, write_data : buffer std_logic_vector(31 downto 0);
+    read_data           : in     std_logic_vector(31 downto 0));
   end component;
+
+  signal mem_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;
+  signal zero : std_logic;
+  signal alu_control : std_logic_vector(2 downto 0);
 
 begin
   cont : controller port map (
@@ -58,7 +72,7 @@ begin
     instruction => instruction,
     alu_out     => alu_out,
     write_data  => write_data,
-    read_dat    => read_data);
+    read_data   => read_data);
 
 end;
     

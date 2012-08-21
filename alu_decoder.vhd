@@ -1,4 +1,4 @@
-library IEE;
+library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 entity alu_decoder is
@@ -27,8 +27,7 @@ begin  -- behave
         when "100101" => alu_control <= "001"; -- or
         when "101010" => alu_control <= "111"; -- slt
         when others   => alu_control <= "---";
-        when others => null;
-      end case;;
+      end case;
     end case;
     
   end process;

@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
+use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity register_file is
   
@@ -41,6 +42,6 @@ begin  -- behave
     else
       read_data2 <= mem(conv_integer(read_addr2));
     end if;
-  end;
+  end process;
 
 end behave;

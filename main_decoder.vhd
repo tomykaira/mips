@@ -1,4 +1,4 @@
-library IEE;
+library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 entity main_decoder is
@@ -6,6 +6,7 @@ entity main_decoder is
   port (
     op                    : in  STD_LOGIC_VECTOR(5 downto 0);
     mem_to_reg, mem_write : out STD_LOGIC;
+    alu_src               : out STD_LOGIC;
     branch                : out STD_LOGIC;
     reg_dst, reg_write    : out STD_LOGIC;
     jump                  : out STD_LOGIC;
@@ -21,7 +22,7 @@ begin  -- behave
 
   process(op)
   begin
-    case op use
+    case op is
       when "000000" => controls <= "110000010"; -- Rtype
       when "100011" => controls <= "101001000"; -- LW
       when "101011" => controls <= "001010000"; -- SW
@@ -39,6 +40,6 @@ begin  -- behave
   mem_write  <= controls(4);
   mem_to_reg <= controls(3);
   jump       <= controls(2);
-  alu_p      <= controls(1 downto 0);
+  alu_op      <= controls(1 downto 0);
 
 end behave;
