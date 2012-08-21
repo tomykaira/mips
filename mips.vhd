@@ -27,16 +27,16 @@ architecture struct of mips is
 
   component data_path
     port (
-    clk, reset          : in     std_logic;
-    mem_to_reg, pc_src  : in     std_logic;
-    alu_src, reg_dst    : in     std_logic;
-    reg_write, jump     : in     std_logic;
-    alu_control         : in     std_logic_vector(2 downto 0);
-    zero                : out    std_logic;
-    pc                  : buffer std_logic_vector(31 downto 0);
-    instruction         : in     std_logic_vector(31 downto 0);
-    alu_out, write_data : buffer std_logic_vector(31 downto 0);
-    read_data           : in     std_logic_vector(31 downto 0));
+    clk, reset          : in  std_logic;
+    mem_to_reg, pc_src  : in  std_logic;
+    alu_src, reg_dst    : in  std_logic;
+    reg_write, jump     : in  std_logic;
+    alu_control         : in  std_logic_vector(2 downto 0);
+    zero                : out std_logic;
+    pc                  : out std_logic_vector(31 downto 0);
+    instruction         : in  std_logic_vector(31 downto 0);
+    alu_out, write_data : out std_logic_vector(31 downto 0);
+    read_data           : in  std_logic_vector(31 downto 0));
   end component;
 
   signal mem_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;

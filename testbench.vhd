@@ -10,8 +10,8 @@ architecture test of testbench is
   component test_top
     port (
       CLK, XRST               : in     std_logic;
-      write_data, data_addr   :slv;
-      mem_write               : buffer std_logic);
+      write_data, data_addr   : out std_logic_vector(31 downto 0);
+      mem_write               : out std_logic);
   end component;
 
   signal write_data, data_addr : std_logic_vector(31 downto 0);

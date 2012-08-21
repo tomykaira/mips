@@ -6,16 +6,16 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 entity data_path is
   
   port (
-    clk, reset          : in     std_logic;
-    mem_to_reg, pc_src  : in     std_logic;
-    alu_src, reg_dst    : in     std_logic;
-    reg_write, jump     : in     std_logic;
-    alu_control         : in     std_logic_vector(2 downto 0);
-    zero                : out    std_logic;
-    pc                  : buffer std_logic_vector(31 downto 0);
-    instruction         : in     std_logic_vector(31 downto 0);
-    alu_out, write_data : buffer std_logic_vector(31 downto 0);
-    read_data           : in     std_logic_vector(31 downto 0));
+    clk, reset          : in  std_logic;
+    mem_to_reg, pc_src  : in  std_logic;
+    alu_src, reg_dst    : in  std_logic;
+    reg_write, jump     : in  std_logic;
+    alu_control         : in  std_logic_vector(2 downto 0);
+    zero                : out std_logic;
+    pc                  : out std_logic_vector(31 downto 0);
+    instruction         : in  std_logic_vector(31 downto 0);
+    alu_out, write_data : out std_logic_vector(31 downto 0);
+    read_data           : in  std_logic_vector(31 downto 0));
 
 end data_path;
 
@@ -52,6 +52,8 @@ architecture struct of data_path is
   signal sign_immediate, sign_immediate_sh : std_logic_vector(31 downto 0);
   signal src_a, src_b, result : std_logic_vector(31 downto 0);
 
+  signal pc_buf, write_data_buf, alu_out_buf : std_logic_vector(31 downto 0);
+
 begin  -- struct
 
   pc_jump <= pc_plus4(31 downto 28) & instruction(25 downto 0) & "00";
@@ -59,9 +61,9 @@ begin  -- struct
     clk   => clk,
     reset => reset,
     d     => pc_next,
-    q     => pc);
+    q     => pc_buf);
 
-  pc_plus4 <= pc + 4;
+  pc_plus4 <= pc_buf + 4;
   sign_immediate_sh <= sign_immediate(29 downto 0) & "00";
   pc_branch <= pc_plus4 + sign_immediate_sh;
 
@@ -76,21 +78,26 @@ begin  -- struct
     write_addr3   => write_reg,
     write_data3   => result,
     read_data1    => src_a,
-    read_data2    => write_data);
+    read_data2    => write_data_buf);
 
   write_reg <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
-  result <= read_data when mem_to_reg = '1' else alu_out;
+  result <= read_data when mem_to_reg = '1' else alu_out_buf;
 
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
                     else x"0000" & instruction(15 downto 0);
 
-  src_b <= sign_immediate when alu_src = '1' else write_data;
+  src_b <= sign_immediate when alu_src = '1' else write_data_buf;
 
   main_alu : alu port map (
     a       => src_a,
     b       => src_b,
     control => alu_control,
-    output  => alu_out,
+    output  => alu_out_buf,
     zero    => zero);
-    
+
+
+  alu_out    <= alu_out_buf;
+  pc         <= pc_buf;
+  write_data <= write_data_buf;
+  
 end struct;
