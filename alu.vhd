@@ -50,6 +50,6 @@ begin  -- behave
              o3 when control(1 downto 0) = "11";
 
   output <= out_buf;
-  zero <= '1' when conv_integer(out_buf) = 0 else '0';
+  zero <= '1' when out_buf = x"00000000" else '0';
 
 end behave;

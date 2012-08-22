@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-cp out.vcd out`date +%s`.vcd
+[ -f "out.vcd" ] && cp out.vcd out`date +%s`.vcd
 ghdl -a --ieee=synopsys -fexplicit --warn-default-binding --warn-binding --warn-library --warn-body --warn-specs --warn-unused alu.vhd testbench_alu.vhd
 ghdl -e -Plibs/unisim --ieee=synopsys -fexplicit testbench_alu
 ghdl -r testbench_alu --vcd=out.vcd --stop-time=10ms
