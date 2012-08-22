@@ -4,7 +4,7 @@ module testbench_endtoend();
    reg xreset;
    wire rs_rx, rs_tx;
 
-   top dut (clk, xreset, rs_rx, rs_tx);
+   top dut (.CLK(clk), .XRST(xreset), .RS_RX(rs_rx), .RS_TX(rs_tx));
 
    // initialize test by xresetting
    initial begin
