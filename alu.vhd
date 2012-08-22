@@ -3,8 +3,20 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.STD_LOGIC_ARITH.all;
 use IEEE.STD_LOGIC_UNSIGNED.all;
 
+-- TEST
+-- a  |b   |control|output|zero
+-- 18 |9   |b000   |0     |1
+--    |    |b001   |27    |0
+--    |    |b010   |27    |0
+--    |    |b110   |9     |0
+--    |    |b111   |0     |1
+-- 18 |18  |b111   |0     |1
+-- 18 |19  |       |1     |0
+-- 18 |100 |       |1     |0
+-- /TEST
+
 entity alu is
-  
+
   port (
     a, b    : in  std_logic_vector(31 downto 0);
     control : in  std_logic_vector(2 downto 0);
