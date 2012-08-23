@@ -4,15 +4,15 @@ use IEEE.STD_LOGIC_ARITH.all;
 use IEEE.STD_LOGIC_UNSIGNED.all;
 
 -- TEST
--- a  |b   |control|output|zero
--- 18 |9   |b000   |0     |1
---    |    |b001   |27    |0
---    |    |b010   |27    |0
---    |    |b110   |9     |0
---    |    |b111   |0     |1
--- 18 |18  |b111   |0     |1
--- 18 |19  |       |1     |0
--- 18 |100 |       |1     |0
+-- a  |b   |control b|output|zero
+-- 18 |9   |000      |0     |1
+--    |    |001      |27    |0
+--    |    |010      |27    |0
+--    |    |110      |9     |0
+--    |    |111      |0     |1
+-- 18 |18  |111      |0     |1
+-- 18 |19  |         |1     |0
+-- 18 |100 |         |1     |0
 -- /TEST
 
 entity alu is
