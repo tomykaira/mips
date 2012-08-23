@@ -16,7 +16,7 @@ end;
 architecture struct of mips is
 
   component controller
-    port (op,                 : in STD_LOGIC_VECTOR(5 downto 0);
+    port (op                  : in STD_LOGIC_VECTOR(5 downto 0);
         zero                  : in STD_LOGIC;
         mem_to_reg, mem_write : out STD_LOGIC;
         pc_src, alu_src       : out STD_LOGIC;

@@ -18,6 +18,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- 10 | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 010  # addi
 -- 14 | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 110  # subi
 -- 15 | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 111  # slti
+-- 35 | 1          | 0         | 1       | 0      | 0       | 1         | 0    | 010  # lw
+-- 43 | 0          | 1         | 1       | 0      | 0       | 0         | 0    | 010  # sw
 -- 63 | 0          | 0         | 0       | 0      | 0       | 0         | 1    | 000  # jump (temp)
 -- /TEST
 
@@ -44,8 +46,8 @@ begin  -- behave
   begin
     case op is
       when "000100" => controls <= "0001000110"; -- BEQ
-      when "100011" => controls <= "1010010000"; -- LW
-      when "101011" => controls <= "0010100000"; -- SW
+      when "100011" => controls <= "1010010010"; -- LW
+      when "101011" => controls <= "0110000010"; -- SW
       when "111111" => controls <= "0000001000"; -- J
       when others   =>
         case op(5 downto 3) is
