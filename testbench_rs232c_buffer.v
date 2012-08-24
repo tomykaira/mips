@@ -4,12 +4,16 @@ module testbench_rs232c_buffer();
    reg [31:0] push_data;
    wire tx;
 
-   rs232c_buffer #(16'd5) dut (.clk(clk), .reset(reset), .push(push), .push_data(push_data), .tx(tx));
+   rs232c_buffer #(16'd4) dut (.clk(clk), .reset(reset), .push(push), .push_data(push_data), .tx(tx));
 
    initial begin
       reset <= 1;
+      push  <= 0;
       #20;
       reset <= 0;
+      #50;
+      // HERE should be enough time
+      // As for simulation, at least 50 ns
 
       push_data <= 32'h12345678;
       push <= 1;
@@ -42,6 +46,7 @@ module testbench_rs232c_buffer();
       push_data <= 32'h8cf3eb97;
       push <= 1;
       #10;
+      push <= 0;
    end
 
    // geenrate clock to sequence tests

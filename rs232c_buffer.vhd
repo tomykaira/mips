@@ -4,8 +4,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity rs232c_buffer is
   
-  generic (
-    wtime : std_logic_vector(15 downto 0) := x"008F");
+  generic (wtime : std_logic_vector(15 downto 0) := x"008F");
 
   port (
     clk       : in std_logic;
@@ -19,7 +18,8 @@ end rs232c_buffer;
 architecture behave of rs232c_buffer is
 
   component u232c
-    generic (len : integer range 1 to 8  := 4);
+    generic (wtime : std_logic_vector(15 downto 0) := wtime;
+             len : integer range 1 to 8  := 4);
     port (
       clk  : in  STD_LOGIC;
       data : in  STD_LOGIC_VECTOR (len * 8-1 downto 0);
@@ -43,7 +43,8 @@ architecture behave of rs232c_buffer is
 
   signal go, busy : std_logic;
 
-  signal full, empty, rd_en : std_logic := '0';      -- full is not used
+  signal full, empty : std_logic := '0';      -- full is not used
+  signal rd_en : std_logic := '0';
   signal send_data : std_logic_vector(31 downto 0);
 
 begin  -- behave
@@ -67,17 +68,21 @@ begin  -- behave
     busy => busy,
     tx   => tx);
 
-  pop: process (clk)
+  pop: process (clk, reset)
   begin  -- process pop
-    if clk'event and clk = '1' then  -- rising clock edge
+    if reset = '1' then
+      rd_en <= '0';
+      go <= '0';
+    elsif clk'event and clk = '1' then  -- rising clock edge
       if busy = '0' then
-        if rd_en = '0' then
+        if rd_en = '0' and go = '0' then
           rd_en <= not empty ;
         else
           rd_en <= '0';
           go <= '1';
         end if;
       else
+        rd_en <= '0';
         go <= '0';
       end if;
     end if;
