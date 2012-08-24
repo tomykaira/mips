@@ -66,7 +66,7 @@ architecture top of top is
   signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
   signal mem_write_buf : STD_LOGIC;
 
-  signal rx_data, tx_data : std_logic_vector(7 downto 0);
+  signal rx_data : std_logic_vector(7 downto 0);
 
   signal mclk, iclk : std_logic;
 
