@@ -9,7 +9,7 @@ entity mips is
     instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
     mem_write           : out STD_LOGIC;
     alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-    read_data           : in  STD_LOGIC_VECTOR(31 downto 0);
+    data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
     rx_enable           : out STD_LOGIC;
     rx_done             : in  STD_LOGIC);
 
@@ -40,7 +40,7 @@ architecture struct of mips is
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     alu_out, write_data : out std_logic_vector(31 downto 0);
-    read_data           : in  std_logic_vector(31 downto 0);
+    data_from_bus       : in  std_logic_vector(31 downto 0);
     stall               : in  STD_LOGIC);
   end component;
 
@@ -65,22 +65,22 @@ begin
     alu_control => alu_control);
 
   dp : data_path port map (
-    clk         => clk,
-    reset       => reset,
-    bus_to_reg  => bus_to_reg,
-    pc_src      => pc_src,
-    alu_src     => alu_src,
-    reg_dst     => reg_dst,
-    reg_write   => reg_write,
-    jump        => jump,
-    alu_control => alu_control,
-    zero        => zero,
-    pc          => pc,
-    instruction => instruction,
-    alu_out     => alu_out,
-    write_data  => write_data,
-    read_data   => read_data,
-    stall       => rx_enable_buf);
+    clk           => clk,
+    reset         => reset,
+    bus_to_reg    => bus_to_reg,
+    pc_src        => pc_src,
+    alu_src       => alu_src,
+    reg_dst       => reg_dst,
+    reg_write     => reg_write,
+    jump          => jump,
+    alu_control   => alu_control,
+    zero          => zero,
+    pc            => pc,
+    instruction   => instruction,
+    alu_out       => alu_out,
+    write_data    => write_data,
+    data_from_bus => data_from_bus,
+    stall         => rx_enable_buf);
 
   rx_enable <= rx_enable_buf;
 

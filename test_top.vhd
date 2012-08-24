@@ -21,7 +21,7 @@ architecture test of test_top is
       instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-      read_data           : in  STD_LOGIC_VECTOR(31 downto 0);
+      data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable           : out STD_LOGIC;
       rx_done             : in  STD_LOGIC);
   end component;
@@ -48,7 +48,7 @@ architecture test of test_top is
            changed: out STD_LOGIC);
   end component;
 
-  signal pc, instruction, read_data, memory_data : std_logic_vector(31 downto 0);
+  signal pc, instruction, data_from_bus, memory_data : std_logic_vector(31 downto 0);
 
   signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
   signal mem_write_buf : STD_LOGIC;
@@ -59,7 +59,7 @@ architecture test of test_top is
 
 begin  -- test
 
-  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data, rx_enable, rx_done);
+  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, data_from_bus, rx_enable, rx_done);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
   dmem1 : data_memory port map(clk, mem_write_buf, data_addr_buf, write_data_buf, memory_data);
 
@@ -71,6 +71,6 @@ begin  -- test
 
   -- is this good design to judge here?
   -- ok for reading twice?
-  read_data <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
+  data_from_bus <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
 
 end test;

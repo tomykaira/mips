@@ -22,7 +22,7 @@ architecture top of top is
       instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-      read_data           : in  STD_LOGIC_VECTOR(31 downto 0));
+      data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0));
   end component;
 
   component instruction_memory
@@ -47,7 +47,7 @@ architecture top of top is
       tx   : out STD_LOGIC);
   end component;
 
-  signal pc, instruction, read_data : std_logic_vector(31 downto 0);
+  signal pc, instruction, data_from_bus : std_logic_vector(31 downto 0);
 
   signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
   signal mem_write_buf : STD_LOGIC;
@@ -66,9 +66,9 @@ begin  -- test
     i=>mclk,
     o=>iclk);
 
-  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data);
+  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, data_from_bus);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
-  dmem1 : data_memory port map(iclk, mem_write_buf, data_addr_buf, write_data_buf, read_data);
+  dmem1 : data_memory port map(iclk, mem_write_buf, data_addr_buf, write_data_buf, data_from_bus);
   sender : u232c port map (iclk, data, go, busy, RS_TX);
 
   data <= write_data_buf(7 downto 0);

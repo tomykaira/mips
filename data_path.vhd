@@ -15,7 +15,7 @@ entity data_path is
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     alu_out, write_data : out std_logic_vector(31 downto 0);
-    read_data           : in  std_logic_vector(31 downto 0);
+    data_from_bus       : in  std_logic_vector(31 downto 0);
     stall               : in  STD_LOGIC);
 
 end data_path;
@@ -84,7 +84,7 @@ begin  -- struct
     read_data2    => write_data_buf);
 
   write_reg <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
-  result <= read_data when bus_to_reg = '1' else alu_out_buf;
+  result <= data_from_bus when bus_to_reg = '1' else alu_out_buf;
 
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
                     else x"0000" & instruction(15 downto 0);
