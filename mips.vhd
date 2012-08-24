@@ -9,7 +9,9 @@ entity mips is
     instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
     mem_write           : out STD_LOGIC;
     alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-    read_data           : in  STD_LOGIC_VECTOR(31 downto 0));
+    read_data           : in  STD_LOGIC_VECTOR(31 downto 0);
+    rx_enable           : out STD_LOGIC;
+    rx_data             : in  std_logic_vector(7 downto 0));
 
 end;
 

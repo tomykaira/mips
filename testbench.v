@@ -2,14 +2,16 @@ module testbench();
 
    reg clk;
    reg xreset;
+   reg res_rx;
    wire [31:0] write_data, data_addr;
    wire mem_write;
 
-   test_top dut (clk, xreset, write_data, data_addr, mem_write);
+   test_top dut (clk, xreset, rs_rx, write_data, data_addr, mem_write);
 
    // initialize test by xresetting
    initial begin
       xreset <= 0;
+      rs_rx  <= 1;
       #22;
       xreset <= 1;
    end
