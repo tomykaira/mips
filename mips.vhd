@@ -21,7 +21,7 @@ architecture struct of mips is
     port (op                  : in STD_LOGIC_VECTOR(5 downto 0);
         zero                  : in STD_LOGIC;
         rx_done               : in STD_LOGIC;
-        mem_to_reg, mem_write : out STD_LOGIC;
+        bus_to_reg, mem_write : out STD_LOGIC;
         pc_src, alu_src       : out STD_LOGIC;
         reg_dst, reg_write    : out STD_LOGIC;
         jump                  : out STD_LOGIC;
@@ -32,7 +32,7 @@ architecture struct of mips is
   component data_path
     port (
     clk, reset          : in  std_logic;
-    mem_to_reg, pc_src  : in  std_logic;
+    bus_to_reg, pc_src  : in  std_logic;
     alu_src, reg_dst    : in  std_logic;
     reg_write, jump     : in  std_logic;
     alu_control         : in  std_logic_vector(2 downto 0);
@@ -44,7 +44,7 @@ architecture struct of mips is
     stall               : in  STD_LOGIC);
   end component;
 
-  signal mem_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;
+  signal bus_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;
   signal zero : std_logic;
   signal alu_control : std_logic_vector(2 downto 0);
   signal rx_enable_buf : STD_LOGIC;
@@ -54,7 +54,7 @@ begin
     op          => instruction(31 downto 26),
     zero        => zero,
     rx_done     => rx_done,
-    mem_to_reg  => mem_to_reg,
+    bus_to_reg  => bus_to_reg,
     mem_write   => mem_write,
     pc_src      => pc_src,
     alu_src     => alu_src,
@@ -67,7 +67,7 @@ begin
   dp : data_path port map (
     clk         => clk,
     reset       => reset,
-    mem_to_reg  => mem_to_reg,
+    bus_to_reg  => bus_to_reg,
     pc_src      => pc_src,
     alu_src     => alu_src,
     reg_dst     => reg_dst,

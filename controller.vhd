@@ -5,7 +5,7 @@ entity controller is
   port (op                    : in STD_LOGIC_VECTOR(5 downto 0);
         zero                  : in STD_LOGIC;
         rx_done               : in STD_LOGIC;
-        mem_to_reg, mem_write : out STD_LOGIC;
+        bus_to_reg, mem_write : out STD_LOGIC;
         pc_src, alu_src       : out STD_LOGIC;
         reg_dst, reg_write    : out STD_LOGIC;
         jump                  : out STD_LOGIC;
@@ -18,7 +18,7 @@ architecture struct of controller is
     port (
       op                    : in  STD_LOGIC_VECTOR(5 downto 0);
       rx_done               : in  STD_LOGIC;
-      mem_to_reg, mem_write : out STD_LOGIC;
+      bus_to_reg, mem_write : out STD_LOGIC;
       alu_src               : out STD_LOGIC;
       branch                : out STD_LOGIC;
       reg_dst, reg_write    : out STD_LOGIC;
@@ -33,7 +33,7 @@ begin
   md : main_decoder port map (
     op          => op,
     rx_done     => rx_done,
-    mem_to_reg  => mem_to_reg,
+    bus_to_reg  => bus_to_reg,
     mem_write   => mem_write,
     branch      => branch,
     alu_src     => alu_src,

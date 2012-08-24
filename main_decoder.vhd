@@ -6,7 +6,7 @@ use IEEE.STD_LOGIC_1164.all;
 -- reg_dst: 0: 20 to 16  1: 15 to 11
 -- reg_write: write enable
 -- TEST
--- op | rx_done | mem_to_reg | mem_write | alu_src | branch | reg_dst | reg_write | jump | rx_enable | alu_control b
+-- op | rx_done | bus_to_reg | mem_write | alu_src | branch | reg_dst | reg_write | jump | rx_enable | alu_control b
 -- 0  | 0       | 0          | 0         | 0       | 0      | 1       | 1         | 0    | 0         | 000
 -- 1  | 0       | 0          | 0         | 0       | 0      | 1       | 1         | 0    | 0         | 001
 -- 2  | 0       | 0          | 0         | 0       | 0      | 1       | 1         | 0    | 0         | 010
@@ -30,7 +30,7 @@ entity main_decoder is
   port (
     op                    : in  STD_LOGIC_VECTOR(5 downto 0);
     rx_done               : in  STD_LOGIC;
-    mem_to_reg, mem_write : out STD_LOGIC;
+    bus_to_reg, mem_write : out STD_LOGIC;
     alu_src               : out STD_LOGIC;
     branch                : out STD_LOGIC;
     reg_dst, reg_write    : out STD_LOGIC;
@@ -63,7 +63,7 @@ begin  -- behave
     end case;
   end process;
 
-  mem_to_reg  <= controls(10);
+  bus_to_reg  <= controls(10);
   mem_write   <= controls(9);
   alu_src     <= controls(8);
   branch      <= controls(7);
