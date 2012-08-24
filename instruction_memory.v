@@ -20,20 +20,20 @@ module instruction_memory (input [5:0] a,
       RAM[10] <= 32'h1ce22000; // slt  $4, $7, $2  AROUND
       RAM[11] <= 32'h08853800; // add  $7, $4, $5
       RAM[12] <= 32'h18e23800; // sub  $7, $7, $5
-      RAM[13] <= 32'h10e00000; // out  $7
+      RAM[13] <= 32'h10070000; // out  $7
       RAM[14] <= 32'hac670044; // sw   $7, 68($3)
       RAM[15] <= 32'h8c020050; // lw   $2, 80($0)
       RAM[16] <= 32'hfc000012; // J    end
       RAM[17] <= 32'h28020001; // addi $2, $0, 1
       RAM[18] <= 32'h30050000; // in   $5          END
-      RAM[19] <= 32'h10280000; // out  $5
+      RAM[19] <= 32'h10050000; // out  $5
       RAM[20] <= 32'hac65004c; // sw   $5, 76($3)
       RAM[21] <= 32'h8c020050; // lw   $2, 80($0)
       RAM[22] <= 32'b0;        // nop  TODO: I cannot $2 right after written
       RAM[23] <= 32'hac020054; // sw   $2, 84($0)
-      RAM[24] <= 32'h10100000; // out  $2
+      RAM[24] <= 32'h10020000; // out  $2
       RAM[25] <= 32'h10000000; // out  $0  test done flag
-      for (i = 23; i < 64; i = i + 1)
+      for (i = 26; i < 64; i = i + 1)
         RAM[i] <= 32'h0;
    end
 

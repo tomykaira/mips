@@ -64,6 +64,7 @@ begin
     reg_write   => reg_write,
     jump        => jump,
     rx_enable   => rx_enable_buf,
+    send_enable => send_enable,
     alu_control => alu_control);
 
   dp : data_path port map (
