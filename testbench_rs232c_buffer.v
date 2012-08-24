@@ -1,12 +1,16 @@
 module testbench_rs232c_buffer();
 
-   reg clk, push;
+   reg clk, reset, push;
    reg [31:0] push_data;
    wire tx;
 
-   rs232c_buffer #(16'd5) dut (.clk(clk), .push(push), .push_data(push_data), .tx(tx));
+   rs232c_buffer #(16'd5) dut (.clk(clk), .reset(reset), .push(push), .push_data(push_data), .tx(tx));
 
    initial begin
+      reset <= 1;
+      #20;
+      reset <= 0;
+
       push_data <= 32'h12345678;
       push <= 1;
       #10;
@@ -17,51 +21,27 @@ module testbench_rs232c_buffer();
       push <= 1;
       #10;
       push <= 0;
-      #200;
-
+      #10;
       push_data <= 32'hff00ff00;
       push <= 1;
       #10;
       push <= 0;
-      #200;
-
+      #10;
       push_data <= 32'h7800ad16;
       push <= 1;
       #10;
-      push <= 0;
-      #200;
-
       push_data <= 32'heee80a0e;
       push <= 1;
       #10;
-      push <= 0;
-      #200;
-
       push_data <= 32'h68971e60;
       push <= 1;
       #10;
-      push <= 0;
-      #200;
-
       push_data <= 32'h4ba73e0d;
       push <= 1;
       #10;
-      push <= 0;
-      #200;
-
       push_data <= 32'h8cf3eb97;
       push <= 1;
       #10;
-      push <= 0;
-      #200;
-
-      push_data <= 32'h9c14b406;
-      push <= 1;
-      #10;
-      push <= 0;
-      #200;
-
-      // TODO: stack test
    end
 
    // geenrate clock to sequence tests

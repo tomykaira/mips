@@ -9,6 +9,7 @@ entity rs232c_buffer is
 
   port (
     clk       : in std_logic;
+    reset     : in std_logic;
     push      : in std_logic;           -- 1 to push data
     push_data : in std_logic_vector(31 downto 0);
     tx        : out std_logic);
@@ -18,58 +19,68 @@ end rs232c_buffer;
 architecture behave of rs232c_buffer is
 
   component u232c
+    generic (len : integer range 1 to 8  := 4);
     port (
       clk  : in  STD_LOGIC;
-      data : in  STD_LOGIC_VECTOR (7 downto 0);
+      data : in  STD_LOGIC_VECTOR (len * 8-1 downto 0);
       go   : in  STD_LOGIC;
       busy : out STD_LOGIC;
       tx   : out STD_LOGIC);
   end component;
 
-  -- Capacity : 32 / 4 = 8
-  type ram_type is array (31 downto 0) of std_logic_vector(7 downto 0);
-  signal queue : ram_type;
+  COMPONENT fifo
+    PORT (
+      clk : IN STD_LOGIC;
+      rst : IN STD_LOGIC;
+      din : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+      wr_en : IN STD_LOGIC;
+      rd_en : IN STD_LOGIC;
+      dout : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+      full : OUT STD_LOGIC;
+      empty : OUT STD_LOGIC
+      );
+  END COMPONENT;
 
-  signal read_ptr, write_ptr : std_logic_vector(5 downto 0) := (others => '0');
   signal go, busy : std_logic;
+
+  signal full, empty, rd_en : std_logic := '0';      -- full is not used
+  signal send_data : std_logic_vector(31 downto 0);
 
 begin  -- behave
 
+  send_data_queue : fifo
+    PORT MAP (
+      clk => clk,
+      rst => reset,
+      din => push_data,
+      wr_en => push,
+      rd_en => rd_en,
+      dout => send_data,
+      full => full,
+      empty => empty
+      );
+
   sender : u232c port map (
     clk  => clk,
-    data => queue(conv_integer(read_ptr)),
+    data => send_data,
     go   => go,
     busy => busy,
     tx   => tx);
 
-  push_to_queue: process (clk)
-  begin  -- process push
-    if clk'event and clk = '1' then  -- rising clock edge
-      if push = '1' then
-        queue(conv_integer(write_ptr))     <= push_data(31 downto 24);
-        queue(conv_integer(write_ptr) + 1) <= push_data(23 downto 16);
-        queue(conv_integer(write_ptr) + 2) <= push_data(15 downto 8);
-        queue(conv_integer(write_ptr) + 3) <= push_data(7  downto 0);
-        write_ptr <= write_ptr + 4;
-      end if;
-    end if;
-  end process push_to_queue;
-
   pop: process (clk)
   begin  -- process pop
     if clk'event and clk = '1' then  -- rising clock edge
-      if busy = '0' and read_ptr /= write_ptr then
-        go <= '1';
+      if busy = '0' then
+        if rd_en = '0' then
+          rd_en <= not empty ;
+        else
+          rd_en <= '0';
+          go <= '1';
+        end if;
+      else
+        go <= '0';
       end if;
     end if;
   end process pop;
-
-  load_next: process (busy)
-  begin  -- process load_next
-    -- falling edge
-    if busy'event and busy = '0' and read_ptr /= write_ptr then
-      read_ptr <= read_ptr + 1;
-    end if;
-  end process load_next;
   
 end behave;
