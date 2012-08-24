@@ -24,9 +24,12 @@ module instruction_memory (input [5:0] a,
       RAM[14] <= 32'h8c020050; // lw   $2, 80($0)
       RAM[15] <= 32'hfc000011; // J    end
       RAM[16] <= 32'h28020001; // addi $2, $0, 1
-      RAM[17] <= 32'h30030000; // in   $3
-      RAM[18] <= 32'hac020054; // sw   $2, 84($0)  END
-      for (i = 19; i < 64; i = i + 1)
+      RAM[17] <= 32'h30050000; // in   $5          END
+      RAM[18] <= 32'hac65004c; // sw   $5, 76($3)
+      RAM[19] <= 32'h8c020050; // lw   $2, 80($0)
+      RAM[20] <= 32'b0;        // nop  TODO: I cannot $2 right after written
+      RAM[21] <= 32'hac020054; // sw   $2, 84($0)
+      for (i = 22; i < 64; i = i + 1)
         RAM[i] <= 32'h0;
    end
 

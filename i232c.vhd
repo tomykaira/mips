@@ -27,7 +27,7 @@ begin
   write_out: process(clk)
   begin
     if rising_edge(clk) then
-      if state(5)='1' and state(4)='0' then
+      if state(5)='1' and state(4)='0' and enable = '1' then
         data <= fd;
         changed <= '1';
       else

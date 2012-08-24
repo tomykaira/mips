@@ -70,6 +70,7 @@ begin  -- test
   mem_write  <= mem_write_buf;
 
   -- is this good design to judge here?
-  read_data <= x"000000" & rx_data when rx_enable = '1' else memory_data;
+  -- ok for reading twice?
+  read_data <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
 
 end test;

@@ -53,6 +53,8 @@ module testbench();
             $stop;
          end else if (data_addr === 80 && write_data === 7) begin
             $display ("Succeeded: [80] <= 7");
+         end else if (data_addr === 88 && write_data === 105) begin
+            $display ("Succeeded: [88] <= 105 after RS232C read");
          end else begin
             $display ("Failed: unexpected memory write");
             $stop;
