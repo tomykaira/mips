@@ -40,33 +40,34 @@ end main_decoder;
 
 architecture behave of main_decoder is
 
-  signal controls : std_logic_vector(9 downto 0);
+  signal controls : std_logic_vector(10 downto 0);
 
 begin  -- behave
 
   process(op)
   begin
     case op is
-      when "000100" => controls <= "0001000110"; -- BEQ
-      when "100011" => controls <= "1010010010"; -- LW
-      when "101011" => controls <= "0110000010"; -- SW
-      when "111111" => controls <= "0000001000"; -- J
+      when "000100" => controls <= "00010000110"; -- BEQ
+      when "100011" => controls <= "10100100010"; -- LW
+      when "101011" => controls <= "01100000010"; -- SW
+      when "111111" => controls <= "00000010000"; -- J
       when others   =>
         case op(5 downto 3) is
-          when "000" => controls <= "0000110" & op(2 downto 0); -- Basic arith
-          when "001" => controls <= "0010010" & op(2 downto 0); -- Basic arith i
-          when others => controls <=  "----------";
+          when "000" => controls <= "00001100" & op(2 downto 0); -- Basic arith
+          when "001" => controls <= "00100100" & op(2 downto 0); -- Basic arith i
+          when others => controls <=  "-----------";
         end case;
     end case;
   end process;
 
-  mem_to_reg  <= controls(9);
-  mem_write   <= controls(8);
-  alu_src     <= controls(7);
-  branch      <= controls(6);
-  reg_dst     <= controls(5);
-  reg_write   <= controls(4);
-  jump        <= controls(3);
+  mem_to_reg  <= controls(10);
+  mem_write   <= controls(9);
+  alu_src     <= controls(8);
+  branch      <= controls(7);
+  reg_dst     <= controls(6);
+  reg_write   <= controls(5);
+  jump        <= controls(4);
+  rx_enable   <= controls(3);
   alu_control <= controls(2 downto 0);
 
 end behave;
