@@ -23,7 +23,7 @@ architecture test of test_top is
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
       read_data           : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable           : out STD_LOGIC;
-      rx_data             : in  std_logic_vector(7 downto 0));
+      rx_done             : in  STD_LOGIC);
   end component;
 
   component instruction_memory
@@ -48,7 +48,7 @@ architecture test of test_top is
            changed: out STD_LOGIC);
   end
 
-  signal pc, instruction, read_data : std_logic_vector(31 downto 0);
+  signal pc, instruction, read_data, memory_data : std_logic_vector(31 downto 0);
 
   signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
   signal mem_write_buf : STD_LOGIC;
@@ -59,14 +59,17 @@ architecture test of test_top is
 
 begin  -- test
 
-  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data, rx_enable, rx_data);
-  imem1 : instruction_memory port map(pc(7 downto 2), instruction, );
-  dmem1 : data_memory port map(clk, mem_write_buf, data_addr_bufp, write_data_buf, read_data);
+  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data, rx_enable, rx_done);
+  imem1 : instruction_memory port map(pc(7 downto 2), instruction);
+  dmem1 : data_memory port map(clk, mem_write_buf, data_addr_bufp, write_data_buf, memory_data);
 
   rx : i232c port map(clk, rx_enable, RS_RX, rx_data, rx_done);
 
   write_data <= write_data_buf;
   data_addr  <= data_addr_buf;
   mem_write  <= mem_write_buf;
+
+  -- is this good design to judge here?
+  read_data <= x"0000000" & rx_data when rx_enable = '1' else memory_data;
 
 end test;

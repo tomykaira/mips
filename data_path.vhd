@@ -61,7 +61,7 @@ begin  -- struct
   pc_reg : flip_reset port map (
     clk   => clk,
     reset => reset,
-    load_next => not mem_to_reg,
+    load_next => not stall,
     d     => pc_next,
     q     => pc_buf);
 
