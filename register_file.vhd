@@ -29,7 +29,7 @@ begin  -- behave
     end if;
   end process;
 
-  process (read_addr1, read_addr2)
+  process (mem, read_addr1, read_addr2)
   begin
     if conv_integer(read_addr1) = 0 then
       read_data1 <=  x"00000000";
