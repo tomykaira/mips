@@ -21,6 +21,7 @@ architecture top of top is
       pc                  : out STD_LOGIC_VECTOR(31 downto 0);
       instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
+      send_enable         : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
       data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable           : out STD_LOGIC;
@@ -40,13 +41,16 @@ architecture top of top is
       rd      : out std_logic_vector(31 downto 0));
   end component;
 
-  component u232c
+  component rs232c_buffer is
+    generic (wtime : std_logic_vector(15 downto 0) := x"008F");
+
     port (
-      clk  : in  STD_LOGIC;
-      data : in  STD_LOGIC_VECTOR (7 downto 0);
-      go   : in  STD_LOGIC;
-      busy : out STD_LOGIC;
-      tx   : out STD_LOGIC);
+      clk       : in std_logic;
+      reset     : in std_logic;
+      push      : in std_logic;           -- 1 to push data
+      push_data : in std_logic_vector(31 downto 0);
+      tx        : out std_logic);
+
   end component;
 
   component i232c
@@ -63,11 +67,10 @@ architecture top of top is
   signal mem_write_buf : STD_LOGIC;
 
   signal rx_data, tx_data : std_logic_vector(7 downto 0);
-  signal busy, go : std_logic;
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_done : STD_LOGIC;
+  signal rx_enable, rx_done, send_enable : STD_LOGIC;
 
 begin  -- test
 
@@ -78,14 +81,11 @@ begin  -- test
     i=>mclk,
     o=>iclk);
 
-  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, data_from_bus, rx_enable, rx_done);
+  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write_buf, send_enable, data_addr_buf, write_data_buf, data_from_bus, rx_enable, rx_done);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
   dmem1 : data_memory port map(iclk, mem_write_buf, data_addr_buf, write_data_buf, memory_data);
   receiver : i232c port map (iclk, rx_enable, RS_RX, rx_data, rx_done);
-  sender : u232c port map (iclk, tx_data, go, busy, RS_TX);
-
-  tx_data <= write_data_buf(7 downto 0);
-  go <= '1' when busy = '0' and conv_integer(data_addr_buf) = 88 else '0';
+  sender : rs232c_buffer port map (iclk, not xrst, send_enable, write_data_buf, RS_TX);
 
   -- is this good design to judge here?
   -- ok for reading twice?

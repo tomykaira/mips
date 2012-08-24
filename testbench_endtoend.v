@@ -5,7 +5,12 @@ module testbench_endtoend();
    reg rs_rx;
    wire rs_tx;
 
+   wire check_changed;
+   wire [7:0] check_data;
+
    top dut (.CLK(clk), .XRST(xreset), .RS_RX(rs_rx), .RS_TX(rs_tx));
+
+   i232c decoder(.clk(clk), .enable(1'b1), .rx(rs_tx), .data(check_data), .changed(check_changed));
 
    // initialize test by xresetting
    initial begin
