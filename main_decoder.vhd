@@ -16,6 +16,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- 8  | 0       | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 000
 -- 9  | 0       | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 001
 -- 10 | 0       | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 010
+-- 12 | 0       | 1          | 0         | -       | 0      | 0       | 1         | 0    | 1         | ---
+-- 12 | 1       |            |           |         |        |         |           |      | 0         | ---
 -- 14 | 0       | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 110
 -- 15 | 0       | 0          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 111
 -- 35 | 0       | 1          | 0         | 1       | 0      | 0       | 1         | 0    | 0         | 010
@@ -48,6 +50,7 @@ begin  -- behave
   begin
     case op is
       when "000100" => controls <= "00010000110"; -- BEQ
+      when "001100" => controls <= "10000101000"; -- Load from RS232C
       when "100011" => controls <= "10100100010"; -- LW
       when "101011" => controls <= "01100000010"; -- SW
       when "111111" => controls <= "00000010000"; -- J
@@ -67,7 +70,7 @@ begin  -- behave
   reg_dst     <= controls(6);
   reg_write   <= controls(5);
   jump        <= controls(4);
-  rx_enable   <= controls(3);
+  rx_enable   <= not rx_done and controls(3);
   alu_control <= controls(2 downto 0);
 
 end behave;
