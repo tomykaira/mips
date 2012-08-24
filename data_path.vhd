@@ -43,6 +43,7 @@ architecture struct of data_path is
     
     port (
       clk, reset : in  std_logic;
+      load_next  : in  std_logic;
       d          : in  std_logic_vector(width-1 downto 0);
       q          : out std_logic_vector(width-1 downto 0));
   end component;
@@ -60,6 +61,7 @@ begin  -- struct
   pc_reg : flip_reset port map (
     clk   => clk,
     reset => reset,
+    load_next => '1',
     d     => pc_next,
     q     => pc_buf);
 

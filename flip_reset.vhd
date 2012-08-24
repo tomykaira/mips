@@ -9,6 +9,7 @@ entity flip_reset is
 
   port (
     clk, reset : in  std_logic;
+    load_next  : in  std_logic;
     d          : in  std_logic_vector(width-1 downto 0);
     q          : out std_logic_vector(width-1 downto 0));
 
@@ -22,7 +23,7 @@ begin  -- asynchronous
   begin  -- process flip
     if reset = '1' then
       q <=  conv_std_logic_vector(0, width);
-    elsif clk'event and clk = '1' then
+    elsif clk'event and clk = '1' and load_next = '1' then
       q <= d;
     end if;
   end process flip;
