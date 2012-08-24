@@ -2,7 +2,7 @@ module testbench();
 
    reg clk;
    reg xreset;
-   reg res_rx;
+   reg rs_rx;
    wire [31:0] write_data, data_addr;
    wire mem_write;
 

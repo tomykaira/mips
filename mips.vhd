@@ -47,12 +47,13 @@ architecture struct of mips is
   signal mem_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;
   signal zero : std_logic;
   signal alu_control : std_logic_vector(2 downto 0);
-  signal rx_enable : STD_LOGIC;
+  signal rx_enable_buf : STD_LOGIC;
 
 begin
   cont : controller port map (
     op          => instruction(31 downto 26),
     zero        => zero,
+    rx_done     => rx_done,
     mem_to_reg  => mem_to_reg,
     mem_write   => mem_write,
     pc_src      => pc_src,
@@ -60,7 +61,7 @@ begin
     reg_dst     => reg_dst,
     reg_write   => reg_write,
     jump        => jump,
-    rx_enable   => rx_enable,
+    rx_enable   => rx_enable_buf,
     alu_control => alu_control);
 
   dp : data_path port map (
@@ -79,7 +80,8 @@ begin
     alu_out     => alu_out,
     write_data  => write_data,
     read_data   => read_data,
-    stall       => rx_enable);
+    stall       => rx_enable_buf);
+
+  rx_enable <= rx_enable_buf;
 
 end;
-    

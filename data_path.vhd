@@ -15,7 +15,8 @@ entity data_path is
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     alu_out, write_data : out std_logic_vector(31 downto 0);
-    read_data           : in  std_logic_vector(31 downto 0));
+    read_data           : in  std_logic_vector(31 downto 0);
+    stall               : in  STD_LOGIC);
 
 end data_path;
 

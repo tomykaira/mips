@@ -46,7 +46,7 @@ architecture test of test_top is
            rx     : in  STD_LOGIC;
            data   : out STD_LOGIC_VECTOR (7 downto 0);
            changed: out STD_LOGIC);
-  end
+  end component;
 
   signal pc, instruction, read_data, memory_data : std_logic_vector(31 downto 0);
 
@@ -61,7 +61,7 @@ begin  -- test
 
   mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data, rx_enable, rx_done);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
-  dmem1 : data_memory port map(clk, mem_write_buf, data_addr_bufp, write_data_buf, memory_data);
+  dmem1 : data_memory port map(clk, mem_write_buf, data_addr_buf, write_data_buf, memory_data);
 
   rx : i232c port map(clk, rx_enable, RS_RX, rx_data, rx_done);
 

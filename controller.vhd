@@ -32,6 +32,7 @@ architecture struct of controller is
 begin
   md : main_decoder port map (
     op          => op,
+    rx_done     => rx_done,
     mem_to_reg  => mem_to_reg,
     mem_write   => mem_write,
     branch      => branch,
@@ -39,6 +40,7 @@ begin
     reg_dst     => reg_dst,
     reg_write   => reg_write,
     jump        => jump,
+    rx_enable   => rx_enable,
     alu_control => alu_control);
 
   pc_src <= branch and zero;
