@@ -40,7 +40,7 @@ architecture test of test_top is
   end component;
 
   component i232c
-    generic (wtime: std_logic_vector(15 downto 0) := x"0005");
+    generic (wtime: std_logic_vector(15 downto 0) := x"0004");
     port ( clk    : in  STD_LOGIC;
            enable : in  STD_LOGIC;
            rx     : in  STD_LOGIC;
@@ -70,6 +70,6 @@ begin  -- test
   mem_write  <= mem_write_buf;
 
   -- is this good design to judge here?
-  read_data <= x"0000000" & rx_data when rx_enable = '1' else memory_data;
+  read_data <= x"000000" & rx_data when rx_enable = '1' else memory_data;
 
 end test;

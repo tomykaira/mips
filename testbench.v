@@ -14,6 +14,28 @@ module testbench();
       rs_rx  <= 1;
       #22;
       xreset <= 1;
+      #180;
+
+      // input 0_10010110_1
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 1;
+      #50;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 1;
+      #50;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 1;
+      #50;
+      rs_rx <= 1;
+      #50;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 1;
    end
 
    // geenrate clock to sequence tests

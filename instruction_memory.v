@@ -26,7 +26,7 @@ module instruction_memory (input [5:0] a,
       RAM[16] <= 32'h28020001; // addi $2, $0, 1
       RAM[17] <= 32'h30030000; // in   $3
       RAM[18] <= 32'hac020054; // sw   $2, 84($0)  END
-      for (i = 18; i < 64; i = i + 1)
+      for (i = 19; i < 64; i = i + 1)
         RAM[i] <= 32'h0;
    end
 
