@@ -7,8 +7,8 @@ entity test_top is
   port (
     CLK, XRST              : in  std_logic;
     RS_RX                  : in  std_logic;
-    write_data,  data_addr : out std_logic_vector(31 downto 0);
-    mem_write              : out std_logic);
+    send_data              : out std_logic_vector(31 downto 0);
+    send_enable            : out std_logic);
 
 end test_top;
 
@@ -20,6 +20,7 @@ architecture test of test_top is
       pc                  : out STD_LOGIC_VECTOR(31 downto 0);
       instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
+      send_enable         : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
       data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable           : out STD_LOGIC;
@@ -50,8 +51,8 @@ architecture test of test_top is
 
   signal pc, instruction, data_from_bus, memory_data : std_logic_vector(31 downto 0);
 
-  signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
-  signal mem_write_buf : STD_LOGIC;
+  signal write_data, data_addr : std_logic_vector(31 downto 0);
+  signal mem_write : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
   signal rx_enable : STD_LOGIC;
@@ -59,15 +60,13 @@ architecture test of test_top is
 
 begin  -- test
 
-  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, data_from_bus, rx_enable, rx_done);
+  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write, send_enable, data_addr, write_data, data_from_bus, rx_enable, rx_done);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
-  dmem1 : data_memory port map(clk, mem_write_buf, data_addr_buf, write_data_buf, memory_data);
+  dmem1 : data_memory port map(clk, mem_write, data_addr, write_data, memory_data);
 
   rx : i232c port map(clk, rx_enable, RS_RX, rx_data, rx_done);
 
-  write_data <= write_data_buf;
-  data_addr  <= data_addr_buf;
-  mem_write  <= mem_write_buf;
+  send_data <= write_data;
 
   -- is this good design to judge here?
   -- ok for reading twice?

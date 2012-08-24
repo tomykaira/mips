@@ -10,6 +10,7 @@ entity controller is
         reg_dst, reg_write    : out STD_LOGIC;
         jump                  : out STD_LOGIC;
         rx_enable             : out STD_LOGIC;
+        send_enable           : out STD_LOGIC;
         alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
 end;
 
@@ -24,6 +25,7 @@ architecture struct of controller is
       reg_dst, reg_write    : out STD_LOGIC;
       jump                  : out STD_LOGIC;
       rx_enable             : out STD_LOGIC;
+      send_enable           : out STD_LOGIC;
       alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
   end component;
 
@@ -41,6 +43,7 @@ begin
     reg_write   => reg_write,
     jump        => jump,
     rx_enable   => rx_enable,
+    send_enable => send_enable,
     alu_control => alu_control);
 
   pc_src <= branch and zero;

@@ -8,6 +8,7 @@ entity mips is
     pc                  : out STD_LOGIC_VECTOR(31 downto 0);
     instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
     mem_write           : out STD_LOGIC;
+    send_enable         : out STD_LOGIC;
     alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
     data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
     rx_enable           : out STD_LOGIC;
@@ -26,6 +27,7 @@ architecture struct of mips is
         reg_dst, reg_write    : out STD_LOGIC;
         jump                  : out STD_LOGIC;
         rx_enable             : out STD_LOGIC;
+        send_enable           : out STD_LOGIC;
         alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
   end component;
 
