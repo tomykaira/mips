@@ -39,7 +39,9 @@ begin
   statemachine: process(clk)
   begin
     if rising_edge(clk) then
-      if state(5)='0' and rxdfd = '0' then
+      if enable = '0' then
+        state <= "000000"; -- reset
+      elsif state(5) = '0' and rxdfd = '0' then
         state(0) <= '1';
       elsif state(5) = '1' then
         state(0) <= '0';
