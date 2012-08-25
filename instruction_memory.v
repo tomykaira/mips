@@ -29,10 +29,10 @@ module instruction_memory (input [5:0] a,
       RAM[19] <= 32'h10050000; // out  $5         expects: input value(105 = x69 in test)
       RAM[20] <= 32'hac65004c; // sw   $5, 76($3)
       RAM[21] <= 32'h8c020050; // lw   $2, 80($0)
-      RAM[22] <= 32'b0;        // nop  TODO: I cannot $2 right after written: Maybe this is fixed
-      RAM[23] <= 32'hac020054; // sw   $2, 84($0)
-      RAM[24] <= 32'h10020000; // out  $2         expects: 7
-      RAM[25] <= 32'h10000000; // out  $0  test done flag
+      RAM[22] <= 32'hac020054; // sw   $2, 84($0)
+      RAM[23] <= 32'h10020000; // out  $2         expects: 7
+      RAM[24] <= 32'h10000000; // out  $0  test done flag
+      RAM[25] <= 32'h30000000; // in   $0          BLOCK
       for (i = 26; i < 64; i = i + 1)
         RAM[i] <= 32'h0;
    end
