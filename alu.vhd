@@ -3,8 +3,20 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.STD_LOGIC_ARITH.all;
 use IEEE.STD_LOGIC_UNSIGNED.all;
 
+-- TEST
+-- a  |b   |control b|output|zero
+-- 18 |9   |000      |0     |1
+--    |    |001      |27    |0
+--    |    |010      |27    |0
+--    |    |110      |9     |0
+--    |    |111      |0     |1
+-- 18 |18  |111      |0     |1
+-- 18 |19  |         |1     |0
+-- 18 |100 |         |1     |0
+-- /TEST
+
 entity alu is
-  
+
   port (
     a, b    : in  std_logic_vector(31 downto 0);
     control : in  std_logic_vector(2 downto 0);
@@ -38,6 +50,6 @@ begin  -- behave
              o3 when control(1 downto 0) = "11";
 
   output <= out_buf;
-  zero <= '1' when conv_integer(out_buf) = 0 else '0';
+  zero <= '1' when out_buf = x"00000000" else '0';
 
 end behave;

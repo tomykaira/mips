@@ -21,8 +21,11 @@ architecture top of top is
       pc                  : out STD_LOGIC_VECTOR(31 downto 0);
       instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
+      send_enable         : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-      read_data           : in  STD_LOGIC_VECTOR(31 downto 0));
+      data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
+      rx_enable           : out STD_LOGIC;
+      rx_done             : in  STD_LOGIC);
   end component;
 
   component instruction_memory
@@ -38,24 +41,36 @@ architecture top of top is
       rd      : out std_logic_vector(31 downto 0));
   end component;
 
-  component u232c
+  component rs232c_buffer is
+    generic (wtime : std_logic_vector(15 downto 0) := x"008F");
+
     port (
-      clk  : in  STD_LOGIC;
-      data : in  STD_LOGIC_VECTOR (7 downto 0);
-      go   : in  STD_LOGIC;
-      busy : out STD_LOGIC;
-      tx   : out STD_LOGIC);
+      clk       : in std_logic;
+      reset     : in std_logic;
+      push      : in std_logic;           -- 1 to push data
+      push_data : in std_logic_vector(31 downto 0);
+      tx        : out std_logic);
+
   end component;
 
-  signal pc, instruction, read_data : std_logic_vector(31 downto 0);
+  component i232c
+    port ( clk    : in  STD_LOGIC;
+           enable : in  STD_LOGIC;
+           rx     : in  STD_LOGIC;
+           data   : out STD_LOGIC_VECTOR (7 downto 0);
+           changed: out STD_LOGIC);
+  end component;
 
-  signal write_data_buf, data_addr_buf : std_logic_vector(31 downto 0);
-  signal mem_write_buf : STD_LOGIC;
+  signal pc, instruction, data_from_bus, memory_data : std_logic_vector(31 downto 0);
 
-  signal data : std_logic_vector(7 downto 0);
-  signal busy, go : std_logic;
+  signal write_data, data_addr : std_logic_vector(31 downto 0);
+  signal mem_write : STD_LOGIC;
+
+  signal rx_data : std_logic_vector(7 downto 0);
 
   signal mclk, iclk : std_logic;
+
+  signal rx_enable, rx_done, send_enable : STD_LOGIC;
 
 begin  -- test
 
@@ -66,12 +81,38 @@ begin  -- test
     i=>mclk,
     o=>iclk);
 
-  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write_buf, data_addr_buf, write_data_buf, read_data);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
-  dmem1 : data_memory port map(iclk, mem_write_buf, data_addr_buf, write_data_buf, read_data);
-  sender : u232c port map (iclk, data, go, busy, RS_TX);
+  dmem1 : data_memory port map(iclk, mem_write, data_addr, write_data, memory_data);
 
-  data <= write_data_buf(7 downto 0);
-  go <= '1' when busy = '0' and conv_integer(data_addr_buf) = 84 else '0';
+  mips1 : mips port map (
+    clk           => iclk,
+    reset         => not xrst,
+    pc            => pc,
+    instruction   => instruction,
+    mem_write     => mem_write,
+    send_enable   => send_enable,
+    alu_out       => data_addr,
+    write_data    => write_data,
+    data_from_bus => data_from_bus,
+    rx_enable     => rx_enable,
+    rx_done       => rx_done);
+
+  receiver : i232c port map (
+    clk     => iclk,
+    enable  => rx_enable,
+    rx      => RS_RX,
+    data    => rx_data,
+    changed => rx_done);
+
+  sender : rs232c_buffer port map (
+    clk       => iclk,
+    reset     => not xrst,
+    push      => send_enable,
+    push_data => write_data,
+    tx        => RS_TX);
+  
+  -- is this good design to judge here?
+  -- ok for reading twice?
+  data_from_bus <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
 
 end top;

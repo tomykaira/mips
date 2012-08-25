@@ -7,7 +7,7 @@ entity data_path is
   
   port (
     clk, reset          : in  std_logic;
-    mem_to_reg, pc_src  : in  std_logic;
+    bus_to_reg, pc_src  : in  std_logic;
     alu_src, reg_dst    : in  std_logic;
     reg_write, jump     : in  std_logic;
     alu_control         : in  std_logic_vector(2 downto 0);
@@ -15,7 +15,8 @@ entity data_path is
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     alu_out, write_data : out std_logic_vector(31 downto 0);
-    read_data           : in  std_logic_vector(31 downto 0));
+    data_from_bus       : in  std_logic_vector(31 downto 0);
+    stall               : in  STD_LOGIC);
 
 end data_path;
 
@@ -43,6 +44,7 @@ architecture struct of data_path is
     
     port (
       clk, reset : in  std_logic;
+      load_next  : in  std_logic;
       d          : in  std_logic_vector(width-1 downto 0);
       q          : out std_logic_vector(width-1 downto 0));
   end component;
@@ -60,6 +62,7 @@ begin  -- struct
   pc_reg : flip_reset port map (
     clk   => clk,
     reset => reset,
+    load_next => not stall,
     d     => pc_next,
     q     => pc_buf);
 
@@ -81,7 +84,7 @@ begin  -- struct
     read_data2    => write_data_buf);
 
   write_reg <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
-  result <= read_data when mem_to_reg = '1' else alu_out_buf;
+  result <= data_from_bus when bus_to_reg = '1' else alu_out_buf;
 
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
                     else x"0000" & instruction(15 downto 0);
