@@ -81,12 +81,36 @@ begin  -- test
     i=>mclk,
     o=>iclk);
 
-  mips1 : mips port map(iclk, not xrst, pc, instruction, mem_write, send_enable, data_addr, write_data, data_from_bus, rx_enable, rx_done);
   imem1 : instruction_memory port map(pc(7 downto 2), instruction);
   dmem1 : data_memory port map(iclk, mem_write, data_addr, write_data, memory_data);
-  receiver : i232c port map (iclk, rx_enable, RS_RX, rx_data, rx_done);
-  sender : rs232c_buffer port map (iclk, not xrst, send_enable, write_data, RS_TX);
 
+  mips1 : mips port map (
+    clk           => iclk,
+    reset         => not xrst,
+    pc            => pc,
+    instruction   => instruction,
+    mem_write     => mem_write,
+    send_enable   => send_enable,
+    alu_out       => data_addr,
+    write_data    => write_data,
+    data_from_bus => data_from_bus,
+    rx_enable     => rx_enable,
+    rx_done       => rx_done);
+
+  receiver : i232c port map (
+    clk     => iclk,
+    enable  => rx_enable,
+    rx      => RS_RX,
+    data    => rx_data,
+    changed => rx_done);
+
+  sender : rs232c_buffer port map (
+    clk       => iclk,
+    reset     => not xrst,
+    push      => send_enable,
+    push_data => write_data,
+    tx        => RS_TX);
+  
   -- is this good design to judge here?
   -- ok for reading twice?
   data_from_bus <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
