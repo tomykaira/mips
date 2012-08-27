@@ -8,13 +8,13 @@ module instruction_memory (input [5:0] a,
 
    initial begin
       RAM[0]  <= 32'h28020005; // addi $2, $0, 5
-      RAM[1]  <= 32'h2803000c; // addi $2, $0, 12
+      RAM[1]  <= 32'h2803000c; // addi $3, $0, 12
       RAM[2]  <= 32'h2867fff7; // addi $7, $3, -9
       RAM[3]  <= 32'h04e22000; // or   $4, $7, $2
       RAM[4]  <= 32'h00642800; // and  $5, $3, $4
       RAM[5]  <= 32'h08a42800; // add  $5, $5, $4
       RAM[6]  <= 32'hf8a7000a; // beq  $5, $7, end
-      RAM[7]  <= 32'h1c642000; // slt  $4, $0, $4
+      RAM[7]  <= 32'h1c642000; // slt  $4, $3, $4
       RAM[8]  <= 32'hf8800001; // beq  $4, $0, around
       RAM[9]  <= 32'h28050000; // addi $5, $0, 0
       RAM[10] <= 32'h1ce22000; // slt  $4, $7, $2  AROUND
