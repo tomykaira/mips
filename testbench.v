@@ -16,11 +16,7 @@ module testbench();
       xreset <= 1;
       #180;
 
-      // input 0_10010110_1
-      rs_rx <= 0;
-      #50;
-      rs_rx <= 1;
-      #50;
+      // input 0_01010000_1
       rs_rx <= 0;
       #50;
       rs_rx <= 0;
@@ -31,7 +27,11 @@ module testbench();
       #50;
       rs_rx <= 1;
       #50;
-      rs_rx <= 1;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 0;
+      #50;
+      rs_rx <= 0;
       #50;
       rs_rx <= 0;
       #50;
@@ -51,13 +51,29 @@ module testbench();
          if (send_data === 0) begin
             $display ("Succeeded: 0, test end");
             $stop;
-         end if (send_data === 7) begin
-            $display ("Succeeded: 7");
-         end else if (send_data === 105) begin
-            $display ("Succeeded: 105");
-         end else begin
-            $display ("Failed: unexpected sending");
-            $stop;
+         end if (send_data === 1)
+           $display ("Succeeded: 1");
+         else if (send_data === 2)
+           $display ("Succeeded: 2");
+         else if (send_data === 3)
+           $display ("Succeeded: 3");
+         else if (send_data === 5)
+           $display ("Succeeded: 5");
+         else if (send_data === 8)
+           $display ("Succeeded: 8");
+         else if (send_data === 13)
+           $display ("Succeeded: 13");
+         else if (send_data === 21)
+           $display ("Succeeded: 21");
+         else if (send_data === 34)
+           $display ("Succeeded: 34");
+         else if (send_data === 55)
+           $display ("Succeeded: 55");
+         else if (send_data === 89)
+           $display ("Succeeded: 89");
+         else begin
+            $display ("Failed: unexpected sending %d", send_data);
+            // $stop;
          end
       end
    end
