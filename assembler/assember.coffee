@@ -1,8 +1,10 @@
-#!/usr/bin/env node
-
+#!/usr/bin/env coffee
+# usage: ./assember.coffee 64 < input.s
 
 fs = require 'fs'
 encoding = 'utf-8'
+
+instruction_length = process.argv[process.argv.length-1]
 
 splitLines = (file) ->
   file.split("\n").map((line) ->
@@ -103,9 +105,9 @@ toInstruction = (line, line_no, labels) ->
 
 contents = fs.readFileSync("/dev/stdin", encoding) # TODO: is this cross-platform?
 lines = splitLines(contents)
-console.dir lines
 labels = removeLabels(lines)
-console.dir labels
 for i of lines
   code = toInstruction(lines[i], i, labels)
   console.log(rjust(parseInt(code, 2).toString(16), 8)) unless code == ''
+for i in [lines.length..instruction_length-1]
+  console.log('00000000')
