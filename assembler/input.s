@@ -10,9 +10,9 @@
     beq  $4, $0, around
     addi $5, $0, 0
 .around
-    slt  $4, $7, $2  
+    slt  $4, $7, $2
     add  $7, $4, $5
-    sub  $7, $7, $5
+    sub  $7, $7, $2
     out  $7                     ; expects: 7
     sw   $7, 68($3)
     lw   $2, 80($0)
@@ -26,5 +26,4 @@
     sw   $2, 84($0)
     out  $2                     ; expects: 7
     out  $0                     ; test done flag
-    nop
     in   $0                     ; BLOCK

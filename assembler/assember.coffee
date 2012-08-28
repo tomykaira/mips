@@ -10,12 +10,15 @@ splitLines = (file) ->
       line != ''
 
 
-extractLabels = (lines) ->
+removeLabels = (lines) ->
   labels = {}
-  for i of lines
+  i = 0
+  while i < lines.length
     if lines[i][0] == '.'
-      label = lines[i].substr(1)
+      label = lines.splice(i, 1)[0].substr(1)
       labels[label] = i
+    else
+      i += 1
   labels
 
 
@@ -79,8 +82,6 @@ toInstruction = (line, line_no, labels) ->
   label_relative = (labels, label, current) ->
     labels[label] - current - 1
 
-  return '' if line[0] == '.'
-
   inst = line.split(' ')[0]
   args = line.substr(inst.length).split(",").map (w) -> w.trim()
   switch line.split(' ')[0]
@@ -103,7 +104,7 @@ toInstruction = (line, line_no, labels) ->
 contents = fs.readFileSync("/dev/stdin", encoding) # TODO: is this cross-platform?
 lines = splitLines(contents)
 console.dir lines
-labels = extractLabels(lines)
+labels = removeLabels(lines)
 console.dir labels
 for i of lines
   code = toInstruction(lines[i], i, labels)
