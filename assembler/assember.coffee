@@ -4,7 +4,7 @@
 fs = require 'fs'
 encoding = 'utf-8'
 
-instruction_length = process.argv[process.argv.length-1]
+instruction_length = if process.argv.length > 2 then process.argv[process.argv.length-1] else 64
 
 splitLines = (file) ->
   file.split("\n").map((line) ->
