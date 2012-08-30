@@ -28,6 +28,7 @@ architecture struct of mips is
         jump                  : out STD_LOGIC;
         rx_enable             : out STD_LOGIC;
         send_enable           : out STD_LOGIC;
+        write_pc              : out STD_LOGIC;
         alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
   end component;
 
@@ -37,6 +38,7 @@ architecture struct of mips is
     bus_to_reg, pc_src  : in  std_logic;
     alu_src, reg_dst    : in  std_logic;
     reg_write, jump     : in  std_logic;
+    write_pc            : in  STD_LOGIC;
     alu_control         : in  std_logic_vector(2 downto 0);
     zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
@@ -50,6 +52,7 @@ architecture struct of mips is
   signal zero : std_logic;
   signal alu_control : std_logic_vector(2 downto 0);
   signal rx_enable_buf : STD_LOGIC;
+  signal write_pc : std_logic;
 
 begin
   cont : controller port map (
@@ -65,6 +68,7 @@ begin
     jump        => jump,
     rx_enable   => rx_enable_buf,
     send_enable => send_enable,
+    write_pc    => write_pc,
     alu_control => alu_control);
 
   dp : data_path port map (
@@ -76,6 +80,7 @@ begin
     reg_dst       => reg_dst,
     reg_write     => reg_write,
     jump          => jump,
+    write_pc      => write_pc,
     alu_control   => alu_control,
     zero          => zero,
     pc            => pc,
