@@ -1,7 +1,7 @@
         in $5
 
         subi $31, $31, 4
-        savepc $31
+        savepc 0($31)
         j rec
         
         out $1
@@ -15,7 +15,7 @@
         sw $5, 0($31)
 
         subi $31, $31, 4
-        savepc $31
+        savepc 0($31)
         j rec
 
         subi $31, $31, 4
@@ -25,7 +25,7 @@
         subi $5, $5, 1
 
         subi $31, $31, 4
-        savepc $31
+        savepc 0($31)
         j rec
 
         lw $2, 0($31)
@@ -39,7 +39,7 @@
 
 .ret
         out $1
-        lw $30, $31
+        lw $30, 0($31)
         addi $31, $31, 4
         jr $30
 

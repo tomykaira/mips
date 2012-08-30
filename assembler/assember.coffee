@@ -43,7 +43,9 @@ instCode = (inst) ->
 
     when 'lw'   then '100011'
     when 'sw'   then '101011'
+    when 'savepc' then '101100'
 
+    when 'jr'   then '111101'
     when 'beq'  then '111110'
     when 'j'    then '111111'
     else
@@ -104,10 +106,15 @@ toInstruction = (line, line_no, labels) ->
     when 'sw', 'lw'
       [_, relative, pointer_reg] = args[1].match /(\d*)\((.*)\)/
       instCode(inst) + reg(pointer_reg) + reg(args[0]) + imm(relative)
+    when 'savepc'
+      [_, relative, pointer_reg] = args[0].match /(\d*)\((.*)\)/
+      instCode(inst) + reg(pointer_reg) + "00000" + imm(relative)
     when 'in', 'out'
       instCode(inst) + "00000" + reg(args[0]) + imm('0')
     when 'j'
       instCode(inst) + label_abs(labels, args[0]).toBin(26)
+    when 'jr'
+      instCode(inst) + "00000" + reg(args[0]) + imm('0')
     when 'beq'
       instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], line_no).toBin(16)
     when 'nop'
