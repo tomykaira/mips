@@ -14,7 +14,7 @@ module testbench();
       rs_rx  <= 1;
       #22;
       xreset <= 1;
-      #180;
+      #10;
 
       // input 0_01010000_1
       rs_rx <= 0;
