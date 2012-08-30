@@ -66,7 +66,7 @@ rjust = (str, width) ->
 
 String::toBin = (width) ->
   int = parseInt(@)
-  if int == NaN
+  if isNaN(int)
     throw "Cannot parse #{@} to int"
   else
     int.toBin(width)
