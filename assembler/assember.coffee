@@ -46,6 +46,8 @@ instCode = (inst) ->
 
     when 'beq'  then '111110'
     when 'j'    then '111111'
+    else
+      throw "Unknown instruction #{inst}"
 
 
 String::repeat = (num) ->
@@ -61,7 +63,11 @@ rjust = (str, width) ->
     str
 
 String::toBin = (width) ->
-  parseInt(@).toBin(width)
+  int = parseInt(@)
+  if int = NaN
+    throw "Cannot parse #{@} to int"
+  else
+    int.toBin(width)
 
 Number::toBin = (width) ->
   b = @
@@ -74,7 +80,11 @@ Number::toBin = (width) ->
 
 toInstruction = (line, line_no, labels) ->
   reg = (x) ->
-    x.match(/\$(\d+)/)[1].toBin(5)
+    match = x.match(/\$(\d+)/)
+    if match
+      match[1].toBin(5)
+    else
+      throw "Register #{x} does not match $(\d+)"
   imm = (x) ->
     x.toBin(16)
 
@@ -86,7 +96,7 @@ toInstruction = (line, line_no, labels) ->
 
   inst = line.split(' ')[0]
   args = line.substr(inst.length).split(",").map (w) -> w.trim()
-  switch line.split(' ')[0]
+  switch inst
     when 'andi', 'ori', 'addi', 'subi', 'slti'
       instCode(inst) + reg(args[1]) + reg(args[0]) + imm(args[2])
     when 'and', 'or', 'add', 'sub', 'slt'
@@ -102,6 +112,8 @@ toInstruction = (line, line_no, labels) ->
       instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], line_no).toBin(16)
     when 'nop'
       '0'.toBin(32)
+    else
+      throw "Unknown instruction #{inst}"
 
 contents = fs.readFileSync("/dev/stdin", encoding) # TODO: is this cross-platform?
 lines = splitLines(contents)
