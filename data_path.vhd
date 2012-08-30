@@ -10,6 +10,7 @@ entity data_path is
     bus_to_reg, pc_src  : in  std_logic;
     alu_src, reg_dst    : in  std_logic;
     reg_write, jump     : in  std_logic;
+    write_pc            : in  STD_LOGIC;
     alu_control         : in  std_logic_vector(2 downto 0);
     zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
@@ -58,7 +59,8 @@ architecture struct of data_path is
 
 begin  -- struct
 
-  pc_jump <= pc_plus4(31 downto 28) & instruction(25 downto 0) & "00";
+  pc_jump <= pc_plus4(31 downto 28) & instruction(25 downto 0) & "00" when alu_src = '1' else
+             write_data_buf;
   pc_reg : flip_reset port map (
     clk   => clk,
     reset => reset,
@@ -101,6 +103,6 @@ begin  -- struct
 
   alu_out    <= alu_out_buf;
   pc         <= pc_buf;
-  write_data <= write_data_buf;
+  write_data <= pc_buf + 8 when write_pc = '1' else write_data_buf;
   
 end struct;
