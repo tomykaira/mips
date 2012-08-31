@@ -26,9 +26,10 @@ removeLabels = (lines) ->
 instCode = (inst) ->
   switch inst
     when 'AND'  then '000000'
+    when 'NOP'  then '000000'
     when 'OR'   then '000001'
     when 'ADD'  then '000010'
-    when 'SLL'  then '000101'
+    when 'XOR'  then '000101'
     when 'SUB'  then '000110'
     when 'SLT'  then '000111'
 
@@ -49,17 +50,17 @@ instCode = (inst) ->
     when 'SNDB'  then '000100'
     when 'RBYT'  then '001100'
 
-    when 'LOAD+i'  , 'LOAD-i', 'FLOAD+i', 'FLOAD-i' then '100011'
-    when 'LOAD+r'  , 'FLOAD+r'                      then '100100'
-    when 'STORE+i' , 'FSTORE+i'                     then '101011'
-    when 'STORE+r' , 'FSTORE+r'                     then '101100'
+    when 'LOAD+i' , 'LOAD-i', 'FLOAD+i', 'FLOAD-i' then '100011'
+    when 'LOAD+r' , 'FLOAD+r'                      then '100100'
+    when 'STORE+i', 'FSTORE+i'                     then '101011'
+    when 'STORE+r', 'FSTORE+r'                     then '101100'
 
     when 'CALL'   then '110111'
     when 'RETURN' then '111000'
 
     when 'FBGE' then '111001'
     when 'FBLT' then '111010'
-    when 'FEQ'  then '111011'
+    when 'FBEQ'  then '111011'
     when 'BGE'  then '111100'
     when 'BLT'  then '111101'
     when 'BEQ'  then '111110'
@@ -95,23 +96,39 @@ Number::toBin = (width) ->
     b = b >> 1
   r.join('')
 
+isRegister = (x) ->
+  try
+    reg(x)
+    true
+  catch e
+    false
+
 reg = (x) ->
   if match = x.match(/\%r(\d+)/)
     match[1].toBin(5)
   else if match = x.match(/\%f(\d+)/)
     (parseInt(match[1]) + 16).toBin(5)
   else
-    throw "Register #{x} does not match $(\d+)"
+    throw "Register #{x} does not match \%r(\d+) or \%f(\d+)"
 
-imm = (x) ->
-  x.toBin(16)
+isNumber = (value) ->
+  return false  if value instanceof Array
 
+  #trim
+  value = String(value).trim()
+  return false if value.length is 0
+  return false if isNaN(value)
+  true
 
 toInstruction = (line, labels) ->
+  imm = (x, negate = false) ->
+    x = labels[x] unless isNumber(x)
+    (if negate then -x else x).toBin(16)
 
-  match = line.match(/; pc = (\d+) ; ([A-Z]*) ([^;]*);/)
 
-  raise "#{line} is malformed" unless match
+  match = line.match(/; pc = (\d+) ; ([^ ]*) ([^;]*);/)
+
+  throw "#{line} is malformed" unless match
 
   pc   = parseInt(match[1])
   inst = match[2]
@@ -123,33 +140,38 @@ toInstruction = (line, labels) ->
   label_relative = (labels, label, current) ->
     labels[label] - current - 1
 
-  switch inst
-    when 'andi', 'ori', 'addi', 'subi', 'slti', 'SLL'
-      instCode(inst) + reg(args[1]) + reg(args[0]) + imm(args[2])
-    when 'AND', 'OR', 'ADD', 'SUB', 'SLT', 'XOR'
-      instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
-    when 'FADD', 'FSUB', 'FMUL'
-      instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
-    when 'LOAD+', 'LOAD-', 'STORE+', 'STORE-', 'FLOAD+', 'FLOAD-', 'FSTORE+', 'FSTORE-'
-      if isRegister(args[2])
-        instCode(inst + "r") + reg(args[1]) + reg(args[0]) + reg(args[2]) + '00000000000'
+  try
+    switch inst
+      when 'SLL'
+        instCode(inst) + reg(args[1]) + reg(args[0]) + imm(args[2])
+      when 'AND', 'OR', 'ADD', 'SUB', 'SLT', 'XOR'
+        if isRegister(args[2])
+          instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
+        else
+          instCode(inst + 'I') + reg(args[1]) + reg(args[0]) + imm(args[2])
+      when 'FADD', 'FSUB', 'FMUL'
+        instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
+      when 'LOAD+', 'LOAD-', 'STORE+', 'STORE-', 'FLOAD+', 'FLOAD-', 'FSTORE+', 'FSTORE-'
+        if isRegister(args[2])
+          instCode(inst + "r") + reg(args[1]) + reg(args[0]) + reg(args[2]) + '00000000000'
+        else
+          instCode(inst + "i") + reg(args[1]) + reg(args[0]) + imm(args[2], inst[inst.length-1] == '-')
+      when 'F2I', 'I2F'
+        instCode(inst) + reg(args[1]) + reg(args[0]) + imm('0')
+      when 'RBYT', 'SNDB'
+        instCode(inst) + "00000" + reg(args[0]) + imm('0')
+      when 'JMP', 'CALL'
+        instCode(inst) + label_abs(labels, args[0]).toBin(26)
+      when 'BGE', 'BLT', 'BEQ'
+        instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
+      when 'FBGE', 'FBLT', 'FBEQ'
+        instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
+      when 'NOP', 'RETURN'
+        instCode(inst) + '0'.toBin(26)
       else
-        rel = if inst[inst.length-1] == '-' then -parseInt(args[2]) else parseInt(args[2])
-        instCode(inst + "i") + reg(args[1]) + reg(args[0]) + imm(rel)
-    when 'F2I', 'I2F'
-      instCode(inst) + reg(args[1]) + reg(args[0])
-    when 'RBYT', 'SNDB'
-      instCode(inst) + "00000" + reg(args[0]) + imm('0')
-    when 'JMP', 'CALL'
-      instCode(inst) + label_abs(labels, args[0]).toBin(26)
-    when 'BGE', 'BLT', 'BEQ'
-      instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
-    when 'FBGE', 'FBLT', 'FBEQ'
-      instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
-    when 'NOP', 'RETURN'
-      instCode(inst) + '0'.toBin(26)
-    else
-      throw "Unknown instruction #{inst}"
+        throw "Unknown instruction #{inst}"
+  catch e
+    throw "#{e} in #{line}"
 
 toMap = (constants) ->
   constants.split("\n").reduce (s, x) ->
@@ -162,10 +184,10 @@ toMap = (constants) ->
 
 
 contents = fs.readFileSync("/dev/stdin", encoding) # TODO: is this cross-platform?
-instructions, constants = splitParts(contents)
+[instructions, constants] = splitParts(contents)
 constant_map = toMap(constants)
-lines = instructions.split("\n").map (i) -> toInstruction i constant_map
-for i of [0..lines.length]
+lines = instructions.split("\n").map (i) -> toInstruction i, constant_map
+for i in [0..lines.length]
   if lines[i]
     console.log lines[i]
   else
