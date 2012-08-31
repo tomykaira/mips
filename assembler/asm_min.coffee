@@ -25,28 +25,45 @@ removeLabels = (lines) ->
 
 instCode = (inst) ->
   switch inst
-    when 'and'  then '000000'
-    when 'or'   then '000001'
-    when 'add'  then '000010'
-    when 'sub'  then '000110'
-    when 'slt'  then '000111'
+    when 'AND'  then '000000'
+    when 'OR'   then '000001'
+    when 'ADD'  then '000010'
+    when 'SLL'  then '000101'
+    when 'SUB'  then '000110'
+    when 'SLT'  then '000111'
 
-    when 'andi' then '001000'
-    when 'ori'  then '001001'
-    when 'addi' then '001010'
-    when 'subi' then '001110'
-    when 'slti' then '001111'
+    when 'ANDI' then '001000'
+    when 'ORI'  then '001001'
+    when 'ADDI' then '001010'
+    when 'SLL'  then '001011'
+    when 'SUBI' then '001110'
+    when 'SLTI' then '001111'
+
+    when 'FADD' then '010000'
+    when 'FSUB' then '010001'
+    when 'FMUL' then '010010'
+
+    when 'F2I' then '010011'
+    when 'I2F' then '010100'
 
     when 'SNDB'  then '000100'
-    when 'RBYT'   then '001100'
+    when 'RBYT'  then '001100'
 
-    when 'lw'   then '100011'
-    when 'sw'   then '101011'
-    when 'savepc' then '101100'
+    when 'LOAD+i'  , 'LOAD-i', 'FLOAD+i', 'FLOAD-i' then '100011'
+    when 'LOAD+r'  , 'FLOAD+r'                      then '100100'
+    when 'STORE+i' , 'FSTORE+i'                     then '101011'
+    when 'STORE+r' , 'FSTORE+r'                     then '101100'
 
-    when 'jr'   then '111101'
-    when 'beq'  then '111110'
-    when 'JMP'    then '111111'
+    when 'CALL'   then '110111'
+    when 'RETURN' then '111000'
+
+    when 'FBGE' then '111001'
+    when 'FBLT' then '111010'
+    when 'FEQ'  then '111011'
+    when 'BGE'  then '111100'
+    when 'BLT'  then '111101'
+    when 'BEQ'  then '111110'
+    when 'JMP'  then '111111'
     else
       throw "Unknown instruction #{inst}"
 
@@ -79,9 +96,10 @@ Number::toBin = (width) ->
   r.join('')
 
 reg = (x) ->
-  match = x.match(/\%r(\d+)/)
-  if match
+  if match = x.match(/\%r(\d+)/)
     match[1].toBin(5)
+  else if match = x.match(/\%f(\d+)/)
+    (parseInt(match[1]) + 16).toBin(5)
   else
     throw "Register #{x} does not match $(\d+)"
 
@@ -95,7 +113,7 @@ toInstruction = (line, labels) ->
 
   raise "#{line} is malformed" unless match
 
-  pc   = match[1]
+  pc   = parseInt(match[1])
   inst = match[2]
   args = match[3].split(" ").map (x) -> x.trim()
 
@@ -106,26 +124,30 @@ toInstruction = (line, labels) ->
     labels[label] - current - 1
 
   switch inst
-    when 'andi', 'ori', 'addi', 'subi', 'slti'
+    when 'andi', 'ori', 'addi', 'subi', 'slti', 'SLL'
       instCode(inst) + reg(args[1]) + reg(args[0]) + imm(args[2])
-    when 'and', 'or', 'add', 'sub', 'slt'
+    when 'AND', 'OR', 'ADD', 'SUB', 'SLT', 'XOR'
       instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
-    when 'sw', 'lw'
-      [_, relative, pointer_reg] = args[1].match /(\d*)\((.*)\)/
-      instCode(inst) + reg(pointer_reg) + reg(args[0]) + imm(relative)
-    when 'savepc'
-      [_, relative, pointer_reg] = args[0].match /(\d*)\((.*)\)/
-      instCode(inst) + reg(pointer_reg) + "00000" + imm(relative)
+    when 'FADD', 'FSUB', 'FMUL'
+      instCode(inst) + reg(args[1]) + reg(args[2]) + reg(args[0]) + '00000000000'
+    when 'LOAD+', 'LOAD-', 'STORE+', 'STORE-', 'FLOAD+', 'FLOAD-', 'FSTORE+', 'FSTORE-'
+      if isRegister(args[2])
+        instCode(inst + "r") + reg(args[1]) + reg(args[0]) + reg(args[2]) + '00000000000'
+      else
+        rel = if inst[inst.length-1] == '-' then -parseInt(args[2]) else parseInt(args[2])
+        instCode(inst + "i") + reg(args[1]) + reg(args[0]) + imm(rel)
+    when 'F2I', 'I2F'
+      instCode(inst) + reg(args[1]) + reg(args[0])
     when 'RBYT', 'SNDB'
       instCode(inst) + "00000" + reg(args[0]) + imm('0')
-    when 'JMP'
+    when 'JMP', 'CALL'
       instCode(inst) + label_abs(labels, args[0]).toBin(26)
-    when ''
-      instCode(inst) + "00000" + reg(args[0]) + imm('0')
-    when 'beq'
-      instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], line_no).toBin(16)
-    when 'nop'
-      '0'.toBin(32)
+    when 'BGE', 'BLT', 'BEQ'
+      instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
+    when 'FBGE', 'FBLT', 'FBEQ'
+      instCode(inst) + reg(args[0]) + reg(args[1]) + label_relative(labels, args[2], pc).toBin(16)
+    when 'NOP', 'RETURN'
+      instCode(inst) + '0'.toBin(26)
     else
       throw "Unknown instruction #{inst}"
 
