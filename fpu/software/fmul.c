@@ -53,7 +53,7 @@ void test(unsigned int a, unsigned int b, unsigned int s) {
 // test: 負数
 int main(int argc, char *argv[])
 {
-  FILE * fp = fopen("testcases", "r");
+  FILE * fp = fopen("fmul", "r");
   unsigned int a, b, s;
   if (fp == NULL) {
     printf("File error");
