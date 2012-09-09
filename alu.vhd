@@ -21,21 +21,37 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 -- TEST
 -- a  |b   |control b|output|zero
--- 18 |9   |000      |0     |1
---    |    |001      |27    |0
---    |    |010      |27    |0
---    |    |110      |9     |0
---    |    |111      |0     |1
--- 18 |18  |111      |0     |1
--- 18 |19  |         |1     |0
--- 18 |100 |         |1     |0
+-- 18 |9   |0000     |27    |0   # add
+-- -9 |9   |         |0     |1
+-- -18|9   |         |-9    |0
+-- 18 |9   |0001     |9     |0   # sub
+-- 9  |18  |         |-9    |0
+-- 9  |9   |         |0     |1
+-- 9  |9   |0010     |81    |0   # mul
+-- 0  |9   |         |0     |1
+-- -2 |9   |         |-18   |0
+-- -2 |-2  |         |4     |0
+-- 9  |18  |0011     |0     |1   # and
+-- 9  |1   |         |1     |0
+-- 9  |10  |         |8     |0
+-- 9  |18  |0100     |27    |0   # or
+-- 9  |0   |         |9     |0
+-- 9  |18  |0101     |4294967268 |0   # nor
+-- 1  |0   |0110     |1     |0   # xor
+-- 3  |5   |         |6     |0
+-- 2  |3   |         |1     |0
+-- 2  |2   |         |0     |1
+-- # mul between large numbers
+-- 2147483647 |1     | 0010 | 2147483647  | 0 # mul
+-- 32768      |65536 |      | 2147483648  |  # mul
+-- -32768     |65536 |      | -2147483648 |  # mul
 -- /TEST
 
 entity alu is
 
   port (
     a, b    : in  std_logic_vector(31 downto 0);
-    control : in  std_logic_vector(2 downto 0);
+    control : in  std_logic_vector(3 downto 0);
     output  : out std_logic_vector(31 downto 0);
     zero    : out std_logic);
 
@@ -43,28 +59,33 @@ end alu;
 
 architecture behave of alu is
 
-  signal bb : std_logic_vector(31 downto 0);
-  signal c : std_logic;
-  signal o0, o1, o2, o3 : std_logic_vector(31 downto 0);
-
   signal out_buf : std_logic_vector(31 downto 0);
 
 begin  -- behave
 
-  c <= control(2);
-
-  bb <= not b when control(2) = '1' else b;
-
-  o0 <= a and bb;
-  o1 <= a or b;
-  o2 <= a + bb + c;
-  o3 <= x"0000000" & "000" & o2(31);
-
-  out_buf <= o0 when control(1 downto 0) = "00" else
-             o1 when control(1 downto 0) = "01" else
-             o2 when control(1 downto 0) = "10" else
-             o3 when control(1 downto 0) = "11";
-
+  process(a, b, control)
+    variable out_buf2 : std_logic_vector(63 downto 0);
+  begin
+    case control is
+      when "0000" =>
+        out_buf <= a + b;
+      when "0001" =>
+        out_buf <= a - b;
+      when "0010" =>
+        out_buf2 := a * b;
+        out_buf <= out_buf2(31 downto 0);
+      when "0011" =>
+        out_buf <= a and b;
+      when "0100" =>
+        out_buf <= a or b;
+      when "0101" =>
+        out_buf <= not (a or b);
+      when "0110" =>
+        out_buf <= a xor b;
+      when others => null;
+    end case;
+  end process;
+  
   output <= out_buf;
   zero <= '1' when out_buf = x"00000000" else '0';
 
