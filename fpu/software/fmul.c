@@ -7,7 +7,7 @@
 #define swap(a,b) { int temp = a; a = b; b = temp; }
 #define DEBUG 0
 #define DOTS 0
-#define TESTCASE 0
+#define TESTCASE 1
 #define D(x) { if (DEBUG) { x ; } }
 
 union IntAndFloat {
@@ -73,10 +73,6 @@ void test(unsigned int a, unsigned int b) {
   union IntAndFloat i, v, res, res2;
   int exp;
 
-  if (TESTCASE) {
-    printf("%08x %08x\n", a, b);
-  }
-
   i.ival = a;
   v.ival = b;
 
@@ -86,6 +82,11 @@ void test(unsigned int a, unsigned int b) {
   if (exp == 0xff || exp == 0) { return; }
 
   res.ival = fmul(i.ival, v.ival);
+
+  // generate testcase for verilog
+  if (TESTCASE) {
+    printf("%08x\n%08x\n%08x\n", a, b, res.ival);
+  }
 
   if (!DEBUG && abs(res.ival - res2.ival) < 2) {
     if (DOTS) {printf(".");}
@@ -107,7 +108,7 @@ int main(int argc, char *argv[])
 {
   FILE * fp = fopen("fmul.txt", "r");
   unsigned int a, b, s;
-  int i;
+  long long i;
   if (fp == NULL) {
     printf("File error");
     return 1;
