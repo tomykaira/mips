@@ -3,6 +3,22 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.STD_LOGIC_ARITH.all;
 use IEEE.STD_LOGIC_UNSIGNED.all;
 
+-- new ALU specification
+-- 0000: add
+-- 0001: sub
+-- 0010: mul
+-- 0011: and
+-- 0100: or
+-- 0101: nor
+-- 0110: xor
+-- 0111: ---
+-- 1000: mvlo: put immediate into low 16 bits
+-- 1001: mvhi: put immediate into high 16 bits
+-- 1010: SLLi Shift left w/ immediate
+-- 1011: SRAi shift right arithmetic w/ immediate
+-- 1100: imovf: move int to float. just a signal for data path
+-- 1101: fmovi: move float to int
+
 -- TEST
 -- a  |b   |control b|output|zero
 -- 18 |9   |000      |0     |1

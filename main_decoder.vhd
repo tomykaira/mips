@@ -47,7 +47,6 @@ use IEEE.STD_LOGIC_1164.all;
 -- 010000 |       0 |     W | F          |            | -       | NEXT   | -       | -             | 0         | 0           | 0         | 0       # mvlo
 -- 010001 |       0 |     D | E          |            | IMM     | CUR    | -       | 1001          | 0         | 0           | 0         | 0       # mvhi
 -- 001000 |       0 |     D | E          |            |         |        |         | 000           |           |             |           |         # addi
--- 001000 |       0 |     E | W          |            | -       |        | RT      | -             | 0         | 0           | 1         | 0       
 -- 001001 |       0 |     D | E          |            | IMM     |        | -       | 001           |           |             | 0         |         # subi
 -- 001010 |       0 |     D | E          |            |         |        |         | 010           |           |             |           |         # muli
 -- 001011 |       0 |     D | E          |            |         |        |         | 011           |           |             |           |         # andi
@@ -56,10 +55,19 @@ use IEEE.STD_LOGIC_1164.all;
 -- 001110 |       0 |     D | E          |            |         |        |         | 110           |           |             |           |         # xori
 -- 000111 |       0 |     D | E          |            |         |        |         | 1010          |           |             |           |         # slli
 -- 001111 |       0 |     D | E          |            |         |        |         | 1011          |           |             |           |         # srai
+-- 001000 |       0 |     E | W          |            | -       |        | RT      | -             | 0         | 0           | 1         | 0       # addi
+-- 001001 |       0 |       |            |            | IMM     |        | RT      |               |           |             |           |         # subi
+-- 001010 |       0 |       |            |            |         |        |         |               |           |             |           |         # muli
+-- 001011 |       0 |       |            |            |         |        |         |               |           |             |           |         # andi
+-- 001100 |       0 |       |            |            |         |        |         |               |           |             |           |         # ori
+-- 001101 |       0 |       |            |            |         |        |         |               |           |             |           |         # nori
+-- 001110 |       0 |       |            |            |         |        |         |               |           |             |           |         # xori
+-- 000111 |       0 |       |            |            |         |        |         |               |           |             |           |         # slli
+-- 001111 |       0 |       |            |            |         |        |         |               |           |             |           |         # srai
 -- # alu control codes are the same as integer, but has different meaning
 -- 110000 |       0 |     D | E          | 0          | REG     | CUR    | -       | 000           | 0         | 0           | 0         | 0       # fmov
 -- 110000 |         |     E | W          |            |         | CUR    | FRT     | 000           |           |             | 1         |         
--- 110001 |         |     D | E          |            |         | CUR    | FRT     | 001           |           |             | 0         |         # fneg
+-- 110001 |         |     D | E          |            |         | CUR    | -       | 001           |           |             | 0         |         # fneg
 -- 110001 |         |     E | W          |            |         | CUR    | FRT     | 001           |           |             | 1         |         
 -- 110010 |         |     D | E          |            |         | CUR    | FRD     | 010           |           |             | 0         |         # fadd
 -- 110010 |         |     E | E1         |            |         | CUR    |         |               |           |             |           |         
@@ -88,6 +96,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- 010010 |       0 |     D | E          | 0          | IMM     | CUR    | -       | 1000          | 0         | 0           | 0         | 0       # fmvlo
 -- 010010 |       0 |     E | W          |            | -       | CUR    | FRT     | -             | 0         | 0           | 1         | 0       # fmvlo
 -- 010011 |       0 |     D | E          | 0          | IMM     | CUR    | -       | 1001          | 0         | 0           | 0         | 0       # fmvhi
+-- 010110 |         |     D | W          |            | -       | CUR    | FRT     | 1100          |           |             | 1         |         # imovf
+-- 010111 |         |     D | W          |            | -       | CUR    | RT      | 1101          |           |             | 1         |         # fmovi
 -- 010110 |         |     D | W          |            | -       | CUR    | FRT     | 1100          |           |             | 1         |         # imovf
 -- 010111 |         |     D | W          |            | -       | CUR    | RT      | 1101          |           |             | 1         |         # fmovi
 --#op b   | rx_done | stage | next_stage | bus_to_reg | alu_src | pc_src | reg_dst | alu_control b | mem_write | send_enable | reg_write | rx_enable
@@ -186,41 +196,56 @@ end main_decoder;
 
 architecture behave of main_decoder is
 
+  constant CUR      : std_logic_vector(2 downto 0) := "000";
+  constant PC_NEXT  : std_logic_vector(2 downto 0) := "001";
+  constant JUMP     : std_logic_vector(2 downto 0) := "010";
+  constant RELATIVE : std_logic_vector(2 downto 0) := "011";
+  constant REG      : std_logic_vector(2 downto 0) := "100";
+  constant LR       : std_logic_vector(2 downto 0) := "101";
+
+  constant RD : STD_LOGIC := '1';
+  constant RT : STD_LOGIC := '0';
+
   signal controls : std_logic_vector(11 downto 0);
   signal flags : std_logic_vector(4 downto 0);
+  signal op_group, op_id : std_logic_vector(2 downto 0) := "000";
 
 begin  -- behave
 
-  process(op, stage, rx_done)
+  op_group <= op(5 downto 3);
+  op_id    <= op(2 downto 0);
+
+  process(op, op_group, op_id, stage, rx_done)
   begin
+    -- HALT
     if op = "111111" then
       next_stage <= stage;
-      pc_src <= "000";
+      pc_src     <= CUR;
     else
 
     case stage is
       
-      when "0000" =>              -- fetch
-        next_stage <= "0001";
-        pc_src <= "000";
-        flags <= "00000";
+      when x"0" =>              -- fetch
+        next_stage <= x"1";
+        pc_src     <= CUR;
+        flags      <= "00000";
 
-      when "0001" =>              -- decode
+      when x"1" =>              -- decode
         next_stage <= x"2";
-        pc_src      <= "000"; -- cur
-        flags       <= "00000";
+        pc_src     <= CUR; -- cur
+        flags      <= "00000";
 
-        case op(5 downto 3) is
+        case op_group is
 
           -- Reg x Reg arithmetic
           when "000" =>
             -- special: SLLi
             reg_dst     <= '1';
-            if op(2 downto 0) = "111" then
+            if op_id = "111" then
               alu_control <= "1010";
               alu_src     <= '1';
             else
-              alu_control <= '0' & op(2 downto 0);
+              alu_control <= '0' & op_id;
               alu_src     <= '0';
             end if; 
 
@@ -229,16 +254,16 @@ begin  -- behave
             alu_src     <= '1';
             reg_dst     <= '0';
             -- special: SRAi
-            if op(2 downto 0) = "111" then
+            if op_id = "111" then
               alu_control <= "1011";
             else
-              alu_control <= '0' & op(2 downto 0);
+              alu_control <= '0' & op_id;
             end if;
 
           -- mov
           when "010" =>
             alu_src     <= '1';
-            case op(2 downto 0) is
+            case op_id is
               when "000" =>
                 alu_control <= "1000";
               when "001" =>
@@ -250,7 +275,6 @@ begin  -- behave
 
               -- imovf and fmovi does not need any instruction
               when "110" =>
-                
                 next_stage <= x"8";
                 flags <= "00010";
                 alu_control <= "1100";
@@ -263,21 +287,21 @@ begin  -- behave
             end case;
 
           -- conditional branch
-          when "100" =>
-            next_stage <= x"2";
+          when "100" => null;  -- no special operation. goto EX stage.
 
           -- memory operation
           when "101" =>
             alu_src <= '1';
             reg_dst <= '0';
             alu_control <= "0000";
-            flags <= "00000";
             
           -- floating point arithmetic
           when "110" =>
             alu_src     <= '0';
-            alu_control <= '0' & op(2 downto 0);
+            alu_control <= '0' & op_id;
 
+            -- fmov and fneg takes only one arity
+            -- TODO: use frd for fmov and fneg
             if op(2 downto 1) = "00" then
               reg_dst <= '0';
             else
@@ -286,13 +310,13 @@ begin  -- behave
 
           -- jump and special operations
           when "111" =>
-            case op(2 downto 0) is
+            case op_id is
               when "000" =>
                 next_stage <= x"0";
-                pc_src <= "010";
+                pc_src <= JUMP;
               when "001" =>
                 next_stage <= x"0";
-                pc_src <= "100";
+                pc_src <= REG;
               when "010" =>
                 next_stage <= x"5";
                 flags <= "01000";
@@ -316,22 +340,31 @@ begin  -- behave
         end case;
 
       when x"2" => -- execute
-        pc_src      <= "000"; -- cur
+        pc_src <= CUR;
 
-        case op(5 downto 3) is
+        case op_group is
           when "000" =>
             next_stage  <= x"8";
             alu_src     <= '0';
             reg_dst     <= '1';
             flags       <= "00010";
-            alu_control <= '0' & op(2 downto 0);
+            alu_control <= '0' & op_id;
+
+            -- SLLi
+            if op_id = "111" then
+              alu_src     <= '1';
+              reg_dst     <= RT;
+            else
+              alu_src     <= '0';
+              reg_dst     <= RD;
+            end if; 
 
           when "001" =>
             next_stage  <= x"8";
             alu_src     <= '1';
             reg_dst     <= '0';
             flags       <= "00010";
-            alu_control <= '0' & op(2 downto 0);
+            alu_control <= '0' & op_id;
 
           -- mov
           when "010" =>
@@ -339,36 +372,24 @@ begin  -- behave
             alu_src     <= '1';
             reg_dst     <= '0';
             flags       <= "00010";
-            case op(2 downto 0) is
-              when "000" =>
-                alu_control <= "1000";
-              when "001" =>
-                alu_control <= "1001";
-              when "010" =>
-                alu_control <= "1000";
-              when "011" =>
-                alu_control <= "1001";
-              when others =>
-                null;
-            end case;
 
           -- conditional branch
           when "100" =>
             next_stage <= x"0";
-            pc_src <= "011"; -- relative
+            pc_src     <= RELATIVE;
             
           -- memory operation
           when "101" =>
-            next_stage <= x"5";
-            alu_src <= '1';
-            reg_dst <= '0';
+            next_stage  <= x"5";
+            alu_src     <= '1';
+            reg_dst     <= '0';
             alu_control <= "0000";
             -- lsb of write operation is 1
-            flags <= "0" & op(0) & "000";
+            flags       <= "0" & op(0) & "000";
 
           -- floating point arithmetic
           when "110" =>
-            if op(2 downto 0) = "001" or op(2 downto 0) = "000" then
+            if op_id = "001" or op_id = "000" then
               next_stage  <= x"8"; -- mov and inv takes 1 clock
               flags <= "00010";
             else
@@ -377,10 +398,11 @@ begin  -- behave
             end if;
 
             alu_src     <= '0';
-            pc_src      <= "000"; -- cur
+            pc_src      <= CUR;
 
-            alu_control <= '0' & op(2 downto 0);
+            alu_control <= '0' & op_id;
 
+            -- TODO: fmov, fneg operand will come to frd
             if op(2 downto 1) = "00" then
               reg_dst <= '0';
             else
@@ -389,21 +411,20 @@ begin  -- behave
 
           -- jump and special operations
           when "111" =>
-            case op(2 downto 0) is
+            reg_dst <= '0';
+            case op_id is
               when "101" =>
                 if rx_done = '1' then
                   next_stage <= x"8"; -- write result
-                  reg_dst <= '0';
-                  flags   <= "10010";
+                  flags      <= "10010";
                 else
                   next_stage <= x"2"; -- keep here
-                  reg_dst <= '0';
-                  flags   <= "10001";
+                  flags      <= "10001";
                 end if;
               when "110" =>
                 next_stage <= x"0";
-                pc_src <= "001";
-                flags <= "00000";
+                pc_src     <= PC_NEXT;
+                flags      <= "00000";
               when others => null;
             end case;
           when others =>
@@ -411,88 +432,74 @@ begin  -- behave
         end case;
 
       when x"3" => -- execute1
-        case op(5 downto 3) is
-          -- floating point arithmetic
-          when "110" =>
-            next_stage  <= x"4"; -- execute2
-            alu_src     <= '0';
-            pc_src      <= "000"; -- cur
-            
-            flags       <= "00000";
-            alu_control <= '0' & op(2 downto 0);
+        assert op_group = "110" report "only floating point arithmetic is known to use EX1 stage";
 
-            if op(2 downto 1) = "00" then
-              reg_dst <= '0';
-            else
-              reg_dst <= '1';
-            end if;
-          when others =>
-            null;
-        end case;
+        next_stage  <= x"4"; -- execute2
+        alu_src     <= '0';
+        pc_src      <= CUR;
+        
+        flags       <= "00000";
+        alu_control <= '0' & op_id;
+
+        if op(2 downto 1) = "00" then
+          reg_dst <= '0';
+        else
+          reg_dst <= '1';
+        end if;
 
       when x"4" => -- execute2
-        case op(5 downto 3) is
-          -- floating point arithmetic
-          when "110" =>
-            next_stage  <= x"8"; -- write back
-            alu_src     <= '0';
-            pc_src      <= "000"; -- cur
-            
-            flags       <= "00010";
-            alu_control <= '0' & op(2 downto 0);
+        assert op_group = "110" report "only floating point arithmetic is known to use EX2 stage";
 
-            if op(2 downto 1) = "00" then
-              reg_dst <= '0';
-            else
-              reg_dst <= '1';
-            end if;
-          when others =>
-            null;
-        end case;
+        next_stage  <= x"8"; -- write back
+        alu_src     <= '0';
+        pc_src      <= CUR;
+        
+        flags       <= "00010";
+        alu_control <= '0' & op_id;
+
+        if op(2 downto 1) = "00" then
+          reg_dst <= '0';
+        else
+          reg_dst <= '1';
+        end if;
 
       when x"5" => -- Memory
+        assert op_group = "101" or op_group = "111"
+          report "only memory or call / return is known to use memory stage";
 
-        case op(5 downto 3) is
-          -- memory operation
-          when "101" =>
-            next_stage <= x"6";
-            alu_src <= '1';
-            reg_dst <= '0';
-            -- lsb of write operation is 1
-            flags <= "0" & op(0) & "000";
+        -- memory operation
+        -- jump and special operations
+        next_stage <= x"6";
+        alu_src <= '1';
+        reg_dst <= '0';
 
-          -- jump and special operations
-          when "111" =>
-            next_stage <= x"6";
-            flags <= "01000";
-
-          when others =>
-            null;
-        end case;
+        if op_group = "101" then
+          -- lsb of write operation is 1
+          flags <= "0" & op(0) & "000";
+        else
+          flags <= "01000";
+        end if;
 
       when x"6" =>  -- memory 1
-        
-        case op(5 downto 3) is
-          -- memory operation
-          when "101" =>
-            next_stage <= x"7";
-            alu_src <= '1';
-            reg_dst <= '0';
-            -- lsb of write operation is 1
-            flags <= "0" & op(0) & "000";
+        assert op_group = "101" or op_group = "111"
+          report "only memory or call / return is known to use memory1 stage";
 
-          -- jump and special operations
-          when "111" =>
-            next_stage <= x"7";
-            flags <= "01000";
+        -- memory operation
+        -- jump and special operations
+        next_stage <= x"7";
+        alu_src <= '1';
+        reg_dst <= '0';
 
-          when others =>
-            null;
-        end case;
+        if op_group = "101" then
+          -- lsb of write operation is 1
+          flags <= "0" & op(0) & "000";
+        else
+          flags <= "01000";
+        end if;
 
       when x"7" =>  -- memory 2
         
-        case op(5 downto 3) is
+        case op_group is
           -- memory operation
           when "101" =>
             alu_src <= '1';
@@ -505,7 +512,7 @@ begin  -- behave
             else
               -- no write back
               next_stage <= x"0";
-              pc_src     <= "001";
+              pc_src     <= PC_NEXT;
               flags      <= "01000";
             end if;
 
@@ -519,7 +526,7 @@ begin  -- behave
         end case;
 
       when x"8" => -- write
-        pc_src <= "001";
+        pc_src <= PC_NEXT;
         if op = "111101" then
           next_stage <= x"0"; -- keep here
           reg_dst    <= '0';
@@ -527,23 +534,23 @@ begin  -- behave
         elsif op = "111010" or op = "111011" then
           next_stage <= x"9";
           flags      <= "00010";
-          pc_src     <= "000";
+          pc_src     <= CUR;
         elsif op = "111100" then
           next_stage <= x"0";
           flags      <= "00000";
-          pc_src     <= "101";
+          pc_src     <= LR;
         else
           next_stage <= x"0"; -- write back
-          pc_src     <= "001";
+          pc_src     <= PC_NEXT;
           flags      <= "00000";
         end if;
 
       when x"9" => -- write2
         next_stage <= x"0";
         if op = "111010" then
-          pc_src     <= "010";
+          pc_src     <= JUMP;
         else
-          pc_src     <= "100";
+          pc_src     <= REG;
         end if;
         flags      <= "00000";
 
