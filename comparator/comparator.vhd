@@ -10,7 +10,8 @@ USE ieee.std_logic_arith.ALL;
 -- MEMO: another way: return ILT, IEQ, FLT, FEQ for both patterns 
 
 -- TEST
--- a        | b        | is_float | lt | eq
+-- def f { |x| x.include?(".") ? [x.to_f].pack('f').unpack('I').first : x.to_i }
+-- a      f | b      f | is_float | lt | eq
 --        0 |        0 |        0 | 0  | 1
 --        1 |        0 |        0 | 0  | 0
 --       -1 |        0 |        0 | 1  | 0
@@ -23,6 +24,20 @@ USE ieee.std_logic_arith.ALL;
 --      -54 |      -54 |        0 | 0  | 1
 --      -54 |      -39 |        0 | 1  | 0
 --      -39 |      -54 |        0 | 0  | 0
+--      0.0 |      0.0 |        1 | 0  | 1
+--      1.0 |      0.0 |        1 | 0  | 0
+--     -1.0 |      0.0 |        1 | 1  | 0
+--     -1.0 |      1.0 |        1 | 1  | 0
+--     54.0 |     54.0 |        1 | 0  | 1
+--     54.0 |     39.0 |        1 | 0  | 0
+--     39.0 |     54.0 |        1 | 1  | 0
+--     39.0 |    -54.0 |        1 | 0  | 0
+--    -54.0 |     39.0 |        1 | 1  | 0
+--    -54.0 |    -54.0 |        1 | 0  | 1
+--    -54.0 |    -39.0 |        1 | 1  | 0
+--    -39.0 |    -54.0 |        1 | 0  | 0
+--      1.1 |      1.0 |        1 | 0  | 0
+--      1.0 |      1.1 |        1 | 1  | 0
 -- /TEST
 
 entity comparator is
@@ -47,11 +62,20 @@ begin
     -- a is positive, b is negative
     elsif a(31) = '0' and b(31) = '1' then
       lt <= '0';
+    -- float should compared by exponent and mantissa
+    elsif a(31) = '1' and b(31) = '1' and is_float = '1' then
+      if a(30 downto 0) > b(30 downto 0) then
+        lt <= '1';
+      else
+        lt <= '0';
+      end if;
     -- neg-neg and pos-pos are both comparable
-    elsif a < b then
-      lt <= '1';
     else
-      lt <= '0';
+      if a < b then
+        lt <= '1';
+      else
+        lt <= '0';
+      end if;
     end if;
   end process;
 
