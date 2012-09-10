@@ -10,7 +10,7 @@ entity rs232c_buffer is
     clk       : in std_logic;
     reset     : in std_logic;
     push      : in std_logic;           -- 1 to push data
-    push_data : in std_logic_vector(31 downto 0);
+    push_data : in std_logic_vector(7 downto 0);
     tx        : out std_logic);
 
 end rs232c_buffer;
@@ -19,7 +19,7 @@ architecture behave of rs232c_buffer is
 
   component u232c
     generic (wtime : std_logic_vector(15 downto 0) := wtime;
-             len : integer range 1 to 8  := 4);
+             len : integer range 1 to 8  := 1);
     port (
       clk  : in  STD_LOGIC;
       data : in  STD_LOGIC_VECTOR (len * 8-1 downto 0);
@@ -28,14 +28,18 @@ architecture behave of rs232c_buffer is
       tx   : out STD_LOGIC);
   end component;
 
+  -- Current config
+  -- Common clock, built-in FIFO
+  -- Width: 8, Depth: 1024 (it should be determined from max length of ppm file)
+  -- others are default
   COMPONENT fifo
     PORT (
       clk : IN STD_LOGIC;
       rst : IN STD_LOGIC;
-      din : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+      din : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
       wr_en : IN STD_LOGIC;
       rd_en : IN STD_LOGIC;
-      dout : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+      dout : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
       full : OUT STD_LOGIC;
       empty : OUT STD_LOGIC
       );
@@ -45,7 +49,7 @@ architecture behave of rs232c_buffer is
 
   signal full, empty : std_logic := '0';      -- full is not used
   signal rd_en : std_logic := '0';
-  signal send_data : std_logic_vector(31 downto 0);
+  signal send_data : std_logic_vector(7 downto 0);
 
 begin  -- behave
 
