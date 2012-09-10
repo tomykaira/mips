@@ -18,20 +18,12 @@ architecture top of top is
   component mips
     port (
       clk, reset          : in  STD_LOGIC;
-      pc                  : out STD_LOGIC_VECTOR(31 downto 0);
-      instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
       mem_write           : out STD_LOGIC;
       send_enable         : out STD_LOGIC;
       alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
       data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable           : out STD_LOGIC;
       rx_done             : in  STD_LOGIC);
-  end component;
-
-  component instruction_memory
-     port (
-       a  : in  std_logic_vector(5 downto 0);
-       rd : out std_logic_vector(31 downto 0));
   end component;
 
   component data_memory
@@ -61,7 +53,7 @@ architecture top of top is
            changed: out STD_LOGIC);
   end component;
 
-  signal pc, instruction, data_from_bus, memory_data : std_logic_vector(31 downto 0);
+  signal data_from_bus, memory_data : std_logic_vector(31 downto 0);
 
   signal write_data, data_addr : std_logic_vector(31 downto 0);
   signal mem_write : STD_LOGIC;
@@ -81,14 +73,11 @@ begin  -- test
     i=>mclk,
     o=>iclk);
 
-  imem1 : instruction_memory port map(pc(7 downto 2), instruction);
   dmem1 : data_memory port map(iclk, mem_write, data_addr, write_data, memory_data);
 
   mips1 : mips port map (
     clk           => iclk,
     reset         => not xrst,
-    pc            => pc,
-    instruction   => instruction,
     mem_write     => mem_write,
     send_enable   => send_enable,
     alu_out       => data_addr,

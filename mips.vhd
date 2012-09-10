@@ -5,8 +5,6 @@ entity mips is
 
   port (
     clk, reset          : in  STD_LOGIC;
-    pc                  : out STD_LOGIC_VECTOR(31 downto 0);
-    instruction         : in  STD_LOGIC_VECTOR(31 downto 0);
     mem_write           : out STD_LOGIC;
     send_enable         : out STD_LOGIC;
     alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
@@ -17,6 +15,12 @@ entity mips is
 end;
 
 architecture struct of mips is
+
+  component instruction_memory
+     port (
+       a  : in  std_logic_vector(15 downto 0);
+       rd : out std_logic_vector(31 downto 0));
+  end component;
 
   component controller
     port (op                  : in STD_LOGIC_VECTOR(5 downto 0);
@@ -47,6 +51,8 @@ architecture struct of mips is
     data_from_bus       : in  std_logic_vector(31 downto 0);
     stall               : in  STD_LOGIC);
   end component;
+
+  signal pc, instruction : std_logic_vector(31 downto 0);
 
   signal bus_to_reg,alu_src,reg_dst,reg_write,jump,pc_src : STD_LOGIC;
   signal zero : std_logic;
@@ -89,6 +95,10 @@ begin
     write_data    => write_data,
     data_from_bus => data_from_bus,
     stall         => rx_enable_buf);
+
+  imem : instruction_memory port map(
+    a  => pc(15 downto 0),
+    rd => instruction);
 
   rx_enable <= rx_enable_buf;
 
