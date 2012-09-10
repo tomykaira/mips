@@ -41,16 +41,6 @@ architecture struct of data_path is
       op : in std_logic_vector(6 downto 0));
   end component;
 
-  component flip_reset
-    generic (width : integer := 32);
-    
-    port (
-      clk, reset : in  std_logic;
-      load_next  : in  std_logic;
-      d          : in  std_logic_vector(width-1 downto 0);
-      q          : out std_logic_vector(width-1 downto 0));
-  end component;
-
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal pc_jump, pc_next, pc_next_branch, pc_plus4, pc_branch : std_logic_vector(31 downto 0);
   signal sign_immediate, sign_immediate_sh : std_logic_vector(31 downto 0);
@@ -62,12 +52,6 @@ begin  -- struct
 
   pc_jump <= pc_plus4(31 downto 28) & instruction(25 downto 0) & "00" when alu_src = '1' else
              write_data_buf;
-  pc_reg : flip_reset port map (
-    clk   => clk,
-    reset => reset,
-    load_next => not stall,
-    d     => pc_next,
-    q     => pc_buf);
 
   pc_plus4 <= pc_buf + 4;
   sign_immediate_sh <= sign_immediate(29 downto 0) & "00";
