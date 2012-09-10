@@ -101,7 +101,7 @@ begin  -- test
 
   data_memory : sramc port map (
     ZD  => ZD, 
-    ZDP => ZDP
+    ZDP => ZDP,
     ZA  => ZA,
     XWA => XWA,
 

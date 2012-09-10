@@ -7,7 +7,8 @@ entity data_path is
   
   port (
     clk, reset           : in  std_logic;
-    bus_to_reg, pc_src   : in  std_logic;
+    bus_to_reg           : in  std_logic;
+	 pc_src               : in  std_logic_vector(2 downto 0);
     alu_src, reg_dst     : in  std_logic;
     reg_write, jump      : in  std_logic;
     write_pc             : in  STD_LOGIC;
@@ -25,7 +26,7 @@ architecture struct of data_path is
     port (
       a, b    : in  std_logic_vector(31 downto 0);
       control : in  std_logic_vector(2 downto 0);
-      output  : out std_logic_vector(31 downto 0);
+      output  : out std_logic_vector(31 downto 0)
       );
   end component;
 
@@ -80,7 +81,7 @@ begin  -- struct
     a       => read_data1,
     b       => src_b,
     control => alu_control,
-    output  => alu_out_buf,
+    output  => alu_out_buf
     );
 
   pc_manager : program_counter port map (
