@@ -44,12 +44,10 @@ architecture struct of mips is
     reg_write, jump     : in  std_logic;
     write_pc            : in  STD_LOGIC;
     alu_control         : in  std_logic_vector(2 downto 0);
-    zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     mem_addr, write_data : out std_logic_vector(31 downto 0);
-    data_from_bus       : in  std_logic_vector(31 downto 0);
-    stall               : in  STD_LOGIC);
+    data_from_bus       : in  std_logic_vector(31 downto 0));
   end component;
 
   signal pc, instruction : std_logic_vector(31 downto 0);
