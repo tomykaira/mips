@@ -104,7 +104,7 @@ begin  -- struct
   src_b <= sign_immediate when alu_src = '1' else read_data2;
 
 
-  alu_out    <= alu_out_buf;
+  mem_addr   <= alu_out_buf;
   write_data <= read_data2;
   
 end struct;
