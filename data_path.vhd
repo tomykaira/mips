@@ -31,13 +31,15 @@ architecture struct of data_path is
       zero    : out std_logic);
   end component;
 
-  component register_file
+  component register_selector
     port (
       clk                                 : in  std_logic;
       write_enable3                       : in  std_logic;
       read_addr1, read_addr2, write_addr3 : in  std_logic_vector(4 downto 0);
       write_data3                         : in  std_logic_vector(31 downto 0);
-      read_data1, read_data2              : out std_logic_vector(31 downto 0));
+      read_data1, read_data2              : out std_logic_vector(31 downto 0);
+
+      op : in std_logic_vector(6 downto 0));
   end component;
 
   component flip_reset
@@ -50,7 +52,7 @@ architecture struct of data_path is
       q          : out std_logic_vector(width-1 downto 0));
   end component;
 
-  signal write_reg : std_logic_vector(4 downto 0);
+  signal write_reg_addr : std_logic_vector(4 downto 0);
   signal pc_jump, pc_next, pc_next_branch, pc_plus4, pc_branch : std_logic_vector(31 downto 0);
   signal sign_immediate, sign_immediate_sh : std_logic_vector(31 downto 0);
   signal src_a, src_b, result : std_logic_vector(31 downto 0);
@@ -75,17 +77,18 @@ begin  -- struct
   pc_next_branch <= pc_branch when pc_src = '1' else pc_plus4;
   pc_next <= pc_jump when jump = '1' else pc_next_branch;
 
-  rf : register_file port map (
+  rf : register_selector port map (
     clk           => clk,
+    op            => instruction(31 downto 26),
     write_enable3 => reg_write,
     read_addr1    => instruction(25 downto 21),
     read_addr2    => instruction(20 downto 16),
-    write_addr3   => write_reg,
+    write_addr3   => write_reg_addr,
     write_data3   => result,
     read_data1    => src_a,
     read_data2    => write_data_buf);
 
-  write_reg <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
+  write_reg_addr <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
   result <= data_from_bus when bus_to_reg = '1' else alu_out_buf;
 
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
