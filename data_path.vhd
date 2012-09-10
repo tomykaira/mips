@@ -15,7 +15,7 @@ entity data_path is
     zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
-    alu_out, write_data : out std_logic_vector(31 downto 0);
+    mem_addr, write_data : out std_logic_vector(31 downto 0);
     data_from_bus       : in  std_logic_vector(31 downto 0));
 
 end data_path;

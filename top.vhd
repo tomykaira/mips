@@ -80,7 +80,7 @@ begin  -- test
     reset         => not xrst,
     mem_write     => mem_write,
     send_enable   => send_enable,
-    alu_out       => data_addr,
+    mem_addr      => data_addr,
     write_data    => write_data,
     data_from_bus => data_from_bus,
     rx_enable     => rx_enable,

@@ -7,7 +7,7 @@ entity mips is
     clk, reset          : in  STD_LOGIC;
     mem_write           : out STD_LOGIC;
     send_enable         : out STD_LOGIC;
-    alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
+    mem_addr, write_data : out STD_LOGIC_VECTOR(31 downto 0);
     data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
     rx_enable           : out STD_LOGIC;
     rx_done             : in  STD_LOGIC);
@@ -47,7 +47,7 @@ architecture struct of mips is
     zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
-    alu_out, write_data : out std_logic_vector(31 downto 0);
+    mem_addr, write_data : out std_logic_vector(31 downto 0);
     data_from_bus       : in  std_logic_vector(31 downto 0);
     stall               : in  STD_LOGIC);
   end component;
@@ -91,7 +91,7 @@ begin
     zero          => zero,
     pc            => pc,
     instruction   => instruction,
-    alu_out       => alu_out,
+    mem_addr       => mem_addr,
     write_data    => write_data,
     data_from_bus => data_from_bus,
     stall         => rx_enable_buf);
