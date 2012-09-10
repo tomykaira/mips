@@ -11,13 +11,12 @@ entity data_path is
     alu_src, reg_dst    : in  std_logic;
     reg_write, jump     : in  std_logic;
     write_pc            : in  STD_LOGIC;
-    alu_control         : in  std_logic_vector(2 downto 0);
+    alu_control         : in  std_logic_vector(3 downto 0);
     zero                : out std_logic;
     pc                  : out std_logic_vector(31 downto 0);
     instruction         : in  std_logic_vector(31 downto 0);
     alu_out, write_data : out std_logic_vector(31 downto 0);
-    data_from_bus       : in  std_logic_vector(31 downto 0);
-    stall               : in  STD_LOGIC);
+    data_from_bus       : in  std_logic_vector(31 downto 0));
 
 end data_path;
 
