@@ -95,12 +95,12 @@ begin  -- behave
         out_buf <= a xor b;
       when "1010" =>
         out_buf <= (others => '0');
-        -- conv_integer accepts array which is smaller than 32
+        -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         out_buf(31 downto conv_integer(b(30 downto 0))) <= a(31-conv_integer(b(30 downto 0)) downto 0);
       when "1011" =>
         out_buf <= (others => a(31));
-        -- conv_integer accepts array which is smaller than 32
+        -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         out_buf(31-conv_integer(b(30 downto 0)) downto 0) <= a(31 downto conv_integer(b(30 downto 0)));
       when others => null;
