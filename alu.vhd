@@ -2,6 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.STD_LOGIC_ARITH.all;
 use IEEE.STD_LOGIC_UNSIGNED.all;
+use IEEE.NUMERIC_STD.all;
 
 -- new ALU specification
 -- 0000: add
@@ -41,6 +42,16 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 -- 3  |5   |         |6     |0
 -- 2  |3   |         |1     |0
 -- 2  |2   |         |0     |1
+-- 5  |3   |1010     |40    |0   # SLL
+-- 0  |3   |         |0     |1
+-- -1 |1   |         |-2    |0
+-- 5  |1   |1011     |2     |0   # SRA
+-- 2  |1   |         |1     |0
+-- -1 |5   |         |-1    |0
+-- -5 |1   |         |-3    |0
+-- -5 |2   |         |-2    |0
+-- 1  |1   |         |0     |1
+-- 0  |1   |         |0     |1
 -- # mul between large numbers
 -- 2147483647 |1     | 0010 | 2147483647  | 0 # mul
 -- 32768      |65536 |      | 2147483648  |  # mul
@@ -82,6 +93,16 @@ begin  -- behave
         out_buf <= not (a or b);
       when "0110" =>
         out_buf <= a xor b;
+      when "1010" =>
+        out_buf <= (others => '0');
+        -- conv_integer accepts array which is smaller than 32
+        -- b must be smaller than 32
+        out_buf(31 downto conv_integer(b(30 downto 0))) <= a(31-conv_integer(b(30 downto 0)) downto 0);
+      when "1011" =>
+        out_buf <= (others => a(31));
+        -- conv_integer accepts array which is smaller than 32
+        -- b must be smaller than 32
+        out_buf(31-conv_integer(b(30 downto 0)) downto 0) <= a(31 downto conv_integer(b(30 downto 0)));
       when others => null;
     end case;
   end process;
