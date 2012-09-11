@@ -1,7 +1,9 @@
 // instruction memory
+// instruction is sync with clock, because block ram is far away
 // TODO: use BlockRAM backend, and set data with COE
-module instruction_memory (input  [15:0] a,
-                           output [31:0] rd);
+module instruction_memory (input clk,
+                           input [15:0]  a,
+                           output reg [31:0] rd);
 
    // size is fixed to 64KB = 2^16
    reg [31:0] RAM[64*1024-1:0];
@@ -9,6 +11,7 @@ module instruction_memory (input  [15:0] a,
    initial
       $readmemh ("instruction.dat", RAM);
 
-   assign rd = RAM[a]; // word align
+   always @ (posedge clk)
+     rd <= RAM[a]; // word align
 
 endmodule

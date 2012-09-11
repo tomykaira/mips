@@ -19,6 +19,7 @@ architecture struct of mips is
 
   component instruction_memory
      port (
+       clk : in STD_LOGIC;
        a  : in  std_logic_vector(15 downto 0);
        rd : out std_logic_vector(31 downto 0));
   end component;
@@ -117,7 +118,8 @@ begin
     data_from_bus => data_from_bus);
 
   imem : instruction_memory port map(
-    a  => pc(15 downto 0),
-    rd => instruction);
+    clk => clk,
+    a   => pc(15 downto 0),
+    rd  => instruction);
 
 end;
