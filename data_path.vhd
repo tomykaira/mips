@@ -68,12 +68,28 @@ architecture struct of data_path is
 
 	end component;
 
+	component call_stack is
+  
+		port (
+			clk        : in STD_LOGIC;
+			-- decide to push
+			op         : in std_logic_vector(5 downto 0);
+			-- as input data
+			current_pc : in std_logic_vector(31 downto 0);
+			pc_src     : in std_logic_vector(2 downto 0);
+
+			stack_top  : out std_logic_vector(31 downto 0);
+			);
+
+	end component;
+
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal sign_immediate : std_logic_vector(31 downto 0);
-  signal read_data1, src_b, result : std_logic_vector(31 downto 0);
+  signal read_data1, read_data2, src_b, result, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
 
-  signal pc_buf, read_data2, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
 	signal op : std_logic_vector(5 downto 0);
+
+	signal stack_top : std_logic_vector(31 downto 0);
 
 	signal branch_condition : STD_LOGIC;
 
@@ -114,6 +130,14 @@ begin  -- struct
 		a => read_data1,
 		b => read_data2,
 		go_branch => branch_condition
+		);
+
+	call_stack_inst : call_stack port map (
+		clk        => clk,
+		op         => op,
+		current_pc => pc,
+		pc_src     => pc_src,
+		stack_top  => stack_top
 		);
 
 	op <= instruction(31 downto 26); -- alias
