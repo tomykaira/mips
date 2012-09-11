@@ -51,11 +51,19 @@ use IEEE.NUMERIC_STD.all;
 -- -5 |1   |         |-3 
 -- -5 |2   |         |-2 
 -- 1  |1   |         |0  
--- 0  |1   |         |0  
+-- 0  |1   |         |0
+-- 0  |5   |1000     |5     # mvlo
+-- 9  |5   |         |5
+-- 9  |0   |         |0
+-- 9  |0   |1001     |9     # mvhi
+-- 9  |1   |         |65545
 -- # mul between large numbers
 -- 2147483647 |1     | 0010 | 2147483647  # mul
 -- 32768      |65536 |      | 2147483648  # mul
 -- -32768     |65536 |      | -2147483648 # mul
+-- 65599      |5     | 1000 | 65541       # mvlo
+-- 0          |65541 |      | 5
+-- 65545      |0     | 1001 | 9           # mvhi
 -- /TEST
 
 entity alu is
@@ -92,6 +100,10 @@ begin  -- behave
         out_buf <= not (a or b);
       when "0110" =>
         out_buf <= a xor b;
+      when "1000" =>
+        out_buf <= a(31 downto 16) & b(15 downto 0);
+      when "1001" =>
+        out_buf <= b(15 downto 0) & a(15 downto 0);
       when "1010" =>
         out_buf <= (others => '0');
         -- conv_integer accepts array which is shorter than 32
