@@ -79,8 +79,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- 010000 |         |     W | F          |            | -       | NEXT   | RT      | -             |           |             | 1         |         # mvlo
 -- 010010 |         |     W | F          |            | -       | NEXT   | FRT     | -             |           |             | 1         |         # fmvlo
 -- 010010 |         |     W | F          |            | -       | NEXT   | FRT     | -             |           |             | 1         |         # fmvhi
--- 010100 |         |     W | F          |            | -       | NEXT   | RT      | -             |           |             | 1         |         # slli
--- 010101 |         |     W | F          |            | -       | NEXT   | RT      | -             |           |             | 1         |         # srai
+-- 010100 |         |     W | F          |            | IMM     | NEXT   | RT      | -             |           |             | 1         |         # slli
+-- 010101 |         |     W | F          |            | IMM     | NEXT   | RT      | -             |           |             | 1         |         # srai
 -- 010110 |         |     W | F          |            | -       | NEXT   | FRT     | -             |           |             | 1         |         # imovf
 -- 010111 |         |     W | F          |            | -       | NEXT   | RT      | -             |           |             | 1         |         # fmovi
 -- # floating
@@ -544,11 +544,13 @@ begin  -- behave
           when "001" =>
             reg_dst    <= RT;
             flags      <= "00010";
+            alu_src    <= '1';
 
           -- move
           when "010" =>
             reg_dst    <= RT;
             flags      <= "00010";
+            alu_src    <= '1';
 
           -- floating point arithmetic
           when "110" =>
