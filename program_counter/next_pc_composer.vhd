@@ -58,6 +58,7 @@ begin  -- behave
              "000000" & jump       when pc_src = F_JUMP else
              current_pc + relative when pc_src = F_RELATIVE and branch_condition = '1' else
              reg                   when pc_src = F_REG else
-             stack_top             when pc_src = F_LR;
+             -- next to current PC
+             stack_top + 1         when pc_src = F_LR;
 
 end behave;
