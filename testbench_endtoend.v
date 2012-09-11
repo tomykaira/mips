@@ -19,8 +19,6 @@ module testbench_endtoend();
    // debug output
    integer fd;
 
-	 wire pc_mirror;
-
    fake_sram fake (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA));
@@ -41,12 +39,10 @@ module testbench_endtoend();
       #22;
       xreset <= 1;
    end
-
-	assign pc_mirror = dut.mips1.pc;
+  
   // debug output
   initial begin
-		 
-     $display("%h", pc_mirror);
+      $display("%h", dut.mips1.pc);
   end
 
    // geenrate clock to sequence tests
