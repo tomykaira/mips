@@ -97,7 +97,7 @@ architecture struct of data_path is
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal sign_immediate : std_logic_vector(31 downto 0);
   signal read_data1, read_data2, rs, rt : std_logic_vector(31 downto 0) := (others => '0');
-	signal src_b, write_back, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
+  signal src_b, write_back, alu_out, execute_result : std_logic_vector(31 downto 0) := (others => '0');
 
   signal op : std_logic_vector(5 downto 0);
 
@@ -122,7 +122,7 @@ begin  -- struct
     a       => rs,
     b       => src_b,
     control => alu_control,
-    output  => alu_out_buf
+    output  => alu_out
     );
 
   pc_manager : program_counter port map (
