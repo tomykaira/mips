@@ -110,14 +110,14 @@ begin  -- behave
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         assert b < x"100000" report "b is too large";
-        shift_amount := conv_integer(b(5 downto 0));
+        shift_amount := conv_integer(b(4 downto 0));
         out_buf(31 downto shift_amount) <= a(31-shift_amount downto 0);
       when "1011" =>
         out_buf <= (others => a(31));
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         assert b < x"100000" report "b is too large";
-        shift_amount := conv_integer(b(5 downto 0));
+        shift_amount := conv_integer(b(4 downto 0));
         out_buf(31-shift_amount downto 0) <= a(31 downto shift_amount);
       when others =>
         assert false report "Unexpected instruction in ALU.";
