@@ -82,9 +82,22 @@ architecture struct of data_path is
 
   end component;
 
+	component flip_reset is
+
+		generic (
+			width : integer := 32);
+
+		port (
+			clk, reset : in  std_logic;
+			d          : in  std_logic_vector(width-1 downto 0);
+			q          : out std_logic_vector(width-1 downto 0));
+
+	end component;
+
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal sign_immediate : std_logic_vector(31 downto 0);
-  signal read_data1, read_data2, src_b, result, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
+  signal read_data1, read_data2, rs, rt : std_logic_vector(31 downto 0) := (others => '0');
+	signal src_b, write_back, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
 
   signal op : std_logic_vector(5 downto 0);
 
@@ -101,12 +114,12 @@ begin  -- struct
     read_addr1    => instruction(25 downto 21),
     read_addr2    => instruction(20 downto 16),
     write_addr3   => write_reg_addr,
-    write_data3   => result,
+    write_data3   => write_back,
     read_data1    => read_data1,
     read_data2    => read_data2);
 
   main_alu : alu port map (
-    a       => read_data1,
+    a       => rs,
     b       => src_b,
     control => alu_control,
     output  => alu_out_buf
@@ -119,15 +132,15 @@ begin  -- struct
     pc_src           => pc_src,
     jump             => instruction(25 downto 0),
     relative         => sign_immediate,
-    reg              => read_data1,
+    reg              => rs,
     stack_top        => stack_top,
     branch_condition => branch_condition);
 
   -- comparation inputs are always from register
   branch_condition_checker_inst : branch_condition_checker port map (
     op => op,
-    a => read_data1,
-    b => read_data2,
+    a => rs,
+    b => rt,
     go_branch => branch_condition
     );
 
@@ -139,19 +152,38 @@ begin  -- struct
     stack_top  => stack_top
     );
 
+	read_data1_flip : flip_reset port map (
+		clk   => clk,
+		reset => reset,
+		d     => read_data1,
+		q     => rs);
+
+	read_data2_flip : flip_reset port map (
+		clk   => clk,
+		reset => reset,
+		d     => read_data2,
+		q     => rt);
+
+	result_flip : flip_reset port map (
+		clk   => clk,
+		reset => reset,
+		d     => alu_out, -- TODO: mux output from ALU and FPU
+		q     => execute_result);
+
   op <= instruction(31 downto 26); -- alias
 
   write_reg_addr <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
-  result <= data_from_bus when bus_to_reg = '1' else alu_out_buf;
+
+  write_back <= data_from_bus when bus_to_reg = '1' else execute_result;
 
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
                     else x"0000" & instruction(15 downto 0);
 
-  src_b <= sign_immediate when alu_src = '1' else read_data2;
+  src_b <= sign_immediate when alu_src = '1' else rt;
 
 
-  mem_addr   <= alu_out_buf;
-  write_data <= read_data2;
+  mem_addr   <= execute_result;
+  write_data <= rt;
   pc <= pc_buf;
 
 end struct;
