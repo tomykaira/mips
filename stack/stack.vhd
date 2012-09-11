@@ -71,18 +71,6 @@ begin
         if(stack_ptr /= depth-1) then
           stack_ptr <= stack_ptr + 1;
         end if;
-        --setting full and empty flags
-        if(stack_ptr = 0) then
-          full <= '1';
-          empty <= '0';
-        elsif(stack_ptr = depth-1) then
-          full <= '0';
-          empty <= '1';
-        else
-          full <= '0';
-          empty <= '0';
-        end if;
-
       end if;
 
     end if;
