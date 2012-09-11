@@ -102,7 +102,8 @@ begin  -- behave
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         out_buf(31-conv_integer(b(30 downto 0)) downto 0) <= a(31 downto conv_integer(b(30 downto 0)));
-      when others => null;
+      when others =>
+        assert false report "Unexpected instruction in ALU.";
     end case;
   end process;
   
