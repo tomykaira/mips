@@ -12,7 +12,7 @@ entity controller is
         rx_enable             : out STD_LOGIC;
         send_enable           : out STD_LOGIC;
         write_pc              : out STD_LOGIC;
-        alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
+        alu_control           : out STD_LOGIC_VECTOR(3 downto 0));
 end;
 
 architecture struct of controller is
@@ -28,7 +28,7 @@ architecture struct of controller is
       rx_enable             : out STD_LOGIC;
       send_enable           : out STD_LOGIC;
       write_pc              : out STD_LOGIC;
-      alu_control           : out STD_LOGIC_VECTOR(2 downto 0));
+      alu_control           : out STD_LOGIC_VECTOR(3 downto 0));
   end component;
 
   signal branch : STD_LOGIC;

@@ -14,7 +14,7 @@ entity register_selector is
     read_data1, read_data2              : out std_logic_vector(31 downto 0);
 
     -- instruction operator to judge which port is used
-    op : in std_logic_vector(6 downto 0)
+    op : in std_logic_vector(5 downto 0)
 );
 end register_selector;
 
@@ -33,7 +33,7 @@ architecture behave of register_selector is
   component register_decoder is
     port (
       -- instruction operator to judge which port is used
-      op : in std_logic_vector(6 downto 0);
+      op : in std_logic_vector(5 downto 0);
       -- bounded register file. 0 for int, 1 for float
       addr1, addr2, addr3 : out STD_LOGIC
       );

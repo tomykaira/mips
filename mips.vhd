@@ -4,13 +4,14 @@ use IEEE.STD_LOGIC_1164.all;
 entity mips is
 
   port (
-    clk, reset          : in  STD_LOGIC;
-    mem_write           : out STD_LOGIC;
-    send_enable         : out STD_LOGIC;
-    mem_addr, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-    data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
-    rx_enable           : out STD_LOGIC;
-    rx_done             : in  STD_LOGIC);
+    clk, reset    : in  STD_LOGIC;
+    mem_write     : out STD_LOGIC;
+    send_enable   : out STD_LOGIC;
+    mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);
+    write_data    : out std_logic_vector(31 downto 0);
+    data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
+    rx_enable     : out STD_LOGIC;
+    rx_done       : in  STD_LOGIC);
 
 end;
 
@@ -42,19 +43,22 @@ architecture struct of mips is
 
   end component;
 
-  component data_path
+  component data_path is
+  
     port (
-    clk, reset          : in  std_logic;
-    bus_to_reg, pc_src  : in  std_logic;
-    alu_src, reg_dst    : in  std_logic;
-    reg_write, jump     : in  std_logic;
-    write_pc            : in  STD_LOGIC;
-    alu_control         : in  std_logic_vector(2 downto 0);
-    pc                  : out std_logic_vector(31 downto 0);
-    instruction         : in  std_logic_vector(31 downto 0);
-    mem_addr, write_data : out std_logic_vector(31 downto 0);
-    data_from_bus       : in  std_logic_vector(31 downto 0));
+      clk, reset           : in  std_logic;
+      bus_to_reg           : in  std_logic;
+      pc_src               : in  std_logic_vector(2 downto 0);
+      alu_src, reg_dst     : in  std_logic;
+      reg_write            : in  std_logic;
+      alu_control          : in  std_logic_vector(3 downto 0);
+      instruction          : in  std_logic_vector(31 downto 0);
+      data_from_bus        : in  std_logic_vector(31 downto 0);
+      pc                   : out std_logic_vector(31 downto 0);
+      mem_addr, write_data : out std_logic_vector(31 downto 0)
+      ); 
   end component;
+
 
   component flip_reset is
       generic (
@@ -71,7 +75,7 @@ architecture struct of mips is
 
   signal bus_to_reg,alu_src,reg_dst,reg_write : STD_LOGIC;
   signal pc_src : std_logic_vector(2 downto 0);
-  signal alu_control : std_logic_vector(2 downto 0);
+  signal alu_control : std_logic_vector(3 downto 0);
 
   signal current_stage, next_stage : std_logic_vector(3 downto 0);
 

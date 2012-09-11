@@ -10,8 +10,7 @@ entity data_path is
     bus_to_reg           : in  std_logic;
 		pc_src               : in  std_logic_vector(2 downto 0);
     alu_src, reg_dst     : in  std_logic;
-    reg_write, jump      : in  std_logic;
-    write_pc             : in  STD_LOGIC;
+    reg_write            : in  std_logic;
     alu_control          : in  std_logic_vector(3 downto 0);
     instruction          : in  std_logic_vector(31 downto 0);
     data_from_bus        : in  std_logic_vector(31 downto 0);
@@ -25,7 +24,7 @@ architecture struct of data_path is
   component alu
     port (
       a, b    : in  std_logic_vector(31 downto 0);
-      control : in  std_logic_vector(2 downto 0);
+      control : in  std_logic_vector(3 downto 0);
       output  : out std_logic_vector(31 downto 0)
       );
   end component;
@@ -38,7 +37,7 @@ architecture struct of data_path is
       write_data3                         : in  std_logic_vector(31 downto 0);
       read_data1, read_data2              : out std_logic_vector(31 downto 0);
 
-      op : in std_logic_vector(6 downto 0));
+      op : in std_logic_vector(5 downto 0));
   end component;
 
   component program_counter is
@@ -78,7 +77,7 @@ architecture struct of data_path is
 			current_pc : in std_logic_vector(31 downto 0);
 			pc_src     : in std_logic_vector(2 downto 0);
 
-			stack_top  : out std_logic_vector(31 downto 0);
+			stack_top  : out std_logic_vector(31 downto 0)
 			);
 
 	end component;
@@ -89,7 +88,7 @@ architecture struct of data_path is
 
 	signal op : std_logic_vector(5 downto 0);
 
-	signal stack_top : std_logic_vector(31 downto 0);
+	signal stack_top, pc_buf : std_logic_vector(31 downto 0);
 
 	signal branch_condition : STD_LOGIC;
 
@@ -116,12 +115,12 @@ begin  -- struct
   pc_manager : program_counter port map (
     clk              => clk,
     reset            => reset,
-    pc               => pc,
+    pc               => pc_buf,
     pc_src           => pc_src,
     jump             => instruction(25 downto 0),
     relative         => sign_immediate,
     reg              => read_data1,
-    stack_top        => stack_top,   -- TODO
+    stack_top        => stack_top,
     branch_condition => branch_condition);
 
 	-- comparation inputs are always from register
@@ -135,7 +134,7 @@ begin  -- struct
 	call_stack_inst : call_stack port map (
 		clk        => clk,
 		op         => op,
-		current_pc => pc,
+		current_pc => pc_buf,
 		pc_src     => pc_src,
 		stack_top  => stack_top
 		);
@@ -153,5 +152,6 @@ begin  -- struct
 
   mem_addr   <= alu_out_buf;
   write_data <= read_data2;
+	pc <= pc_buf;
   
 end struct;

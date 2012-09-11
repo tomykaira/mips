@@ -63,10 +63,10 @@ begin -- statemachine
     jump       => jump,
     relative   => relative,
     reg        => reg,
-    stack      => stack_top,
-    branch     => branch_condition,
-    pc         => pc_next);
+    stack_top  => stack_top,
+    branch_condition => branch_condition,
+    pc_next    => pc_next);
 
   pc <= pc_buf;
 
-end statemachine
+end statemachine;

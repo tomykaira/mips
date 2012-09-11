@@ -16,7 +16,7 @@ module testbench_endtoend();
    wire [1:0]  ZCLKMA;
    wire XE1, E2A, XE3, XGA, XWA, XZCKE, ADVA, XFT, XLBO, ZZA;
 
-   fake_sram (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
+   fake_sram fake (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA));
    

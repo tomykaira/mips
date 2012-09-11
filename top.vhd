@@ -35,13 +35,14 @@ architecture top of top is
 
   component mips
     port (
-      clk, reset          : in  STD_LOGIC;
-      mem_write           : out STD_LOGIC;
-      send_enable         : out STD_LOGIC;
-      alu_out, write_data : out STD_LOGIC_VECTOR(31 downto 0);
-      data_from_bus       : in  STD_LOGIC_VECTOR(31 downto 0);
-      rx_enable           : out STD_LOGIC;
-      rx_done             : in  STD_LOGIC);
+      clk, reset    : in  STD_LOGIC;
+      mem_write     : out STD_LOGIC;
+      send_enable   : out STD_LOGIC;
+      mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);
+      write_data    : out std_logic_vector(31 downto 0);
+      data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
+      rx_enable     : out STD_LOGIC;
+      rx_done       : in  STD_LOGIC);
   end component;
 
   component sramc is
@@ -66,7 +67,7 @@ architecture top of top is
       clk       : in std_logic;
       reset     : in std_logic;
       push      : in std_logic;           -- 1 to push data
-      push_data : in std_logic_vector(31 downto 0);
+      push_data : in std_logic_vector(7 downto 0);
       tx        : out std_logic);
 
   end component;
@@ -107,7 +108,7 @@ begin  -- test
 
     data_read    => memory_data,
     data_write   => write_data,
-    address      => data_addr,
+    address      => data_addr(19 downto 0),
     write_enable => mem_write);
 
   mips1 : mips port map (
@@ -132,7 +133,7 @@ begin  -- test
     clk       => iclk,
     reset     => not xrst,
     push      => send_enable,
-    push_data => write_data,
+    push_data => write_data(7 downto 0),
     tx        => RS_TX);
 
   XZBE<= "0000";

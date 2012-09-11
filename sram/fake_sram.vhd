@@ -34,7 +34,7 @@ entity fake_sram is
     ADVA   : in std_logic; -- 0
     XFT    : in std_logic; -- 1
     XLBO   : in std_logic; -- 1
-    ZZA    : in std_logic; -- 0
+    ZZA    : in std_logic  -- 0
 );
 
 end fake_sram;
@@ -42,8 +42,8 @@ end fake_sram;
 architecture behave of fake_sram is
 
   -- address max for 20bits: 1048576
-  type ram_type is array ((1048575 donwto 0)) of std_logic_vector(31 downto 0);
-  variable mem : ram_type;
+  type ram_type is array (1048575 downto 0) of std_logic_vector(31 downto 0);
+  signal mem : ram_type;
 
   signal sram_data : std_logic_vector(31 downto 0);
 
@@ -77,9 +77,9 @@ begin  -- behave
       if XWA = '0' then
         write1     <= ZD;
         addr1      <= ZA;
-        mem(addr1) <= write1;
+        mem(conv_integer(addr1)) <= write1;
       else
-        read1     <= mem(ZA);
+        read1     <= mem(conv_integer(ZA));
         sram_data <= read1;
       end if;
     end if;
