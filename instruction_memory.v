@@ -11,7 +11,9 @@ module instruction_memory (input clk,
    initial
       $readmemh ("instruction.dat", RAM);
 
-   always @ (posedge clk)
-     rd <= RAM[a]; // word align
+   always @ (posedge clk) begin
+      rd <= RAM[a]; // word align
+      $display("inst: %h", rd);
+   end
 
 endmodule

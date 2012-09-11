@@ -40,11 +40,6 @@ module testbench_endtoend();
       xreset <= 1;
    end
   
-  // debug output
-  initial begin
-      $display("%h", dut.mips1.pc);
-  end
-
    // geenrate clock to sequence tests
    // 14 ns / clock is realistic
    always begin
