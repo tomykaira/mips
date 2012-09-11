@@ -98,7 +98,7 @@ begin -- behave
       -- move
       when "010" =>
         case op_id is
-          when "000" | "001" =>
+          when "000" | "001" | "100" | "101" =>
             vector <= "000";
           when "010" | "011" | "110" =>
             vector <= "001";
