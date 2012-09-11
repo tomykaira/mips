@@ -1,5 +1,5 @@
-testrunner: fmul.c
-	gcc -Wall -o testrunner fmul.c
+testrunner: finv.c
+	gcc -Wall -o testrunner finv.c
 
 clean:
-	rm -rf testrunner fmul.o
+	rm -rf testrunner *.o
