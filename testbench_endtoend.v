@@ -16,6 +16,9 @@ module testbench_endtoend();
    wire [1:0]  ZCLKMA;
    wire XE1, E2A, XE3, XGA, XWA, XZCKE, ADVA, XFT, XLBO, ZZA;
 
+   // debug output
+   integer fd;
+
    fake_sram fake (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA));
@@ -31,6 +34,9 @@ module testbench_endtoend();
 
    // initialize test by xresetting
    initial begin
+      // debug output
+      $monitor(fd, "%h", dut.mips1.pc);
+
       xreset <= 0;
       rs_rx  <= 1;
       #22;
