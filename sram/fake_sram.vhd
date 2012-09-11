@@ -42,7 +42,9 @@ end fake_sram;
 architecture behave of fake_sram is
 
   -- address max for 20bits: 1048576
-  type ram_type is array (1048575 downto 0) of std_logic_vector(31 downto 0);
+  -- blockram is capable
+  -- 1024 for test
+  type ram_type is array (1024 downto 0) of std_logic_vector(31 downto 0);
   signal mem : ram_type;
 
   signal sram_data : std_logic_vector(31 downto 0);
