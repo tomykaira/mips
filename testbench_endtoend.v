@@ -19,6 +19,8 @@ module testbench_endtoend();
    // debug output
    integer fd;
 
+	 wire pc_mirror;
+
    fake_sram fake (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA));
@@ -34,14 +36,18 @@ module testbench_endtoend();
 
    // initialize test by xresetting
    initial begin
-      // debug output
-      $monitor(fd, "%h", dut.mips1.pc);
-
       xreset <= 0;
       rs_rx  <= 1;
       #22;
       xreset <= 1;
    end
+
+	assign pc_mirror = dut.mips1.pc;
+  // debug output
+  initial begin
+		 
+     $display("%h", pc_mirror);
+  end
 
    // geenrate clock to sequence tests
    // 14 ns / clock is realistic
