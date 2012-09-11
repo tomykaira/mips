@@ -16,14 +16,14 @@ entity call_stack is
     current_pc : in std_logic_vector(31 downto 0);
     pc_src     : in std_logic_vector(2 downto 0);
 
-    stack_top  : out std_logic_vector(31 downto 0);
+    stack_top  : out std_logic_vector(31 downto 0)
   );
 
 end call_stack;
 
 architecture behave of call_stack is
 
-  entity stack is
+  component stack is
     generic (
       width : integer := 32;
       depth : integer := 256
@@ -36,7 +36,7 @@ architecture behave of call_stack is
             Stack_Full  : out std_logic;  --Goes high when the stack is full.
             Stack_Empty : out std_logic  --Goes high when the stack is empty.
             );
-  end stack;
+  end component;
 
   signal full, empty, push_or_pop, do_push, do_pop : STD_LOGIC;
   
@@ -52,7 +52,7 @@ begin  -- behave
     Stack_Empty => empty -- not used
     );
 
-  assert empty = '0' and pop = '1' report "PC Stack is empty and popping";
+  assert empty = '0' and do_pop = '1' report "PC Stack is empty and popping";
   assert full = '0'  report "PC Stack is full";
 
   -- push: call and leaving this instruction
