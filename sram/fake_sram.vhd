@@ -77,12 +77,18 @@ begin  -- behave
   begin  -- process sram_mock
     if rising_edge(clk) then
       if XWA = '0' then
-        write1     <= ZD;
-        addr1      <= ZA;
-        mem(conv_integer(addr1)) <= write1;
+        -- ZA is always connected. problem is in when it is writing
+        assert ZA<1024 report "Writing.. ZA is greater than 1024.";
+        if ZA < 1024 then
+          write1     <= ZD;
+          addr1      <= ZA;
+          mem(conv_integer(addr1)) <= write1;
+        end if;
       else
-        read1     <= mem(conv_integer(ZA));
-        sram_data <= read1;
+        if ZA < 1024 then
+          read1     <= mem(conv_integer(ZA));
+          sram_data <= read1;
+        end if;
       end if;
     end if;
   end process sram_mock;
