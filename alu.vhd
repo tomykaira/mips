@@ -83,6 +83,7 @@ begin  -- behave
 
   process(a, b, control)
     variable out_buf2 : std_logic_vector(63 downto 0);
+    variable shift_amount : integer;
   begin
     case control is
       when "0000" =>
@@ -108,12 +109,16 @@ begin  -- behave
         out_buf <= (others => '0');
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
-        out_buf(31 downto conv_integer(b(30 downto 0))) <= a(31-conv_integer(b(30 downto 0)) downto 0);
+        assert b < x"100000" report "b is too large";
+        shift_amount := conv_integer(b(5 downto 0));
+        out_buf(31 downto shift_amount) <= a(31-shift_amount downto 0);
       when "1011" =>
         out_buf <= (others => a(31));
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
-        out_buf(31-conv_integer(b(30 downto 0)) downto 0) <= a(31 downto conv_integer(b(30 downto 0)));
+        assert b < x"100000" report "b is too large";
+        shift_amount := conv_integer(b(5 downto 0));
+        out_buf(31-shift_amount downto 0) <= a(31 downto shift_amount);
       when others =>
         assert false report "Unexpected instruction in ALU.";
     end case;
