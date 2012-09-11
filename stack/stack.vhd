@@ -31,50 +31,59 @@ begin
 Stack_Full <= full;
 Stack_Empty <= empty;
 
+process (stack_ptr)
+begin
+  --setting full and empty flags
+  if(stack_ptr = 0) then
+    full <= '1';
+    empty <= '0';
+  elsif(stack_ptr = depth-1) then
+    full <= '0';
+    empty <= '1';
+  else
+    full <= '0';
+    empty <= '0';
+  end if;
+
+  if (stack_ptr =  depth-1) then
+    Data_Out <= (others => 'U');
+  else
+    Data_Out <= stack_mem(stack_ptr+1);
+  end if;
+end process;
+
 --PUSH and POP process for the stack.
 PUSH : process(Clk,PUSH_barPOP,Enable)
 begin
     if(rising_edge(Clk)) then
-        --PUSH section.
-        if (Enable = '1' and PUSH_barPOP = '1' and full = '0') then
-             --Data pushed to the current address.
-            stack_mem(stack_ptr) <= Data_In;
-            if(stack_ptr /= 0) then
-                stack_ptr <= stack_ptr - 1;
-            end if;
-            --setting full and empty flags
-            if(stack_ptr = 0) then
-                full <= '1';
-                empty <= '0';
-            elsif(stack_ptr = depth-1) then
-                full <= '0';
-                empty <= '1';
-            else
-                full <= '0';
-                empty <= '0';
-            end if;
 
+      --PUSH section.
+      if (Enable = '1' and PUSH_barPOP = '1' and full = '0') then
+        --Data pushed to the current address.
+        stack_mem(stack_ptr) <= Data_In;
+        if(stack_ptr /= 0) then
+          stack_ptr <= stack_ptr - 1;
         end if;
-        --POP section.
-        if (Enable = '1' and PUSH_barPOP = '0' and empty = '0') then
+      end if;
+      --POP section.
+      if (Enable = '1' and PUSH_barPOP = '0' and empty = '0') then
         --Data has to be taken from the next highest address(empty descending type stack).
-            if(stack_ptr /= depth-1) then
-                Data_Out <= stack_mem(stack_ptr+1);
-                stack_ptr <= stack_ptr + 1;
-            end if;
-            --setting full and empty flags
-            if(stack_ptr = 0) then
-                full <= '1';
-                empty <= '0';
-            elsif(stack_ptr = depth-1) then
-                full <= '0';
-                empty <= '1';
-            else
-                full <= '0';
-                empty <= '0';
-            end if;
-
+        if(stack_ptr /= depth-1) then
+          stack_ptr <= stack_ptr + 1;
         end if;
+        --setting full and empty flags
+        if(stack_ptr = 0) then
+          full <= '1';
+          empty <= '0';
+        elsif(stack_ptr = depth-1) then
+          full <= '0';
+          empty <= '1';
+        else
+          full <= '0';
+          empty <= '0';
+        end if;
+
+      end if;
 
     end if;
 end process;
