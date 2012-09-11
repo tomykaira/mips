@@ -52,7 +52,7 @@ begin  -- behave
     Stack_Empty => empty -- not used
     );
 
-  assert empty = '0' and do_pop = '1' report "PC Stack is empty and popping";
+  assert (do_pop = '0' or empty = '0') report "PC Stack is empty and popping";
   assert full = '0'  report "PC Stack is full";
 
   -- push: call and leaving this instruction
