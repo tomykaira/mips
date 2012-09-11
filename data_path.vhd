@@ -8,7 +8,7 @@ entity data_path is
   port (
     clk, reset           : in  std_logic;
     bus_to_reg           : in  std_logic;
-	 pc_src               : in  std_logic_vector(2 downto 0);
+		pc_src               : in  std_logic_vector(2 downto 0);
     alu_src, reg_dst     : in  std_logic;
     reg_write, jump      : in  std_logic;
     write_pc             : in  STD_LOGIC;
@@ -58,17 +58,30 @@ architecture struct of data_path is
 
   end component;
 
+	component branch_condition_checker is
+		
+		port (
+			op        : in std_logic_vector(5 downto 0);
+			a, b      : in std_logic_vector(31 downto 0);
+			go_branch : out STD_LOGIC
+			);
+
+	end component;
+
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal sign_immediate : std_logic_vector(31 downto 0);
   signal read_data1, src_b, result : std_logic_vector(31 downto 0);
 
   signal pc_buf, read_data2, alu_out_buf : std_logic_vector(31 downto 0) := (others => '0');
+	signal op : std_logic_vector(5 downto 0);
+
+	signal branch_condition : STD_LOGIC;
 
 begin  -- struct
 
   rf : register_selector port map (
     clk           => clk,
-    op            => instruction(31 downto 26),
+    op            => op,
     write_enable3 => reg_write,
     read_addr1    => instruction(25 downto 21),
     read_addr2    => instruction(20 downto 16),
@@ -93,8 +106,17 @@ begin  -- struct
     relative         => sign_immediate,
     reg              => read_data1,
     stack_top        => stack_top,   -- TODO
-    branch_condition => branch_condition); -- TODO
+    branch_condition => branch_condition);
 
+	-- comparation inputs are always from register
+	branch_condition_checker_inst : branch_condition_checker port map (
+		op => op,
+		a => read_data1,
+		b => read_data2,
+		go_branch => branch_condition
+		);
+
+	op <= instruction(31 downto 26); -- alias
 
   write_reg_addr <= instruction(15 downto 11) when reg_dst = '1' else instruction(20 downto 16);
   result <= data_from_bus when bus_to_reg = '1' else alu_out_buf;
