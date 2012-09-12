@@ -79,6 +79,17 @@ unsigned int generate_x(unsigned int a) {
   return MANTISSA(x.ival) >> 1;
 }
 
+unsigned int table_const(unsigned int k) {
+  ll x = generate_x(k);
+  int a0 = MANTISSA(k << 13) >> 13;
+  return 2*x-(a0*x*x>>33);
+}
+
+ll table_inc(unsigned int k) {
+  ll x = generate_x(k);
+  return x*x;
+}
+
 unsigned int finv(unsigned a){
   int key = (a >> 13) & 0x3ff;
   int a0=MANTISSA(a)>>13;
@@ -86,8 +97,8 @@ unsigned int finv(unsigned a){
   int e=EXP(a);
   ll x1=generate_x(key);
 
-  ll b=2*x1-(a0*x1*x1>>33);
-  b -= (a1*x1*x1)>>46;
+  ll b=table_const(key);
+  b -= (a1*table_inc(key))>>46;
   int be=-e;
   while(b >=(1<<24)){
     b>>=1;
