@@ -91,6 +91,7 @@ begin -- behave
 
   process (op, op_group, op_id)
   begin
+    vector <= "000";
     case op_group is
       when "000" | "001" | "111" =>
         vector <= "000";

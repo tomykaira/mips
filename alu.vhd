@@ -121,6 +121,7 @@ begin  -- behave
         out_buf(31-shift_amount downto 0) <= a(31 downto shift_amount);
       when others =>
         assert false report "Unexpected instruction in ALU.";
+        out_buf <= (others => 'Z');
     end case;
   end process;
   

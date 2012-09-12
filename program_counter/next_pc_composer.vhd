@@ -53,12 +53,12 @@ architecture behave of next_pc_composer is
 
 begin  -- behave
 
-  pc_next <= current_pc            when pc_src = F_CUR else
-             current_pc + 1        when pc_src = F_NEXT or (pc_src = F_RELATIVE and branch_condition = '0') else
+  pc_next <= current_pc + 1        when pc_src = F_NEXT or (pc_src = F_RELATIVE and branch_condition = '0') else
              "000000" & jump       when pc_src = F_JUMP else
              current_pc + relative when pc_src = F_RELATIVE and branch_condition = '1' else
              reg                   when pc_src = F_REG else
              -- next to current PC
-             stack_top + 1         when pc_src = F_LR;
+             stack_top + 1         when pc_src = F_LR else
+             current_pc; -- default
 
 end behave;
