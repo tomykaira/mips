@@ -79,6 +79,15 @@ unsigned int generate_x(unsigned int a) {
   return MANTISSA(x.ival) >> 1;
 }
 
+unsigned int place(ll x) {
+  int place = 0;
+  while (x > 0) {
+    x >>= 1;
+    place ++;
+  }
+  return place;
+}
+
 unsigned int table_const(unsigned int k) {
   ll x = generate_x(k);
   int a0 = MANTISSA(k << 13) >> 13;
@@ -86,19 +95,8 @@ unsigned int table_const(unsigned int k) {
 }
 
 ll table_inc(unsigned int k) {
-  ll x = generate_x(k), xx;
-  int place = 0;
-  xx = x*x;
-  while (xx > 0) {
-    xx >>= 1;
-    place ++;
-  }
-  // 45, k <= 423 のとき 46
-  if ((k > 423 && place == 45) || (k <= 423 && place == 46)) {
-    // ok
-  } else {
-    printf("Expectation error: %d, %d\n", k, place);
-  }
+  ll x = generate_x(k);
+  // 桁は 45, k <= 423 のとき 46
   // 13 bit のこしてシフト => 誤りの最大値が 5 ulp に拡大
   return x*x >> 33;
 }
@@ -108,7 +106,9 @@ unsigned int finv(unsigned a){
   int a1=MANTISSA(a)&(1<<13)-1;
   int e=EXP(a);
 
+  // 初期状態で 23 桁のみ
   ll b=table_const(key);
+
   b -= (a1*table_inc(key))>>13;
 
   // ここは適当かどうか自信がない
