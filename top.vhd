@@ -141,8 +141,8 @@ begin  -- test
   XE3 <= '0';
   XGA <= '0';
   XZCKE <= '0';
-  ZCLKMA(0) <= clk;
-  ZCLKMA(1) <= clk;
+  ZCLKMA(0) <= iclk;
+  ZCLKMA(1) <= iclk;
   ADVA <= '0';
   XFT <= '1';
   XLBO <= '1';
