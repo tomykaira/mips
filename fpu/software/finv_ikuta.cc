@@ -69,7 +69,7 @@ typedef IntAndFloat fi;
 
 unsigned int generate_x(unsigned int a) {
   fi x,aa;
-  aa.ival=a;
+  aa.ival=MAN_TO_FLOAT(a << 13);
   aa.ival &= ~((1<<13)-1);
   x.fval=1/aa.fval;
   aa.ival |=(1<<13)-1;
@@ -80,10 +80,11 @@ unsigned int generate_x(unsigned int a) {
 }
 
 unsigned int finv(unsigned a){
+  int key = (a >> 13) & 0x3ff;
   int a0=MANTISSA(a)>>13;
   int a1=MANTISSA(a)&(1<<13)-1;
   int e=EXP(a);
-  ll x1=generate_x(a);
+  ll x1=generate_x(key);
 
   ll b=2*x1-(a0*x1*x1>>33);
   b -= (a1*x1*x1)>>46;
