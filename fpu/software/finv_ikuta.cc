@@ -170,15 +170,9 @@ unsigned int finv(unsigned a){
   x.fval+=1/aa.fval;
   x.fval/=2;
   ll x1=MANTISSA(x.ival);
-  int xe=EXP(x.ival);
-  while(e<-xe){
-    x1>>=1;
-    ++xe;
-  }
-  while(e>-xe){
-    x1<<=1;
-    --xe;
-  }
+
+  // 簡略化可能なはず。指数部ランダムで確認
+  x1>>=1;
 
   fi ret;
   ll b=2*x1-(a0*x1*x1>>33);
@@ -259,10 +253,16 @@ int main(int argc, char *argv[])
 {
   union IntAndFloat input;
 
+  for (int i = 1; i < 0xff; i++) {
+    test((i << 23) + (0x712900));
+  }
+
+  /*
   while (scanf("%f", &input.fval) != EOF) {
     //printf("%.2f\n",input.fval);
     test(input.ival);
   }
+  */
 
   return 0;
 }
