@@ -92,10 +92,8 @@ ll table_inc(unsigned int k) {
 
 unsigned int finv(unsigned a){
   int key = (a >> 13) & 0x3ff;
-  int a0=MANTISSA(a)>>13;
   int a1=MANTISSA(a)&(1<<13)-1;
   int e=EXP(a);
-  ll x1=generate_x(key);
 
   ll b=table_const(key);
   b -= (a1*table_inc(key))>>46;
