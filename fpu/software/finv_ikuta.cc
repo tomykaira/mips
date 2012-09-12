@@ -99,16 +99,10 @@ unsigned int finv(unsigned a){
 
   ll b=table_const(key);
   b -= (a1*table_inc(key))>>46;
-  int be=-e;
-  while(b >=(1<<24)){
-    b>>=1;
-    ++be;
-  }
 
-  while(b<(1<<23)){
-    b<<=1;
-    --be;
-  }
+  // ここは適当かどうか自信がない
+  int be = - e - 1;
+  b<<=1;
 
   unsigned int answer;
 
