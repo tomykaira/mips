@@ -86,8 +86,21 @@ unsigned int table_const(unsigned int k) {
 }
 
 ll table_inc(unsigned int k) {
-  ll x = generate_x(k);
-  return x*x;
+  ll x = generate_x(k), xx;
+  int place = 0;
+  xx = x*x;
+  while (xx > 0) {
+    xx >>= 1;
+    place ++;
+  }
+  // 45, k <= 423 のとき 46
+  if ((k > 423 && place == 45) || (k <= 423 && place == 46)) {
+    // ok
+  } else {
+    printf("Expectation error: %d, %d\n", k, place);
+  }
+  // 13 bit のこしてシフト => 誤りの最大値が 5 ulp に拡大
+  return x*x >> 33;
 }
 
 unsigned int finv(unsigned a){
@@ -96,7 +109,7 @@ unsigned int finv(unsigned a){
   int e=EXP(a);
 
   ll b=table_const(key);
-  b -= (a1*table_inc(key))>>46;
+  b -= (a1*table_inc(key))>>13;
 
   // ここは適当かどうか自信がない
   int be = - e - 1;
@@ -148,7 +161,7 @@ void test(unsigned int a) {
   }
 
   if (!DEBUG &&
-      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 5) {
+      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 6) {
     if (DOTS) {printf(".");}
   } else {
     printf("a: %x\n", a);
