@@ -46,7 +46,7 @@ begin
   end if;
 
   if (stack_ptr =  depth-1) then
-    Data_Out <= (others => 'U');
+    Data_Out <= (others => 'X');
   else
     Data_Out <= stack_mem(stack_ptr+1);
   end if;

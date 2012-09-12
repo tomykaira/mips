@@ -38,19 +38,21 @@ architecture behave of call_stack is
             );
   end component;
 
-  signal full, empty, push_or_pop, do_push, do_pop : STD_LOGIC;
+  signal full, empty, push_or_pop, do_push, do_pop, enable : STD_LOGIC;
   
 begin  -- behave
 
   pc_stack : stack port map (
     Clk         => clk,
-    Enable      => do_push or do_pop,
+    Enable      => enable,
     Data_In     => current_pc,
     Data_Out    => stack_top,
     PUSH_barPOP => do_push,
     Stack_Full  => full, -- not used
     Stack_Empty => empty -- not used
     );
+
+  enable <= do_push or do_pop;
 
   assert (do_pop = '0' or empty = '0') report "PC Stack is empty and popping";
   assert full = '0'  report "PC Stack is full";

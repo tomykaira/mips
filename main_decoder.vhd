@@ -232,11 +232,11 @@ begin  -- behave
   process(op, op_group, op_id, stage, rx_done)
   begin
     -- reset all output
-    flags <= "UUUUU";
-    next_stage <= (others => 'U');
-    pc_src <=  (others => 'U');
-    alu_src <= 'U';
-    reg_dst <= 'U';
+    flags <= (others => 'X');
+    next_stage <= (others => 'X');
+    pc_src <=  (others => 'X');
+    alu_src <= 'X';
+    reg_dst <= 'X';
 
     pc_src     <= CUR;
 
