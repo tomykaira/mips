@@ -49,7 +49,6 @@ architecture top of top is
   Port (
     ZD           : inout std_logic_vector(31 downto 0);
     ZDP          : inout std_logic_vector(3 downto 0);
-    ADVA         : out std_logic;
     ZA           : out std_logic_vector(19 downto 0);
     XWA          : out std_logic;
 
