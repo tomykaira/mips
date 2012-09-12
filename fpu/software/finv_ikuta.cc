@@ -67,12 +67,7 @@ union IntAndFloat {
 
 typedef IntAndFloat fi;
 
-
-
-unsigned int finv(unsigned a){
-  int a0=MANTISSA(a)>>13;
-  int a1=MANTISSA(a)&(1<<13)-1;
-  int e=EXP(a);
+unsigned int generate_x(unsigned int a) {
   fi x,aa;
   aa.ival=a;
   aa.ival &= ~((1<<13)-1);
@@ -80,12 +75,16 @@ unsigned int finv(unsigned a){
   aa.ival |=(1<<13)-1;
   x.fval+=1/aa.fval;
   x.fval/=2;
-  ll x1=MANTISSA(x.ival);
 
-  // 簡略化可能なはず。指数部ランダムで確認
-  x1>>=1;
+  return MANTISSA(x.ival) >> 1;
+}
 
-  fi ret;
+unsigned int finv(unsigned a){
+  int a0=MANTISSA(a)>>13;
+  int a1=MANTISSA(a)&(1<<13)-1;
+  int e=EXP(a);
+  ll x1=generate_x(a);
+
   ll b=2*x1-(a0*x1*x1>>33);
   b -= (a1*x1*x1)>>46;
   int be=-e;
@@ -99,10 +98,12 @@ unsigned int finv(unsigned a){
     --be;
   }
 
-  ret.ival = a&(1LL<<31LL);
-  ret.ival |= (be+127)<<23;
-  ret.ival |= b&(1<<23)-1;
-  return ret.ival;
+  unsigned int answer;
+
+  answer = a&(1LL<<31LL);
+  answer |= (be+127)<<23;
+  answer |= b&(1<<23)-1;
+  return answer;
 }
 
 void print_float(unsigned int x) {
@@ -143,7 +144,7 @@ void test(unsigned int a) {
   }
 
   if (!DEBUG &&
-      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 4) {
+      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 5) {
     if (DOTS) {printf(".");}
   } else {
     printf("a: %x\n", a);
@@ -166,6 +167,10 @@ int main(int argc, char *argv[])
 
   for (int i = 1; i < 0xff; i++) {
     test((i << 23) + (0x712900));
+  }
+
+  for (int i = 0; i < (1 << 23) - 1; i ++) {
+    test(MAN_TO_FLOAT(i));
   }
 
   /*
