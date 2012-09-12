@@ -7,46 +7,101 @@
 #define swap(a,b) { int temp = a; a = b; b = temp; }
 #define DEBUG 0
 #define DOTS 0
-#define TESTCASE 1
+#define TESTCASE 0
 #define D(x) { if (DEBUG) { x ; } }
 #define MANTISSA(x) (0x800000 + (x & 0x7fffff))
 #define EXP(x) ((x & 0x7f800000) >> 23)
+#define MAN_TO_FLOAT(x) ((127 << 23) + ((x) & 0x7fffff))
+#define KEYLEN 10
 
 union IntAndFloat {
     unsigned int ival;
     float fval;
 };
 
-unsigned int x0(unsigned int key)
+float x0(unsigned int key)
 {
-  union IntAndFloat v1, v2;
+  union IntAndFloat v1, v2, k, k1;
   // 2^n has nothing to do with mantissa
-  v1.fval = 1/((float) key);
-  v2.fval = 1/(((float) key + 1));
-  return EXP(v1.ival) != EXP(v2.ival) ? MANTISSA(v1.ival)/2 + MANTISSA(v2.ival) : MANTISSA(v1.ival)/2 + MANTISSA(v2.ival)/2;
-}
-unsigned int finv_table_const(unsigned int key)
-{
-  unsigned int x = x0(key);
-  printf("%d %x\n", x, x);
-  return ((x << 2) - ((key*x*x) >> 33));
+  k.ival = MAN_TO_FLOAT(key << (23 - KEYLEN));
+  v1.fval = 1.0/k.fval;
+  k1.ival = k.ival | ((1 << (23 - KEYLEN))-1);
+  v2.fval = 1.0/k1.fval;
+  return (v1.fval + v2.fval) / 2.0;
 }
 
-unsigned int finv_table_inc(unsigned int key)
+unsigned int int_x(unsigned int key)
 {
-  unsigned int x = x0(key);
-  return (x*x) >> 46;
+  union IntAndFloat x;
+  unsigned int man;
+  x.fval = x0(key);
+  man = 0x800000 + (x.ival & 0x7fffff);
+  printf("exp: %d\n", EXP(x.ival));
+  if (EXP(x.ival)>127){
+    man = man << (EXP(x.ival) - 127);
+  } else {
+    man = man >> (127 - EXP(x.ival));
+  }
+  return man;
+}
+
+float f_finv_table_const(unsigned int key)
+{
+  float x = x0(key);
+  return (x*2 - (MAN_TO_FLOAT(key << 13)*x*x));
+}
+
+float f_finv_table_diff(unsigned int key, unsigned int dist)
+{
+  float x = x0(key);
+  return (x*x*(MAN_TO_FLOAT(dist)-1.0));
+}
+
+unsigned int finv_table_const(unsigned int key)
+{
+  unsigned long long x = int_x(key);
+  printf("%lld, %d %lld\n", x, (0x400 + key), ((((long long)(0x400 + key))*x*x) >> 33));
+  return ((x << 1) - ((((long long)(0x400 + key))*x*x) >> 33));
+}
+
+unsigned int finv_table_diff(unsigned int key, unsigned int dist)
+{
+  unsigned long long x = int_x(key);
+  printf("x: %lld dist: %d\n", x, dist);
+  return (unsigned int)((x*x*((long long)dist)) >> 46);
 }
 
 unsigned int finv(unsigned int a)
 {
-  unsigned long c0;
-  unsigned long diff, key;
+  unsigned long diff = 1, key, dist;
+  union IntAndFloat f_const, f_diff, ans, af;
+  // top 10 bits
   key = (a >> 13) & 0x3ff;
-  printf("const: %d %x, inc: %d %x\n", finv_table_const(key), finv_table_const(key), finv_table_inc(key), finv_table_inc(key));
-  diff = finv_table_inc(key)*(a&0x1fff);
-  c0 = finv_table_const(key) - ((diff >> 12) & 0x1fff);
-  return (a&0x80000000) + (((key == 0 && diff == 0 ? 254 : 253) - EXP(a)) << 23) + (c0 & 0x7fffff);
+  dist = a & 0x1fff;
+  // x = finv_table_const(key) - ((dist*finv_table_inc(key)) >> 26);
+
+  // default
+  af.ival = MAN_TO_FLOAT(a);
+  float xz = x0(key);
+  ans.fval = 2*xz - af.fval*xz*xz;
+  printf("def  : %x (%d)\n", ans.ival & 0x7fffff, ans.ival & 0x7fffff);
+
+  // int direct
+  unsigned long long x, direct, man;
+  x = int_x(key);
+  man = MANTISSA(a);
+  printf("%lld, %lld, %lld\n", man, x, (man*x*x) >> 46);
+  direct = 2*x - ((man*x*x) >> 46);
+  printf("dir  : %x (%d)\n", (unsigned int)direct, (unsigned int)direct);
+
+  // int
+  /*
+  printf("int  : %x (%x %x)\n", (finv_table_const(key) - finv_table_diff(key, dist)) & 0x7fffff,
+         finv_table_const(key), finv_table_diff(key, dist));
+  // x = finv_table_const(key) - finv_table_diff(key, dist);
+  // ans.fval = f_const.fval - f_diff.fval;
+  */
+  return (a&0x80000000) + (((key == 0 && diff == 0 ? 254 : 253) - EXP(a)) << 23) + (ans.ival & 0x7fffff);
 }
 
 void print_float(unsigned int x) {
@@ -101,7 +156,6 @@ void test(unsigned int a) {
 // test: 負数
 int main(int argc, char *argv[])
 {
-  long long i;
   union IntAndFloat input;
 
   while (scanf("%f", &input.fval) != EOF) {
