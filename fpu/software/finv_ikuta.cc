@@ -148,12 +148,9 @@ void test(unsigned int a) {
   res2.fval = 1 / i.fval;
   // do not test inf, nan.
   exp = (a>>23)&0xff;
-  //printf("i.fval %.8f\n",i.fval);
-  //printf("exp %d\n",exp);
   if (exp == 0xff || exp == 0) { return; }
 
   res.ival = finv(i.ival);
-  //printf("%.8f finv %.8f\n",res2.fval,res.fval);
 
   // generate testcase for verilog
   if (TESTCASE) {
@@ -177,7 +174,6 @@ void test(unsigned int a) {
   }
 }
 
-// test: 負数
 int main(int argc, char *argv[])
 {
   union IntAndFloat input;
@@ -189,13 +185,6 @@ int main(int argc, char *argv[])
   for (int i = 0; i < (1 << 23) - 1; i ++) {
     test(MAN_TO_FLOAT(i));
   }
-
-  /*
-  while (scanf("%f", &input.fval) != EOF) {
-    //printf("%.2f\n",input.fval);
-    test(input.ival);
-  }
-  */
 
   return 0;
 }
