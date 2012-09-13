@@ -25,8 +25,7 @@ architecture behave of call_stack is
 
   component stack is
     generic (
-      width : integer := 32;
-      depth : integer := 256
+      width : integer := 32
       );
     port(   Clk         : in std_logic;  --Clock for the stack.
             Enable      : in std_logic;  --Enable the stack. Otherwise neither push nor pop will happen.
