@@ -177,8 +177,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- 111101 |       0 |     D | E          | 0          | -       | CUR    | RT      | -             | 0         | 0           | 0         | 1       # inputb
 -- 111101 |       0 |     E | E          | 1          |         | CUR    |         |               |           |             | 0         | 1        
 -- 111101 |       1 |     E | F          | 1          |         | NEXT   |         |               |           |             | 1         | 0        
--- 111110 |       0 |     D | E          | 0          | -       | CUR    | -       | -             | 0         | 1           | 0         | 0       # outputb
--- 111110 |       0 |     E | F          | 0          |         | NEXT   | -       | -             |           | 0           |           |         
+-- 111110 |       0 |     D | E          | 0          | -       | CUR    | -       | -             | 0         | 0           | 0         | 0       # outputb
+-- 111110 |       0 |     E | F          | 0          |         | NEXT   | -       | -             |           | 1           |           |         
 -- 111111 |       0 |     F | F          | 0          | -       | CUR    | -       | -             | 0         | 0           | 0         | 0       # halt
 -- 111111 |       1 |     F | F          | 0          |         |        |         |               |           |             |           |          
 -- 111111 |       0 |     D | D          | 0          |         |        |         |               |           |             |           |          
@@ -315,7 +315,7 @@ begin  -- behave
                 flags   <= "00001";
               when "110" =>
                 next_stage <= x"2";
-                flags <= "00100";
+                flags <= "00000";
               when others => null;
             end case;
 
@@ -418,7 +418,7 @@ begin  -- behave
               when "110" =>
                 next_stage <= x"0";
                 pc_src     <= PC_NEXT;
-                flags      <= "00000";
+                flags      <= "00100";
               when others => null;
             end case;
           when others =>
