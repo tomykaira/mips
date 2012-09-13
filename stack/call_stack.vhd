@@ -38,7 +38,7 @@ architecture behave of call_stack is
             );
   end component;
 
-  signal full, empty, push_or_pop, do_push, do_pop, enable : STD_LOGIC;
+  signal full, empty, do_push, do_pop, enable : STD_LOGIC;
   
 begin  -- behave
 

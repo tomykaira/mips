@@ -23,7 +23,7 @@ use IEEE.STD_LOGIC_ARITH.all;
 --    REL |            |      |     2222 |     |           |                1 | 2322
 --    REL |            |      |      -42 |     |           |                1 | 58
 --    REG |            |      |     2222 |     |           |                0 | 333
---     LR |            |      |          |     |           |                  | 4444
+--     LR |            |      |          |     |           |                  | 4445
 -- /TEST
 
 entity next_pc_composer is

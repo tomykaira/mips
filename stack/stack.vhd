@@ -23,7 +23,7 @@ architecture Behavioral of stack is
 
 type mem_type is array (depth-1 downto 0) of std_logic_vector(width-1 downto 0);
 signal stack_mem : mem_type := (others => (others => '0'));
-signal stack_ptr : integer := depth-1;
+signal stack_ptr : integer range 0 to depth-1 := depth-1;
 signal full,empty : std_logic := '0';
 
 begin
