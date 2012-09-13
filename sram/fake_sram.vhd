@@ -41,10 +41,12 @@ end fake_sram;
 
 architecture behave of fake_sram is
 
+  constant MEM_SIZE : integer := 1024;
+
   -- address max for 20bits: 1048576
   -- blockram is capable
   -- 1024 for test
-  type ram_type is array (1024 downto 0) of std_logic_vector(31 downto 0);
+  type ram_type is array (MEM_SIZE downto 0) of std_logic_vector(31 downto 0);
   signal mem : ram_type;
 
   signal sram_data : std_logic_vector(31 downto 0);
@@ -78,14 +80,14 @@ begin  -- behave
     if rising_edge(clk) then
       if XWA = '0' then
         -- ZA is always connected. problem is in when it is writing
-        assert ZA<1024 report "Writing.. ZA is greater than 1024.";
-        if ZA < 1024 then
+        assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
+        if ZA <= MEM_SIZE then
           write1     <= ZD;
           addr1      <= ZA;
           mem(conv_integer(addr1)) <= write1;
         end if;
       else
-        if ZA < 1024 then
+        if ZA <= MEM_SIZE then
           read1     <= mem(conv_integer(ZA));
           sram_data <= read1;
         end if;
