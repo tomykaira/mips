@@ -30,18 +30,31 @@ entity sramc is
     data_read    : out std_logic_vector(31 downto 0);
     data_write   : in std_logic_vector(31 downto 0);
     address      : in std_logic_vector(19 downto 0);
-    write_enable : in std_logic
+    write_enable : in std_logic;
+    clk : in std_logic
     );
 end sramc;
 
 architecture blackbox of sramc is
 begin  -- blackbox
 
-  ZA   <= address;
-  XWA  <= not write_enable;
+  -- data_read is not refreshed in simulation
+  -- workaround: forcefully update it with clock timing
+  -- TODO: FIXME: I am not sure it works on FPGA
+  process (address, data_write, write_enable, ZD, clk)
+  begin
+    ZA   <= address;
+    ZDP <= (others => 'Z');
 
-  ZD <= data_write when write_enable = '1' else (others => 'Z');
-
-  data_read <= ZD;
+    if write_enable = '1' then
+      XWA  <= '0';
+      ZD <= data_write;
+      data_read <= (others => 'Z');
+    else
+      XWA  <= '1';
+      ZD <= (others => 'Z');
+      data_read <= ZD;
+    end if;
+  end process;
 
 end blackbox;

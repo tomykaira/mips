@@ -52,6 +52,7 @@ architecture top of top is
     ZA           : out std_logic_vector(19 downto 0);
     XWA          : out std_logic;
 
+    clk          : in STD_LOGIC;
     data_read    : out std_logic_vector(31 downto 0);
     data_write   : in std_logic_vector(31 downto 0);
     address      : in std_logic_vector(19 downto 0);
@@ -105,6 +106,7 @@ begin  -- test
     ZA  => ZA,
     XWA => XWA,
 
+    clk          => iclk,
     data_read    => memory_data,
     data_write   => write_data,
     address      => data_addr(19 downto 0),
