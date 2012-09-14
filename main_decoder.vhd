@@ -122,7 +122,7 @@ use IEEE.STD_LOGIC_1164.all;
 -- 101000 |         |    M2 | W          | 0          | IMM     | CUR    | RT      |               |           |             |           | 
 -- 101000 |         |     W | F          | 1          | -       | NEXT   | RT      |               |           |             | 1         |         
 -- 101001 |         |     D | E          | 0          | IMM     | CUR    | -       | 000           | 0         |             | 0         |         # sti
--- 101001 |         |     E | M          |            | IMM     | CUR    |         |               | 1         |             |           |  
+-- 101001 |         |     E | M          |            | IMM     | CUR    |         |               | 0         |             |           |  
 -- 101001 |         |     M | M1         |            | IMM     | CUR    |         |               | 1         |             |           |  
 -- 101001 |         |    M1 | M2         |            | IMM     | CUR    |         |               | 1         |             |           |  
 -- 101001 |         |    M2 | F          | 0          | IMM     | NEXT   |         |               | 1         |             |           |  
@@ -139,7 +139,7 @@ use IEEE.STD_LOGIC_1164.all;
 -- 101010 |         |    M2 | W          |            | IMM     | CUR    |         |               |           |             |           |         
 -- 101010 |         |     W | F          | 1          | -       | NEXT   | -       |               |           |             | 1         |         
 -- 101011 |         |     D | E          | 0          | IMM     | CUR    | -       | 000           | 0         |             | 0         |         # fsti
--- 101011 |         |     E | M          |            | IMM     | CUR    |         |               | 1         |             |           |         
+-- 101011 |         |     E | M          |            | IMM     | CUR    |         |               | 0         |             |           |         
 -- 101011 |         |     M | M1         |            | IMM     | CUR    |         |               | 1         |             |           |         
 -- 101011 |         |    M1 | M2         |            | IMM     | CUR    |         |               | 1         |             |           |         
 -- 101011 |         |    M2 | F          | 0          | IMM     | NEXT   |         |               | 1         |             | 0         |         
@@ -379,8 +379,8 @@ begin  -- behave
             end if;
             next_stage  <= x"5";
             alu_control <= "0000";
-            -- lsb of write operation is 1
-            flags       <= "0" & op(0) & "000";
+            -- no write yet
+            flags       <= "00000";
 
           -- floating point arithmetic
           when "110" =>
