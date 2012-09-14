@@ -36,8 +36,8 @@ architecture sram_top of sram_top is
   constant WRITE_LIMIT : integer := 2;
   constant READ_LIMIT  : integer := 2;
 
-  constant MAIN : std_logic_vector(31 downto 0) := x"00000082";
-  constant SUB : std_logic_vector(31 downto 0) := x"00000083";
+  constant START_ADDR : std_logic_vector(31 downto 0) := x"00000082";
+  constant END_ADDR   : std_logic_vector(31 downto 0) := x"00000100";
 
   component sramc is
   Port (
@@ -78,7 +78,7 @@ architecture sram_top of sram_top is
 
   signal memory_data : std_logic_vector(31 downto 0);
   signal data_write : std_logic_vector(31 downto 0);
-  signal data_addr : std_logic_vector(31 downto 0) := MAIN;
+  signal data_addr : std_logic_vector(31 downto 0) := START_ADDR;
   signal mem_write_enable : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
@@ -114,7 +114,6 @@ begin  -- test
     write_enable => mem_write_enable);
 
   mem_write_enable <= '1' when (state = WRITING or state = WRITING2) else '0';
-  data_addr <= SUB when state = WRITING2 or state = READING2 else MAIN;
 
   sender : rs232c_buffer port map (
     clk       => iclk,
@@ -133,9 +132,6 @@ begin  -- test
     changed => rx_done);
 
   rx_enable <= '1' when state = INPUT else '0';
-  data_write <= x"000000" & rx_data when state = WRITING else
-                x"000000" & (rx_data + 1) when state = WRITING2 else
-                x"ffffffff";
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -156,26 +152,37 @@ begin  -- test
     if xrst = '0' then
       state <= INPUT;
       counter <= (others => '0');
+      data_write <= (others => '0');
+      data_addr <= START_ADDR;
     elsif rising_edge(iclk) then
       counter <= counter + 1;
       if state = INPUT and rx_done = '1' then
         counter <= (others => '0');
+        data_write <= x"000000" & rx_data;
         state <= WRITING;
-      elsif state = WRITING and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= MEANTIME;
-      elsif state = MEANTIME and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= WRITING2;
-      elsif state = WRITING2 and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= READING;
-      elsif state = READING and counter >= READ_LIMIT then
-        counter <= (others => '0');
-        state <= READING2;
-      elsif state = READING2 and counter >= READ_LIMIT then
-        counter <= (others => '0');
-        state <= INPUT;
+      elsif state = WRITING then
+        if data_addr >= END_ADDR then
+          counter <= (others => '0');
+          data_addr <= START_ADDR;
+          state <= READING;
+        elsif counter >= WRITE_LIMIT then
+          counter <= (others => '0');
+          data_addr <= data_addr + 1;
+          data_write <= data_write + 1;
+        else
+          counter <= counter + 1;
+        end if;
+      elsif state = READING then
+        if data_addr >= END_ADDR then
+          counter <= (others => '0');
+          data_addr <= START_ADDR;
+          state <= INPUT;
+        elsif counter >= READ_LIMIT then
+          counter <= (others => '0');
+          data_addr <= data_addr + 1;
+        else
+          counter <= counter + 1;
+        end if;
       end if;
     end if;
   end process;
