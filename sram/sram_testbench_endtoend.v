@@ -38,6 +38,16 @@ module sram_testbench_endtoend();
       rs_rx  <= 1;
       #22;
       xreset <= 1;
+      rs_rx <= 0;
+      #2000 rs_rx <= 1;
+      #2000 rs_rx <= 1;
+      #2000 rs_rx <= 0;
+      #2000 rs_rx <= 1;
+      #2000 rs_rx <= 1;
+      #2000 rs_rx <= 1;
+      #2000 rs_rx <= 0;
+      #2000 rs_rx <= 0;
+      #2000 rs_rx <= 1;
    end
   
    // geenrate clock to sequence tests

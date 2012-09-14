@@ -33,6 +33,9 @@ end sram_top;
 
 architecture sram_top of sram_top is
 
+  constant WRITE_LIMIT : integer := 2;
+  constant READ_LIMIT  : integer := 5;
+
   component sramc is
   Port (
     ZD           : inout std_logic_vector(31 downto 0);
@@ -60,8 +63,18 @@ architecture sram_top of sram_top is
 
   end component;
 
+  component i232c
+    port ( clk    : in  STD_LOGIC;
+           enable : in  STD_LOGIC;
+           rx     : in  STD_LOGIC;
+           data   : out STD_LOGIC_VECTOR (7 downto 0);
+           changed: out STD_LOGIC);
+  end component;
+
+  constant LIMIT : integer := 3;
+
   signal memory_data : std_logic_vector(31 downto 0);
-  signal data_write : std_logic_vector(31 downto 0) := x"000000cc";
+  signal data_write : std_logic_vector(31 downto 0);
   signal data_addr : std_logic_vector(31 downto 0) := x"00000082";
   signal mem_write_enable : STD_LOGIC;
 
@@ -69,10 +82,12 @@ architecture sram_top of sram_top is
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_done : STD_LOGIC;
+  signal rx_enable, rx_done, push_enable : STD_LOGIC;
 
-  signal reading, done : STD_LOGIC := '0';
   signal counter : std_logic_vector(9 downto 0) := (others => '0');
+
+  type statetype is (INPUT, READING, WRITING);
+  signal state : statetype := INPUT;
 
 begin  -- test
 
@@ -95,12 +110,26 @@ begin  -- test
     address      => data_addr(19 downto 0),
     write_enable => mem_write_enable);
 
+  mem_write_enable <= '1' when state = WRITING else '0';
+
   sender : rs232c_buffer port map (
     clk       => iclk,
     reset     => not xrst,
-    push      => reading,
+    push      => push_enable,
     push_data => memory_data(7 downto 0),
     tx        => RS_TX);
+
+  push_enable <= '1' when state = READING else '0';
+  
+  receiver : i232c port map (
+    clk     => iclk,
+    enable  => rx_enable,
+    rx      => RS_RX,
+    data    => rx_data,
+    changed => rx_done);
+
+  rx_enable <= '1' when state = INPUT else '0';
+  data_write <= x"000000" & rx_data;
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -116,26 +145,22 @@ begin  -- test
   ZZA <= '0';
   ZDP <=  (others => 'Z');
 
-  mem_write_enable <= '1' when reading = '0' else '0';
-
-  process (iclk, xrst)
+  statemachine : process (iclk, xrst)
   begin
     if xrst = '0' then
+      state <= INPUT;
       counter <= (others => '0');
-      reading <= '0';
-      done <= '0';
-    elsif rising_edge(iclk) and done = '0' then
+    elsif rising_edge(iclk) then
       counter <= counter + 1;
-      if reading = '0' then
-        if counter >= 4 then
-          reading <= '1';
-          counter <= (others => '0');
-        end if;
-      else
-        if counter >= 10 then
-          reading <= '0';
-          done <= '1';
-        end if;
+      if state = INPUT and rx_done = '1' then
+        counter <= (others => '0');
+        state <= WRITING;
+      elsif state = WRITING and counter >= WRITE_LIMIT then
+        counter <= (others => '0');
+        state <= READING;
+      elsif state = READING and counter >= READ_LIMIT then
+        counter <= (others => '0');
+        state <= INPUT;
       end if;
     end if;
   end process;
