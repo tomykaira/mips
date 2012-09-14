@@ -38,13 +38,14 @@ end sramc;
 architecture blackbox of sramc is
 begin  -- blackbox
 
+  ZA   <= address;
+  ZDP <= (others => 'Z');
+
   -- data_read is not refreshed in simulation
   -- workaround: forcefully update it with clock timing
   -- TODO: FIXME: I am not sure it works on FPGA
   process (address, data_write, write_enable, ZD, clk)
   begin
-    ZA   <= address;
-    ZDP <= (others => 'Z');
 
     if write_enable = '1' then
       XWA  <= '0';

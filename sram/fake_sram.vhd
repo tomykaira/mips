@@ -75,7 +75,7 @@ begin  -- behave
 
   assert XZBE  = "0000" report "Fake SRAM: XZBE";
 
-  sram_mock: process (clk)
+  sram_mock: process (clk, ZD, ZA, XWA)
   begin  -- process sram_mock
     if rising_edge(clk) then
       if XWA = '0' then

@@ -34,7 +34,10 @@ end sram_top;
 architecture sram_top of sram_top is
 
   constant WRITE_LIMIT : integer := 2;
-  constant READ_LIMIT  : integer := 5;
+  constant READ_LIMIT  : integer := 2;
+
+  constant MAIN : std_logic_vector(31 downto 0) := x"00000082";
+  constant SUB : std_logic_vector(31 downto 0) := x"00000083";
 
   component sramc is
   Port (
@@ -75,7 +78,7 @@ architecture sram_top of sram_top is
 
   signal memory_data : std_logic_vector(31 downto 0);
   signal data_write : std_logic_vector(31 downto 0);
-  signal data_addr : std_logic_vector(31 downto 0) := x"00000082";
+  signal data_addr : std_logic_vector(31 downto 0) := MAIN;
   signal mem_write_enable : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
@@ -86,7 +89,7 @@ architecture sram_top of sram_top is
 
   signal counter : std_logic_vector(9 downto 0) := (others => '0');
 
-  type statetype is (INPUT, READING, WRITING);
+  type statetype is (INPUT, READING, WRITING, MEANTIME, WRITING2, READING2);
   signal state : statetype := INPUT;
 
 begin  -- test
@@ -110,7 +113,8 @@ begin  -- test
     address      => data_addr(19 downto 0),
     write_enable => mem_write_enable);
 
-  mem_write_enable <= '1' when state = WRITING else '0';
+  mem_write_enable <= '1' when (state = WRITING or state = WRITING2) else '0';
+  data_addr <= SUB when state = WRITING2 or state = READING2 else MAIN;
 
   sender : rs232c_buffer port map (
     clk       => iclk,
@@ -119,7 +123,7 @@ begin  -- test
     push_data => memory_data(7 downto 0),
     tx        => RS_TX);
 
-  push_enable <= '1' when state = READING else '0';
+  push_enable <= '1' when state = READING or state = READING2 else '0';
   
   receiver : i232c port map (
     clk     => iclk,
@@ -129,7 +133,9 @@ begin  -- test
     changed => rx_done);
 
   rx_enable <= '1' when state = INPUT else '0';
-  data_write <= x"000000" & rx_data;
+  data_write <= x"000000" & rx_data when state = WRITING else
+                x"000000" & (rx_data + 1) when state = WRITING2 else
+                x"ffffffff";
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -157,8 +163,17 @@ begin  -- test
         state <= WRITING;
       elsif state = WRITING and counter >= WRITE_LIMIT then
         counter <= (others => '0');
+        state <= MEANTIME;
+      elsif state = MEANTIME and counter >= WRITE_LIMIT then
+        counter <= (others => '0');
+        state <= WRITING2;
+      elsif state = WRITING2 and counter >= WRITE_LIMIT then
+        counter <= (others => '0');
         state <= READING;
       elsif state = READING and counter >= READ_LIMIT then
+        counter <= (others => '0');
+        state <= READING2;
+      elsif state = READING2 and counter >= READ_LIMIT then
         counter <= (others => '0');
         state <= INPUT;
       end if;
