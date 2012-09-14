@@ -5,7 +5,7 @@ module instruction_memory (input clk,
                            input [15:0]  a,
                            output reg [31:0] rd);
    // size is fixed to 64KB = 2^16
-   parameter MEM_SIZE=19;
+   parameter MEM_SIZE=10;
 
    reg [31:0] RAM[MEM_SIZE-1:0];
 
