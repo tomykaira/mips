@@ -8,8 +8,9 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 -- float/int x eq/lt/le x true/false
 -- comparator is fully tested as an unit
+
+-- DOCTEST DEPENDENCIES: ./comparator.vhd
 -- TEST
--- depend ./comparator.vhd
 -- def f { |x| x.include?(".") ? [x.to_f].pack('f').unpack('I').first : x.to_i }
 -- op   b | a   f | b   f | go_branch
 -- 100000 | 5     | 5     | 1    # beq
