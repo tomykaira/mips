@@ -1,8 +1,14 @@
-testrunner: finv_ikuta.cc
-	g++ -Wall -g -o testrunner finv_ikuta.cc
+JOIN = join.cc table.o table.h util.o util.h
+FINV = finv_ikuta.cc table.o table.h util.o util.h
 
-join: join.cc
-	g++ -Wall -g -o $@ $<
+finv: $(FINV)
+	g++ -Wall -g -o $@ $(FINV)
+
+join: $(JOIN)
+	g++ -Wall -g -o $@ $(JOIN)
+
+%.o: %.cc
+	g++ -Wall -g -c -o $@ $<
 
 rollback: inc.dat.orig const.dat.orig
 	cp inc.dat.orig inc.dat
