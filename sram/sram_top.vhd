@@ -34,10 +34,7 @@ end sram_top;
 architecture sram_top of sram_top is
 
   constant WRITE_LIMIT : integer := 2;
-  constant READ_LIMIT  : integer := 2;
-
-  constant START_ADDR : std_logic_vector(31 downto 0) := x"00000082";
-  constant END_ADDR   : std_logic_vector(31 downto 0) := x"00000100";
+  constant READ_LIMIT  : integer := 5;
 
   component sramc is
   Port (
@@ -78,7 +75,8 @@ architecture sram_top of sram_top is
 
   signal memory_data : std_logic_vector(31 downto 0);
   signal data_write : std_logic_vector(31 downto 0);
-  signal data_addr : std_logic_vector(31 downto 0) := START_ADDR;
+  -- 0x66 = 102
+  signal data_addr : std_logic_vector(31 downto 0) := x"00000066";
   signal mem_write_enable : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
@@ -89,8 +87,8 @@ architecture sram_top of sram_top is
 
   signal counter : std_logic_vector(9 downto 0) := (others => '0');
 
-  type statetype is (INPUT, READING, WRITING, MEANTIME, WRITING2, READING2);
-  signal state : statetype := INPUT;
+  type statetype is (INPUT, READING, WRITING);
+  signal state : statetype := READING;
 
 begin  -- test
 
@@ -113,7 +111,7 @@ begin  -- test
     address      => data_addr(19 downto 0),
     write_enable => mem_write_enable);
 
-  mem_write_enable <= '1' when (state = WRITING or state = WRITING2) else '0';
+  mem_write_enable <= '1' when state = WRITING else '0';
 
   sender : rs232c_buffer port map (
     clk       => iclk,
@@ -122,7 +120,7 @@ begin  -- test
     push_data => memory_data(7 downto 0),
     tx        => RS_TX);
 
-  push_enable <= '1' when state = READING or state = READING2 else '0';
+  push_enable <= '1' when state = READING else '0';
   
   receiver : i232c port map (
     clk     => iclk,
@@ -132,6 +130,7 @@ begin  -- test
     changed => rx_done);
 
   rx_enable <= '1' when state = INPUT else '0';
+  data_write <= x"000000" & rx_data;
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -150,39 +149,16 @@ begin  -- test
   statemachine : process (iclk, xrst)
   begin
     if xrst = '0' then
-      state <= INPUT;
+      state <= READING;
       counter <= (others => '0');
-      data_write <= (others => '0');
-      data_addr <= START_ADDR;
     elsif rising_edge(iclk) then
       counter <= counter + 1;
       if state = INPUT and rx_done = '1' then
         counter <= (others => '0');
-        data_write <= x"000000" & rx_data;
-        state <= WRITING;
-      elsif state = WRITING then
-        if data_addr >= END_ADDR then
-          counter <= (others => '0');
-          data_addr <= START_ADDR;
-          state <= READING;
-        elsif counter >= WRITE_LIMIT then
-          counter <= (others => '0');
-          data_addr <= data_addr + 1;
-          data_write <= data_write + 1;
-        else
-          counter <= counter + 1;
-        end if;
-      elsif state = READING then
-        if data_addr >= END_ADDR then
-          counter <= (others => '0');
-          data_addr <= START_ADDR;
-          state <= INPUT;
-        elsif counter >= READ_LIMIT then
-          counter <= (others => '0');
-          data_addr <= data_addr + 1;
-        else
-          counter <= counter + 1;
-        end if;
+        state <= READING;
+      elsif state = READING and counter >= READ_LIMIT then
+        counter <= (others => '0');
+        state <= INPUT;
       end if;
     end if;
   end process;
