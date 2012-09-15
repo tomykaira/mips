@@ -284,14 +284,14 @@ int main(int argc, char *argv[])
   for (int k0 = 0; k0<1024; k0++) {
     while (1) {
       diff = sumDiff(k0, 0, 0);
-      diff_p1 = sumDiff(k0, 1, 0);
-      diff_m1 = sumDiff(k0, -1, 0);
+      diff_p1 = sumDiff(k0, 0, 1);
+      diff_m1 = sumDiff(k0, 0, -1);
       printf("%lld %lld %lld\n", diff, diff_p1, diff_m1);
 
       if (diff_m1 < diff)
-        const_table[k0] -= 1;
+        inc_table[k0] -= 1;
       else if (diff_p1 < diff)
-        const_table[k0] += 1;
+        inc_table[k0] += 1;
       else
         break;
     }
