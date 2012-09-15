@@ -179,16 +179,16 @@ unsigned int finv(unsigned a){
   int a1=MANTISSA(a)&((1<<13)-1);
   int e=EXP(a);
 
-  printf("key: %x ", key);
+  D(printf("key: %x ", key));
 
   // 初期状態で 23 桁のみ
   ll b=table_const(key);
 
-  printf("const: %x inc: %llx lower: %llx ", table_const(key), table_inc(key), a1*table_inc(key));
+  D(printf("const: %x inc: %llx lower: %llx ", table_const(key), table_inc(key), a1*table_inc(key)));
 
   b -= (a1*table_inc(key))>>13;
 
-  printf("b:%llx ", b);
+  D(printf("b:%llx ", b));
 
   // ここは適当かどうか自信がない
   int be = - e - 1;
@@ -196,11 +196,11 @@ unsigned int finv(unsigned a){
 
   unsigned int answer;
 
-  printf("be: %x\n", be + 127);
+  D(printf("be: %x\n", be + 127));
 
   answer = a&(1LL<<31LL);
-  answer |= (be+127)<<23;
-  answer |= b&((1<<23)-1);
+  answer |= ((a & 0x7fffff) == 0 ? be + 128 : be+127)<<23;
+  answer |= (a & 0x7fffff) == 0 ? 0 : b&((1<<23)-1);
   return answer;
 }
 
