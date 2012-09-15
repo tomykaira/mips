@@ -38,6 +38,28 @@ module testbench_endtoend();
       rs_rx  <= 1;
       #22;
       xreset <= 1;
+      #100;
+
+      // input 0_01010000_1
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 1;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 1;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 0;
+      #2000;
+      rs_rx <= 1;
    end
   
    // geenrate clock to sequence tests
