@@ -32,6 +32,24 @@ module testbench_endtoend();
    // in post-map simulation, other modules are not available.
    i232c decoder(.clk(clk), .enable(1'b1), .rx(rs_tx), .data(check_data), .changed(check_changed));
 
+   integer i;
+   task send;
+      input [7:0] data;
+      begin
+
+         // input 0_????????_1
+         rs_rx <= 0;
+         #2000;
+         for (i=0; i<8; i = i+1) begin
+            rs_rx <= data[i];
+            #2000;
+         end
+         rs_rx <= 1;
+         #2000;
+
+      end
+   endtask
+
    // initialize test by xresetting
    initial begin
       xreset <= 0;
@@ -40,26 +58,12 @@ module testbench_endtoend();
       xreset <= 1;
       #100;
 
-      // input 0_01010000_1
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 1;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 1;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 0;
-      #2000;
-      rs_rx <= 1;
+      #6000;
+
+      // "10\0"
+      send(49);
+      send(48);
+      send(0);
    end
   
    // geenrate clock to sequence tests
