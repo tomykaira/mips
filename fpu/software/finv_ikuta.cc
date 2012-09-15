@@ -231,7 +231,7 @@ void test(unsigned int a) {
   }
 
   if (!DEBUG &&
-      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 6) {
+      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 5) {
     if (DOTS) {printf(".");}
   } else {
     printf("a: %x\n", a);
@@ -278,23 +278,10 @@ ll sumDiff(int k0, unsigned x_const_diff, unsigned int x_inc_diff)
 
 int main(int argc, char *argv[])
 {
-  ll diff, diff_p1, diff_m1;
   read_tables();
 
-  for (int k0 = 0; k0<1024; k0++) {
-    while (1) {
-      diff = sumDiff(k0, 0, 0);
-      diff_p1 = sumDiff(k0, 0, 1);
-      diff_m1 = sumDiff(k0, 0, -1);
-      printf("%lld %lld %lld\n", diff, diff_p1, diff_m1);
-
-      if (diff_m1 < diff)
-        inc_table[k0] -= 1;
-      else if (diff_p1 < diff)
-        inc_table[k0] += 1;
-      else
-        break;
-    }
+  for (int i = 0; i < (1 << 23) - 1; i ++) {
+    test(MAN_TO_FLOAT(i));
   }
 
   return write_tables();
