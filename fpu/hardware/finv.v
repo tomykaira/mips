@@ -35,8 +35,8 @@ module finv (input clk,
       const_part2  <= const_part;
 
        // stage 3
-      sum = const_part2 + lower[25:13];
-      s <= {sign2, exponent2 == 0 ? exponent2 : exponent2inv, sum[23:1]};
+			sum = const_part2 - lower[25:13];
+      s <= {sign2, exponent2 == 0 ? exponent2 : exponent2inv, {sum[21:0],1'b0}};
    end
 
 endmodule
