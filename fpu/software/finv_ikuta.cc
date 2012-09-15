@@ -67,6 +67,75 @@ union IntAndFloat {
 
 typedef IntAndFloat fi;
 
+#define MAX_KEY 1024
+
+unsigned int const_table[MAX_KEY];
+unsigned int inc_table[MAX_KEY];
+
+int read_tables() {
+  FILE * fp = fopen("const.dat", "r");
+  if (fp) {
+    for (int i = 0; i<MAX_KEY; i++) {
+      fscanf(fp, "%x\n", &const_table[i]);
+    }
+    if (fclose(fp) != 0) {
+      perror("fclose const.dat");
+      return 1;
+    }
+  } else {
+    perror("fopen const.dat");
+    return 1;
+  }
+
+  fp = fopen("inc.dat", "r");
+  if (fp) {
+    for (int i = 0; i<MAX_KEY; i++) {
+      fscanf(fp, "%x\n", &inc_table[i]);
+    }
+    if (fclose(fp) != 0) {
+      perror("fclose inc.dat");
+      return 1;
+    }
+  } else {
+    perror("fopen inc.dat");
+    return 1;
+  }
+
+  return 0;
+}
+
+int write_tables() {
+  FILE * fp = fopen("const.dat", "w");
+  if (fp) {
+    for (int i = 0; i<MAX_KEY; i++) {
+      fprintf(fp, "%x\n", const_table[i]);
+    }
+    if (fclose(fp) != 0) {
+      perror("fclose const.dat");
+      return 1;
+    }
+  } else {
+    perror("fopen const.dat");
+    return 1;
+  }
+
+  fp = fopen("inc.dat", "w");
+  if (fp) {
+    for (int i = 0; i<MAX_KEY; i++) {
+      fprintf(fp, "%x\n", inc_table[i]);
+    }
+    if (fclose(fp) != 0) {
+      perror("fclose inc.dat");
+      return 1;
+    }
+  } else {
+    perror("fopen inc.dat");
+    return 1;
+  }
+
+  return 0;
+}
+
 unsigned int generate_x(unsigned int a) {
   fi x,aa;
   aa.ival=MAN_TO_FLOAT(a << 13);
@@ -101,9 +170,16 @@ ll table_inc(unsigned int k) {
   return x*x >> 33;
 }
 
+void initialize_tables() {
+  for (int i = 0; i<MAX_KEY; i++) {
+    const_table[i] = table_const(i);
+    inc_table[i] = table_inc(i);
+  } 
+}
+
 unsigned int finv(unsigned a){
   int key = (a >> 13) & 0x3ff;
-  int a1=MANTISSA(a)&(1<<13)-1;
+  int a1=MANTISSA(a)&((1<<13)-1);
   int e=EXP(a);
 
   // 初期状態で 23 桁のみ
@@ -119,7 +195,7 @@ unsigned int finv(unsigned a){
 
   answer = a&(1LL<<31LL);
   answer |= (be+127)<<23;
-  answer |= b&(1<<23)-1;
+  answer |= b&((1<<23)-1);
   return answer;
 }
 
@@ -176,15 +252,11 @@ void test(unsigned int a) {
 
 int main(int argc, char *argv[])
 {
-  union IntAndFloat input;
+  initialize_tables();
 
-  for (int i = 1; i < 0xff; i++) {
-    test((i << 23) + (0x712900));
-  }
-
-  for (int i = 0; i < (1 << 23) - 1; i ++) {
+  for (int i = 0; i < (1 << 13) - 1; i ++) {
     test(MAN_TO_FLOAT(i));
   }
 
-  return 0;
+  return write_tables();
 }
