@@ -158,16 +158,13 @@ unsigned int place(ll x) {
 }
 
 unsigned int table_const(unsigned int k) {
-  ll x = generate_x(k);
-  int a0 = MANTISSA(k << 13) >> 13;
-  return 2*x-(a0*x*x>>33);
+  assert(k<MAX_KEY);
+  return const_table[k];
 }
 
 ll table_inc(unsigned int k) {
-  ll x = generate_x(k);
-  // 桁は 45, k <= 423 のとき 46
-  // 13 bit のこしてシフト => 誤りの最大値が 5 ulp に拡大
-  return x*x >> 33;
+  assert(k<MAX_KEY);
+  return inc_table[k];
 }
 
 void initialize_tables() {
@@ -250,12 +247,54 @@ void test(unsigned int a) {
   }
 }
 
-int main(int argc, char *argv[])
+ll sumDiff(int k0, unsigned x_const_diff, unsigned int x_inc_diff)
 {
-  initialize_tables();
+  ll diff = 0;
+  fi input, answer;
+  unsigned int a;
+
+  const_table[k0] += x_const_diff;
+  inc_table[k0] += x_inc_diff;
 
   for (int i = 0; i < (1 << 13) - 1; i ++) {
-    test(MAN_TO_FLOAT(i));
+    a = MAN_TO_FLOAT((k0 << 13) + i);
+    input.ival = a;
+
+    answer.fval = 1 / input.fval;
+    ll expected = answer.ival;
+    ll actual = finv(a);
+
+    diff += (expected - actual)*(expected - actual);
+    if (diff > (1ll << 31ll)) {
+      break;
+    }
+  }
+
+  const_table[k0] -= x_const_diff;
+  inc_table[k0] -= x_inc_diff;
+
+  return diff;
+}
+
+int main(int argc, char *argv[])
+{
+  ll diff, diff_p1, diff_m1;
+  read_tables();
+
+  for (int k0 = 0; k0<1024; k0++) {
+    while (1) {
+      diff = sumDiff(k0, 0, 0);
+      diff_p1 = sumDiff(k0, 1, 0);
+      diff_m1 = sumDiff(k0, -1, 0);
+      printf("%lld %lld %lld\n", diff, diff_p1, diff_m1);
+
+      if (diff_m1 < diff)
+        const_table[k0] -= 1;
+      else if (diff_p1 < diff)
+        const_table[k0] += 1;
+      else
+        break;
+    }
   }
 
   return write_tables();
