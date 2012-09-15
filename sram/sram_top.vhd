@@ -5,7 +5,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 library UNISIM;
 use UNISIM.VComponents.all;
 
-entity top is
+entity sram_top is
 
   port (
     ZD     : inout std_logic_vector(31 downto 0);
@@ -29,21 +29,12 @@ entity top is
     CLK, XRST, RS_RX       : in  std_logic;
     RS_TX                  : out std_logic);
 
-end top;
+end sram_top;
 
-architecture top of top is
+architecture sram_top of sram_top is
 
-  component mips
-    port (
-      clk, reset    : in  STD_LOGIC;
-      mem_write     : out STD_LOGIC;
-      send_enable   : out STD_LOGIC;
-      mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);
-      write_data    : out std_logic_vector(31 downto 0);
-      data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
-      rx_enable     : out STD_LOGIC;
-      rx_done       : in  STD_LOGIC);
-  end component;
+  constant WRITE_LIMIT : integer := 2;
+  constant READ_LIMIT  : integer := 2;
 
   component sramc is
   Port (
@@ -80,16 +71,23 @@ architecture top of top is
            changed: out STD_LOGIC);
   end component;
 
-  signal data_from_bus, memory_data : std_logic_vector(31 downto 0);
+  constant LIMIT : integer := 3;
 
-  signal write_data, data_addr : std_logic_vector(31 downto 0);
-  signal mem_write : STD_LOGIC;
+  signal memory_data : std_logic_vector(31 downto 0);
+  signal data_write : std_logic_vector(31 downto 0);
+  signal data_addr : std_logic_vector(31 downto 0) := x"00000082";
+  signal mem_write_enable : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_done, send_enable : STD_LOGIC;
+  signal rx_enable, rx_done, push_enable : STD_LOGIC;
+
+  signal counter : std_logic_vector(9 downto 0) := (others => '0');
+
+  type statetype is (INPUT, READING, WRITING);
+  signal state : statetype := INPUT;
 
 begin  -- test
 
@@ -108,21 +106,21 @@ begin  -- test
 
     clk          => iclk,
     data_read    => memory_data,
-    data_write   => write_data,
+    data_write   => data_write,
     address      => data_addr(19 downto 0),
-    write_enable => mem_write);
+    write_enable => mem_write_enable);
 
-  mips1 : mips port map (
-    clk           => iclk,
-    reset         => not xrst,
-    mem_write     => mem_write,
-    send_enable   => send_enable,
-    mem_addr      => data_addr,
-    write_data    => write_data,
-    data_from_bus => data_from_bus,
-    rx_enable     => rx_enable,
-    rx_done       => rx_done);
+  mem_write_enable <= '1' when state = WRITING else '0';
 
+  sender : rs232c_buffer port map (
+    clk       => iclk,
+    reset     => not xrst,
+    push      => push_enable,
+    push_data => memory_data(7 downto 0),
+    tx        => RS_TX);
+
+  push_enable <= '1' when state = READING else '0';
+  
   receiver : i232c port map (
     clk     => iclk,
     enable  => rx_enable,
@@ -130,12 +128,8 @@ begin  -- test
     data    => rx_data,
     changed => rx_done);
 
-  sender : rs232c_buffer port map (
-    clk       => iclk,
-    reset     => not xrst,
-    push      => send_enable,
-    push_data => write_data(7 downto 0),
-    tx        => RS_TX);
+  rx_enable <= '1' when state = INPUT else '0';
+  data_write <= x"000000" & rx_data;
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -151,8 +145,25 @@ begin  -- test
   ZZA <= '0';
   ZDP <=  (others => 'Z');
 
-  -- is this good design to judge here?
-  -- ok for reading twice?
-  data_from_bus <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
+  statemachine : process (iclk, xrst)
+  begin
+    if xrst = '0' then
+      state <= INPUT;
+      counter <= (others => '0');
+    elsif rising_edge(iclk) then
+      counter <= counter + 1;
+      if state = INPUT and rx_done = '1' then
+        counter <= (others => '0');
+        state <= WRITING;
+      elsif state = WRITING and counter >= WRITE_LIMIT then
+        counter <= (others => '0');
+        state <= READING;
+      elsif state = READING and counter >= READ_LIMIT then
+        counter <= (others => '0');
+        state <= INPUT;
+      end if;
+    end if;
+  end process;
 
-end top;
+
+end sram_top;

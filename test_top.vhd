@@ -27,12 +27,6 @@ architecture test of test_top is
       rx_done             : in  STD_LOGIC);
   end component;
 
-  component instruction_memory
-     port (
-       a  : in  std_logic_vector(5 downto 0);
-       rd : out std_logic_vector(31 downto 0));
-  end component;
-
   component data_memory
     port (
       clk, we : in  std_logic;
@@ -49,7 +43,7 @@ architecture test of test_top is
            changed: out STD_LOGIC);
   end component;
 
-  signal pc, instruction, data_from_bus, memory_data : std_logic_vector(31 downto 0);
+  signal data_from_bus, memory_data : std_logic_vector(31 downto 0);
 
   signal write_data, data_addr : std_logic_vector(31 downto 0);
   signal mem_write : STD_LOGIC;
@@ -60,8 +54,7 @@ architecture test of test_top is
 
 begin  -- test
 
-  mips1 : mips port map(clk, not xrst, pc, instruction, mem_write, send_enable, data_addr, write_data, data_from_bus, rx_enable, rx_done);
-  imem1 : instruction_memory port map(pc(7 downto 2), instruction);
+  mips1 : mips port map(clk, not xrst, mem_write, send_enable, data_addr, write_data, data_from_bus, rx_enable, rx_done);
   dmem1 : data_memory port map(clk, mem_write, data_addr, write_data, memory_data);
 
   rx : i232c port map(clk, rx_enable, RS_RX, rx_data, rx_done);
