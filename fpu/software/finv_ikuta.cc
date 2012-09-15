@@ -141,14 +141,14 @@ unsigned int rand_float() {
 
 void test(unsigned int a) {
   union IntAndFloat i, res, res2;
-  int exp;
 
   i.ival = a;
 
   res2.fval = 1 / i.fval;
   // do not test inf, nan.
-  exp = (a>>23)&0xff;
-  if (exp == 0xff || exp == 0) { return; }
+  int exp = (a >> 23) & 0xff;
+  int answer_exp = (res2.ival >> 23) & 0xff;
+  if (exp == 0xff || exp == 0 || answer_exp == 0xff || answer_exp == 0) { return; }
 
   res.ival = finv(i.ival);
 
