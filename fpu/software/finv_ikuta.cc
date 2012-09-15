@@ -53,7 +53,7 @@ int dx[]={0,1,0,-1,1,1,-1,-1},dy[]={1,0,-1,0,1,-1,1,-1};
 #define swap(a,b) { int temp = a; a = b; b = temp; }
 #define DEBUG 0
 #define DOTS 0
-#define TESTCASE 0
+#define TESTCASE 1
 #define D(x) { if (DEBUG) { x ; } }
 #define MANTISSA(x) (0x800000 + (x & 0x7fffff))
 #define EXP(x) ((int)((x & 0x7f800000) >> 23)-127)
@@ -231,7 +231,7 @@ void test(unsigned int a) {
   }
 
   if (!DEBUG &&
-      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 5) {
+      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 6) {
     if (DOTS) {printf(".");}
   } else {
     printf("a: %x\n", a);
@@ -279,6 +279,10 @@ ll sumDiff(int k0, unsigned x_const_diff, unsigned int x_inc_diff)
 int main(int argc, char *argv[])
 {
   read_tables();
+
+  for (int i = 1; i < 0xff; i++) {
+    test((i << 23) + (0x712900));
+  }
 
   for (int i = 0; i < (1 << 23) - 1; i ++) {
     test(MAN_TO_FLOAT(i));
