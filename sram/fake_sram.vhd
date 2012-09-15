@@ -51,8 +51,8 @@ architecture behave of fake_sram is
 
   signal sram_data : std_logic_vector(31 downto 0);
 
-  signal read1, write1 : std_logic_vector(31 downto 0);
-  signal addr1 : std_logic_vector(19 downto 0);
+  signal read1, write1, write2 : std_logic_vector(31 downto 0);
+  signal addr1, addr2 : std_logic_vector(19 downto 0);
 
   signal clk : STD_LOGIC;
 
@@ -84,7 +84,10 @@ begin  -- behave
         if ZA <= MEM_SIZE then
           write1     <= ZD;
           addr1      <= ZA;
-          mem(conv_integer(addr1)) <= write1;
+          write2 <= write1;
+          addr2 <= addr1;
+          -- not essential, for safety
+          mem(conv_integer(addr2)) <= write2;
         end if;
       else
         if ZA <= MEM_SIZE then

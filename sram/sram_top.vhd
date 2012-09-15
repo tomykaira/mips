@@ -34,7 +34,7 @@ end sram_top;
 architecture sram_top of sram_top is
 
   constant WRITE_LIMIT : integer := 2;
-  constant READ_LIMIT  : integer := 5;
+  constant READ_LIMIT  : integer := 2;
 
   component sramc is
   Port (
@@ -75,8 +75,7 @@ architecture sram_top of sram_top is
 
   signal memory_data : std_logic_vector(31 downto 0);
   signal data_write : std_logic_vector(31 downto 0);
-  -- 0x66 = 102
-  signal data_addr : std_logic_vector(31 downto 0) := x"00000066";
+  signal data_addr : std_logic_vector(31 downto 0) := x"00000082";
   signal mem_write_enable : STD_LOGIC;
 
   signal rx_data : std_logic_vector(7 downto 0);
@@ -88,7 +87,7 @@ architecture sram_top of sram_top is
   signal counter : std_logic_vector(9 downto 0) := (others => '0');
 
   type statetype is (INPUT, READING, WRITING);
-  signal state : statetype := READING;
+  signal state : statetype := INPUT;
 
 begin  -- test
 
@@ -149,11 +148,14 @@ begin  -- test
   statemachine : process (iclk, xrst)
   begin
     if xrst = '0' then
-      state <= READING;
+      state <= INPUT;
       counter <= (others => '0');
     elsif rising_edge(iclk) then
       counter <= counter + 1;
       if state = INPUT and rx_done = '1' then
+        counter <= (others => '0');
+        state <= WRITING;
+      elsif state = WRITING and counter >= WRITE_LIMIT then
         counter <= (others => '0');
         state <= READING;
       elsif state = READING and counter >= READ_LIMIT then
