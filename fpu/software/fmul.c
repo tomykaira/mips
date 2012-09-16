@@ -52,7 +52,7 @@ void test(FILE * fp, unsigned int a, unsigned int b) {
   ref.fval = i.fval * v.fval;
   res.ival = fmul(i.ival, v.ival);
 
-  if (! (is_normal(a) && is_normal(b) && is_normal(ref.ival) && is_normal(res.ival))) {
+  if (! (is_normal(a) && is_normal(b) && is_normal(ref.ival))) {
     return ;
   }
 
