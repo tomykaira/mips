@@ -7,7 +7,7 @@ typedef unsigned int ui;
 
 #define swap(a,b) { int temp = a; a = b; b = temp; }
 
-#define DEBUG 0
+#define DEBUG 1
 #define DOTS 0
 #define TESTCASE 0
 #define D(x) { if (DEBUG) { x ; } }

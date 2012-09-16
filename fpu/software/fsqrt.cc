@@ -44,7 +44,6 @@ unsigned int table_const(unsigned int key) {
   x.ival = MAN_TO_FLOAT(generate_x(key));
   float x2 = MANTISSA(x.ival) / 2.0f;
   float a2x = (float)(a0 << 15) / x.fval / 2.0f;
-  D(printf("x: %f, 1:%f, 2:%f\n", x.fval, x2, a2x));
   float constant = x2 + a2x;
   return (ui)constant >> 1; // 23 bit
 }
@@ -63,16 +62,19 @@ unsigned int fsqrt(unsigned a){
   int key = (a >> 14) & F(10);
   ll a1 = ((a & (1 << 23)) ? MANTISSA(a) : MANTISSA(a) << 1) & F(15);
 
+  D(printf("a1: %llx, inc: %x, ", a1, inc_table[key]));
+
   ui i_constant = const_table[key] << 1;
   ui diff = (a1 * inc_table[key]) >> 14;
 
-  D(printf("%d, %d\n", i_constant, diff));
+  D(printf("constant: %x, raw: %llx, diff: %x, ", i_constant, a1 * inc_table[key], diff));
 
   ll mantissa = i_constant + diff;
+  int exponent = (63 + ((((a >> 23)&F(8)) + 1) >> 1));
 
-  D(printf("0x%llx %lld\n", mantissa, mantissa));
+  D(printf("mantissa: 0x%llx exponent: 0x%x", mantissa, exponent));
 
-  answer.ival = ((63 + ((((a >> 23)&F(8)) + 1) >> 1)) << 23) + (mantissa & F(23));
+  answer.ival = (exponent << 23) + (mantissa & F(23));
 
   D(printf("%f\n", answer.fval));
 
@@ -156,13 +158,13 @@ int main(int argc, char *argv[])
     test((i << 23) + (0x712900));
   }
 
-  for (int i = 0; i < (1 << 23) - 1; i ++) {
-    test(MAN_TO_FLOAT(i));
-  }
+  // for (int i = 0; i < (1 << 23) - 1; i ++) {
+  //   test(MAN_TO_FLOAT(i));
+  // }
 
-  for (int i = 0; i < (1 << 23) - 1; i ++) {
-    test(MAN_TO_FLOAT(i) + (1 << 23));
-  }
+  // for (int i = 0; i < (1 << 23) - 1; i ++) {
+  //   test(MAN_TO_FLOAT(i) + (1 << 23));
+  // }
 
   return write_tables();
 }
