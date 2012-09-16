@@ -1,3 +1,5 @@
+// about 130 MHz ?
+
 module fmul (input clk,
              input [31:0]  a,
              input [31:0]  b,
