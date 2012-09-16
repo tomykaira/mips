@@ -37,41 +37,38 @@ unsigned int generate_x(unsigned int a) {
   return MANTISSA(x.ival);
 }
 
-unsigned int table_const(unsigned int k) {
-  ll x = generate_x(k);
-  ll a0 = MANTISSA(k << 14) >> 13;
-  return 2*x-(a0*x*x>>33);
+unsigned int table_const(unsigned int key) {
+  fi x;
+
+  int a0 = (key & (1 << 9)) ? key >> 1 : ((key | (1 << 9)));
+  x.ival = MAN_TO_FLOAT(generate_x(key));
+  float x2 = MANTISSA(x.ival) / 2.0f;
+  float a2x = (float)(a0 << 15) / x.fval / 2.0f;
+  D(printf("x: %f, 1:%f, 2:%f\n", x.fval, x2, a2x));
+  float constant = x2 + a2x;
+  return (ui)constant;
 }
 
-unsigned int table_inc(unsigned int k) {
-  fi x, rev;
-  ui inc;
-  x.ival = MAN_TO_FLOAT(generate_x(k));
-  rev.fval = 1 / x.fval;
-  inc = MANTISSA(rev.ival); // 24 bit
-  inc >>= 2;
-  return inc >> 9; // 13 bit
+unsigned int table_inc(unsigned int key) {
+  fi x;
+  x.ival = MAN_TO_FLOAT(generate_x(key));
+  ll inc = 16384.0f / x.fval / 2.0f; // 16384 = (1 << 14)
+  return inc; // 13 bit
 }
 
 unsigned int fsqrt(unsigned a){
   assert(! (a&0x80000000)); // not minus
 
-  fi x, answer;
+  fi answer;
   int key = (a >> 14) & F(10);
-  int man = (a & (1 << 23)) ? MANTISSA(a) : MANTISSA(a) << 1;
-  ll a0 = man >> 14, a1 = man & F(14);
+  ll a1 = ((a & (1 << 23)) ? MANTISSA(a) : MANTISSA(a) << 1) & F(15);
 
-  x.ival = MAN_TO_FLOAT(generate_x(key));
+  ui i_constant = (ui) table_const(key);
+  ui diff = (a1 * table_inc(key)) >> 14;
 
-  float x2 = MANTISSA(x.ival) / 2.0f;
-  float a2x = (float)(a0 << 14) / x.fval / 2.0f;
-  D(printf("x: %f, 1:%f, 2:%f\n", x.fval, x2, a2x));
-  float constant = x2 + a2x;
-  float diff = (float)a1 / x.fval / 2.0;
+  D(printf("%d, %d\n", i_constant, diff));
 
-  D(printf("%f, %f\n", constant, diff));
-
-  ll mantissa = (ll)constant + (ll)diff;
+  ll mantissa = i_constant + diff;
 
   D(printf("0x%llx %lld\n", mantissa, mantissa));
 
@@ -161,6 +158,10 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < (1 << 23) - 1; i ++) {
     test(MAN_TO_FLOAT(i));
+  }
+
+  for (int i = 0; i < (1 << 23) - 1; i ++) {
+    test(MAN_TO_FLOAT(i) + (1 << 23));
   }
 
   return write_tables();
