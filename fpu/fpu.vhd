@@ -22,6 +22,7 @@ use IEEE.NUMERIC_STD.all;
 entity fpu is
   port (
     clk     : in  STD_LOGIC;
+    enable  : in  STD_LOGIC; -- to ignore module when not needed
     a, b    : in  std_logic_vector(31 downto 0);
     control : in  std_logic_vector(2 downto 0);
     output  : out std_logic_vector(31 downto 0));
@@ -70,39 +71,42 @@ architecture behave of fpu is
       );
   end component;
 
-  signal b0, b_neg : std_logic_vector(31 downto 0);
+  signal a0, b0, b_neg : std_logic_vector(31 downto 0);
   signal fmov_out, fneg_out, fadd_out, fmul_out, finv_out, fsqrt_out : std_logic_vector(31 downto 0);
 
 begin  -- behave
 
   fadd_instance : fadd port map (
     clk => clk,
-    i1  => a,
+    i1  => a0,
     i2  => b0,
     o   => fadd_out);
 
   fmul_instance : fmul port map (
     clk => clk,
-    a   => a,
+    a   => a0,
     b   => b0,
     s   => fmul_out);
 
   finv_instance : finv port map (
     clk => clk,
-    a   => a,
+    a   => a0,
     s   => finv_out);
 
   fsqrt_instance : fsqrt port map (
     clk => clk,
-    a   => a,
+    a   => a0,
     s   => fsqrt_out);
 
-  fneg_a : fneg port map(a => a, s => fneg_out);
+  fneg_a : fneg port map(a => a0, s => fneg_out);
   fneg_b : fneg port map(a => b, s => b_neg);
 
-  fmov_out <= a;
+  a0 <= x"00000000" when enable = '0' else a;
+  fmov_out <= a0;
 
-  b0 <= b_neg when control = "011" or control = "101" else b;
+  b0 <= b     when enable = '1' and (control = "010" or control = "100") else
+        b_neg when enable = '1' and (control = "011" or control = "101") else
+        x"00000000" ;
 
   with (control) select
     output <= fmov_out when "000",

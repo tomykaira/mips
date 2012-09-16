@@ -32,6 +32,7 @@ architecture struct of data_path is
 	component fpu is
 		port (
 			clk     : in  STD_LOGIC;
+			enable  : in  STD_LOGIC;
 			a, b    : in  std_logic_vector(31 downto 0);
 			control : in  std_logic_vector(2 downto 0);
 			output  : out std_logic_vector(31 downto 0));
@@ -113,6 +114,8 @@ architecture struct of data_path is
 
   signal branch_condition : STD_LOGIC;
 
+	signal fpu_enable : STD_LOGIC;
+
 begin  -- struct
 
   rf : register_selector port map (
@@ -134,11 +137,12 @@ begin  -- struct
     );
 
 	main_fpu : fpu port map (
-		clk => clk, 
-		a => read_data1, -- Never use FF before FPU
-		b => read_data2, -- Never use FF before FPU
+		clk     => clk,
+		enable  => fpu_enable,
+		a       => read_data1, -- Never use FF before FPU
+		b       => read_data2, -- Never use FF before FPU
 		control => alu_control(2 downto 0),
-		output => fpu_out);
+		output  => fpu_out);
 
   pc_manager : program_counter port map (
     clk              => clk,
@@ -185,7 +189,8 @@ begin  -- struct
 		d     => arithmetic_result, -- TODO: mux output from ALU and FPU
 		q     => execute_result);
 
-	arithmetic_result <= fpu_out when op(5 downto 3) = "110" else alu_out;
+	fpu_enable <= '1' when op(5 downto 3) = "110" else '0';
+	arithmetic_result <= fpu_out when fpu_enable = '1' else alu_out;
 
   op <= instruction(31 downto 26); -- alias
 
