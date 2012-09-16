@@ -1,4 +1,4 @@
-module fpu_tb();
+module fsqrt_tb();
 
    parameter CYCLE = 10;
    parameter STROBE = 9;
