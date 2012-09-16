@@ -21,7 +21,7 @@ module fpu_tb();
          //遅延させる
          a <= MEM[i*2];
          #CYCLE;
-         if (i > 2 && s !== MEM[(i-2)*2+1]) begin
+         if (i >= 2 && s !== MEM[(i-2)*2+1]) begin
             $display ("a = %h => s = %h (expected: %h)", MEM[(i-2)*2], s, MEM[(i-2)*2+1]);
             $stop;
          end

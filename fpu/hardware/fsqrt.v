@@ -4,20 +4,21 @@ module fsqrt (input clk,
 
    wire [35:0] value;
    wire [23:0] const_part;
-   reg  [23:0] const_part2;
    wire [12:0] inc_part;
    reg  [9:0] key;
-   reg [14:0] a1;
+   reg [14:0] a1, a12;
 
    fsqrt_table fsqrt_t (.clk(clk), .key(key), .value(value));
 
    reg [7:0] exponent1, exponent2;
-   reg [27:0] lower; // 15 x 13 bit
+   wire [27:0] lower; // 15 x 13 bit
    reg [23:0] sum;
 
    assign const_part = {value[35:13],1'b0}; // << 1
    assign inc_part   = value[12:0];
+   assign lower      = a12 * inc_part;
 
+   // there may be clock related problems.
    always @ (posedge clk) begin
 
       // stage 1
@@ -27,11 +28,10 @@ module fsqrt (input clk,
 
       // stage 2
       exponent2    <= 63 + exponent1[7:1];
-      lower        <= a1 * inc_part;
-      const_part2  <= const_part;
+      a12          <= a1;
 
        // stage 3
-      sum = const_part2 + lower[27:14]; // >> 14
+      sum = const_part + lower[27:14]; // >> 14
       s <= {0, exponent2, sum[22:0]};
    end
 
