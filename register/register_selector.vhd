@@ -94,10 +94,15 @@ begin -- behave
   debug : process (clk)
     variable l : line;
     variable reg : string(1 to 5);
+    variable f : string(1 to 1);
   begin
     if clk'event and clk = '1' and write_enable3 = '1' then
       reg := "REG: ";
       write(l, reg);
+      if addr3_float = '1' then
+        f := "f";
+        write(l, f);
+      end if;
       hwrite(l, "000"&write_addr3);
       hwrite(l, write_data3, right, 9);
       writeline(output, l);
