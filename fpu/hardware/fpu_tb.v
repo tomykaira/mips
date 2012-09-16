@@ -10,10 +10,10 @@ module fpu_tb();
    reg [31:0]  a;
    integer     i;
 
-   finv dut (clk, a, s);
+   fsqrt dut (clk, a, s);
 
    initial begin
-      $readmemh ("finv_short.vec", MEM);
+      $readmemh ("fsqrt_short.vec", MEM);
 
       #STROBE;
       
