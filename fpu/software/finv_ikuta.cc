@@ -77,38 +77,37 @@ unsigned int finv(unsigned a){
   return answer;
 }
 
-void test(unsigned int a) {
-  union IntAndFloat i, res, res2;
+void test(FILE * fp, unsigned int a) {
+  union IntAndFloat i, res, ref;
 
   i.ival = a;
 
-  res2.fval = 1 / i.fval;
-  // do not test inf, nan.
-  int exp = (a >> 23) & 0xff;
-  int answer_exp = (res2.ival >> 23) & 0xff;
-  if (exp == 0xff || exp == 0 || answer_exp == 0xff || answer_exp == 0) { return; }
-
+  ref.fval = 1 / i.fval;
   res.ival = finv(i.ival);
+
+
+  if (! (is_normal(a) && is_normal(ref.ival))) {
+    return ;
+  }
 
   // generate testcase for verilog
   if (TESTCASE) {
-    printf("%08x\n%08x\n", a, res.ival);
+    fprintf(fp, "%08x %08x\n", a, res.ival);
   }
 
-  if (!DEBUG &&
-      max(res.ival,res2.ival) - min(res.ival,res2.ival) < 6) {
-    if (DOTS) {printf(".");}
-  } else {
+  if (! in_ulp(ref.ival, res.ival, 6)) {
     printf("a: %x\n", a);
     printf("  expected: ");
-    print_float(res2.ival);
-    printf("\n");
+    print_float(ref.ival);
+    printf("  %f\n", ref.fval);
 
     printf("    actual: ");
     print_float(res.ival);
-    printf("\n");
-    printf("upl %d\n",max(res.ival,res2.ival) - min(res.ival,res2.ival));
-    // exit(1);
+    printf("  %f\n", res.fval);
+    printf("upl %d\n", ulp(ref.ival, res.ival));
+    if (TESTCASE) {
+      exit(1);
+    }
   }
 }
 
@@ -143,15 +142,19 @@ ll sumDiff(int k0, unsigned x_const_diff, unsigned int x_inc_diff)
 
 int main(int argc, char *argv[])
 {
+  FILE * fp, * f_out = fopen("finv.vec", "w");
+  char files[6][30] = {"random.vec"};
+  ui i, a;
+
   read_tables();
 
-  for (int i = 1; i < 0xff; i++) {
-    test((i << 23) + (0x712900));
+  for (i = 0; i < 1; i++) {
+    fp = fopen(files[i], "r");
+    while (fscanf(fp, "%x", &a) != EOF) {
+      test(f_out, a);
+    }
+    fclose(fp);
   }
 
-  for (int i = 0; i < (1 << 23) - 1; i ++) {
-    test(MAN_TO_FLOAT(i));
-  }
-
-  return write_tables();
+  return 0;
 }
