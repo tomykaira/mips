@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include "util.h"
+
+using namespace std;
 
 void print_float(ui x) {
   int i = 31;
@@ -24,4 +27,32 @@ unsigned int place(ll x) {
     place ++;
   }
   return place;
+}
+
+int is_normal(ui floating) {
+  // 0
+  if (floating == 0)
+    return 1;
+
+  // -0
+  if (floating == 0x80000000)
+    return 0;
+
+  // Inf or NaN
+  if (EXP(floating) == 0xff)
+    return 0;
+
+  // denormalized
+  if (EXP(floating) == 0)
+    return 0;
+
+  return 1;
+}
+
+int ulp(ui expected, ui actual) {
+  return max(expected, actual) - min(expected, actual);
+}
+
+int in_ulp(ui expected, ui actual, int max_ulp) {
+  return ulp(expected, actual) < max_ulp;
 }
