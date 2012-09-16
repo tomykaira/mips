@@ -51,7 +51,7 @@ architecture behave of fpu is
     Port (
       clk: in  STD_LOGIC;
       a  : in  STD_LOGIC_VECTOR (31 downto 0);
-      s  : in  STD_LOGIC_VECTOR (31 downto 0)
+      s  : out STD_LOGIC_VECTOR (31 downto 0)
       );
   end component;
 
@@ -59,7 +59,7 @@ architecture behave of fpu is
     Port (
       clk: in  STD_LOGIC;
       a  : in  STD_LOGIC_VECTOR (31 downto 0);
-      s  : in  STD_LOGIC_VECTOR (31 downto 0)
+      s  : out STD_LOGIC_VECTOR (31 downto 0)
       );
   end component;
 
@@ -110,7 +110,7 @@ begin  -- behave
     fadd_out when "010" | "011",
     fmul_out when "100" | "101",
     finv_out when "110",
-    fsqrt_out when "111"
+    fsqrt_out when "111",
     (others => '0') when others;
 
 end behave;

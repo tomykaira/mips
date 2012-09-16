@@ -54,7 +54,7 @@ architecture behave of register_selector is
 begin -- behave
 
   int_register : register_file generic map
-    (zero_register = '1')
+    (zero_register => '1')
     port map (
     clk           => clk,
     write_enable3 => int_write,
@@ -66,7 +66,7 @@ begin -- behave
     read_data2    => int_read_data2);
     
   float_register : register_file generic map
-    (zero_register = '0')
+    (zero_register => '0')
     port map (
     clk           => clk,
     write_enable3 => float_write,
