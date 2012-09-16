@@ -3,6 +3,7 @@ FINV = finv_ikuta.cc table.o table.h util.o util.h
 FSQRT = fsqrt.cc table.o table.h util.o util.h
 TEST_SOURCE = test_source.c util.o util.h
 FADD = fadd.c util.o util.h
+FMUL = fmul.c util.o util.h
 
 finv: $(FINV)
 	g++ -Wall -g -o $@ $(FINV)
@@ -18,6 +19,9 @@ test_source: $(TEST_SOURCE)
 
 fadd: $(FADD)
 	g++ -Wall -g -o $@ $(FADD)
+
+fmul: $(FMUL)
+	g++ -Wall -g -o $@ $(FMUL)
 
 %.o: %.cc
 	g++ -Wall -g -c -o $@ $<

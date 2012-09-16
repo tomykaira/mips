@@ -3,17 +3,7 @@
 #include <fenv.h>
 #include <limits.h>
 #include <float.h>
-
-#define swap(a,b) { int temp = a; a = b; b = temp; }
-#define DEBUG 0
-#define DOTS 0
-#define TESTCASE 1
-#define D(x) { if (DEBUG) { x ; } }
-
-union IntAndFloat {
-    unsigned int ival;
-    float fval;
-};
+#include "util.h"
 
 unsigned int fmul(unsigned int a, unsigned int b)
 {
@@ -53,73 +43,57 @@ unsigned int fmul(unsigned int a, unsigned int b)
   return (sign << 31) + (is_zero ? 0 : (exp << 23) + (m & 0x7fffff));
 }
 
-void print_float(unsigned int x) {
-  int i = 31;
-  for (;i >= 0;i--) {
-    printf("%d", (x >> i) & 1);
-    if (i == 31 || i == 23)
-      printf("|");
-  }
-  
-}
-
-unsigned int rand_float() {
-  int exp = 0;
-  while (exp <= 0 || exp >= 255) { exp = (rand() & 0xff); }
-  return ((rand() % 2) << 31) + (exp << 23) + (rand() & 0x7fffff);
-}
-
-void test(unsigned int a, unsigned int b) {
-  union IntAndFloat i, v, res, res2;
-  int exp;
+void test(FILE * fp, unsigned int a, unsigned int b) {
+  union IntAndFloat i, v, res, ref;
 
   i.ival = a;
   v.ival = b;
 
-  res2.fval = i.fval * v.fval;
-  // do not test inf, nan.
-  exp = (res2.ival >> 23) & 0xff;
-  if (exp == 0xff || exp == 0) { return; }
-
+  ref.fval = i.fval * v.fval;
   res.ival = fmul(i.ival, v.ival);
+
+  if (! (is_normal(a) && is_normal(b) && is_normal(ref.ival) && is_normal(res.ival))) {
+    return ;
+  }
 
   // generate testcase for verilog
   if (TESTCASE) {
-    printf("%08x\n%08x\n%08x\n", a, b, res.ival);
+    fprintf(fp, "%08x %08x %08x\n", a, b, res.ival);
   }
 
-  if (!DEBUG && abs(res.ival - res2.ival) < 2) {
-    if (DOTS) {printf(".");}
-  } else {
+  if (! in_ulp(ref.ival, res.ival, 2)) {
     printf("a: %x, b: %x\n", a, b);
     printf("  expected: ");
-    print_float(res2.ival);
-    printf("\n");
+    print_float(ref.ival);
+    printf("  %f\n", ref.fval);
 
     printf("    actual: ");
     print_float(res.ival);
-    printf("\n");
-    exit(1);
+    printf("  %f\n", res.fval);
+
+    if (TESTCASE) {
+       exit(1);
+    }
   }
 }
 
-// test: 負数
 int main(int argc, char *argv[])
 {
-  FILE * fp = fopen("fmul.txt", "r");
-  unsigned int a, b, s;
-  long long i;
-  if (fp == NULL) {
-    printf("File error");
-    return 1;
-  }
-  while (fscanf(fp, "%x %x %x ", &a, &b, &s) != EOF) {
-    test(a, b);
-  }
-  for (i = 0;i < 10*1000*1000; i++) {
-    test(rand_float(), rand_float());
-  }
-  fclose(fp);
+  int i = 0, a, b = 0;
+  FILE * fp, * f_out = fopen("fmul.vec", "w");
+  
+  char files[6][30] = {"random_minus.vec"};
 
+  for (i = 0; i < 1; i++) {
+    fp = fopen(files[i], "r");
+    b = 0;
+    while (fscanf(fp, "%x", &a) != EOF) {
+      test(f_out, a, b);
+      b = a;
+    }
+    fclose(fp);
+  }
+
+  fclose(f_out);
   return 0;
 }

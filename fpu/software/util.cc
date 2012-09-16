@@ -39,11 +39,11 @@ int is_normal(ui floating) {
     return 0;
 
   // Inf or NaN
-  if (EXP(floating) == 0xff)
+  if (((floating >> 23) & F(8)) == 0xff)
     return 0;
 
   // denormalized
-  if (EXP(floating) == 0)
+  if (((floating >> 23) & F(8)) == 0)
     return 0;
 
   return 1;
