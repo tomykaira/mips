@@ -7,7 +7,7 @@ module finv (input clk,
    reg  [22:0] const_part2;
    wire [12:0] inc_part;
    reg  [9:0] key;
-	 reg [12:0] a1;
+   reg [12:0] a1;
 
    finv_table finv_t (.clk(clk), .key(key), .value(value));
 
@@ -33,12 +33,12 @@ module finv (input clk,
       exponent2inv <= 253 - exponent1;
       lower        <= a1 * inc_part;
       const_part2  <= const_part;
-			iszero2      <= a1 == 0 && key == 0;
+      iszero2      <= a1 == 0 && key == 0;
 
        // stage 3
-			sum = const_part2 - lower[25:13];
+      sum = const_part2 - lower[25:13];
       s <= {sign2, exponent2 == 0 ? exponent2 : (iszero2 ? exponent2inv + 1 : exponent2inv),
-						iszero2 ? 23'b0 : {sum[21:0],1'b0}};
+            iszero2 ? 23'b0 : {sum[21:0],1'b0}};
    end
 
 endmodule

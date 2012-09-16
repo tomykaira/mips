@@ -7,7 +7,7 @@ module fsqrt (input clk,
    reg  [23:0] const_part2;
    wire [12:0] inc_part;
    reg  [9:0] key;
-	 reg [14:0] a1;
+   reg [14:0] a1;
 
    fsqrt_table fsqrt_t (.clk(clk), .key(key), .value(value));
 
@@ -31,7 +31,7 @@ module fsqrt (input clk,
       const_part2  <= const_part;
 
        // stage 3
-			sum = const_part2 + lower[27:14]; // >> 14
+      sum = const_part2 + lower[27:14]; // >> 14
       s <= {0, exponent2, sum[22:0]};
    end
 
