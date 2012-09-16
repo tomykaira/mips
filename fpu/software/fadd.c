@@ -128,9 +128,9 @@ int main(int argc, char *argv[])
   int i = 0, a, b = 0;
   FILE * fp, * f_out = fopen("fadd.vec", "w");
   
-  char files[6][30] = {"corners.vec", "exponent_minus.vec", "exponent.vec", "mantissa.vec", "random_minus.vec", "random.vec"};
+  char files[6][30] = {"random_minus.vec"};
 
-  for (i = 0; i < 6; i++) {
+  for (i = 0; i < 1; i++) {
     fp = fopen(files[i], "r");
     b = 0;
     while (fscanf(fp, "%x", &a) != EOF) {
