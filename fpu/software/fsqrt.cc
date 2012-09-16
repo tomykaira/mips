@@ -56,23 +56,28 @@ unsigned int table_inc(unsigned int k) {
 unsigned int fsqrt(unsigned a){
   assert(! (a&0x80000000)); // not minus
 
-  fi x, input, answer;
+  fi x, answer;
+  int key = (a >> 14) & F(10);
+  int man = (a & (1 << 23)) ? MANTISSA(a) : MANTISSA(a) << 1;
+  ll a0 = man >> 14, a1 = man & F(14);
 
-  input.ival = a - ((EXP(a) >> 1) << 24);
-  D(print_float(a));
-  x.ival = MAN_TO_FLOAT(generate_x((a >> 14) & F(10)));
+  x.ival = MAN_TO_FLOAT(generate_x(key));
 
-  answer.fval = x.fval;
+  float x2 = MANTISSA(x.ival) / 2.0f;
+  float a2x = (float)(a0 << 14) / x.fval / 2.0f;
+  D(printf("x: %f, 1:%f, 2:%f\n", x.fval, x2, a2x));
+  float constant = x2 + a2x;
+  float diff = (float)a1 / x.fval / 2.0;
+
+  D(printf("%f, %f\n", constant, diff));
+
+  ll mantissa = (ll)constant + (ll)diff;
+
+  D(printf("0x%llx %lld\n", mantissa, mantissa));
+
+  answer.ival = ((63 + ((((a >> 23)&F(8)) + 1) >> 1)) << 23) + (mantissa & F(23));
+
   D(printf("%f\n", answer.fval));
-  answer.fval += input.fval / x.fval;
-  D(printf("%f\n", answer.fval));
-  answer.fval /= 2.0f;
-
-  D(printf("%f\n", answer.fval));
-
-  // 指数調整
-  // printf("%d\n", EXP(a) / 2);
-  answer.ival = (answer.ival & ~(0xff << 23)) + ((63 + ((((a >> 23)&F(8)) + 1) >> 1)) << 23);
 
   return answer.ival;
 }
