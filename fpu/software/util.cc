@@ -16,3 +16,12 @@ unsigned int rand_float() {
   while (exp <= 0 || exp >= 255) { exp = (rand() & 0xff); }
   return ((rand() % 2) << 31) + (exp << 23) + (rand() & 0x7fffff);
 }
+
+unsigned int place(ll x) {
+  int place = 0;
+  while (x > 0) {
+    x >>= 1;
+    place ++;
+  }
+  return place;
+}
