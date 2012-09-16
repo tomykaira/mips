@@ -13,7 +13,7 @@ module finv_tb();
    finv dut (clk, a, s);
 
    initial begin
-      $readmemh ("finv_short.vec", MEM);
+      $readmemh ("finv.vec", MEM, 0, CASES*2-1);
 
       #STROBE;
       

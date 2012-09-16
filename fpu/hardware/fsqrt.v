@@ -1,3 +1,5 @@
+// 140 MHz
+
 module fsqrt (input clk,
              input [31:0]  a, // assumed to be positive
              output reg [31:0] s);

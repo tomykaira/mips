@@ -1,3 +1,9 @@
+// finv implementation
+// Apply Newton method to the value from table.
+// Table is created with ../software/finv_ikuta.cc.
+// Current error is at most 6 ulp, which is too large.
+// 140 MHz
+
 module finv (input clk,
              input [31:0]  a,
              output reg [31:0] s);
@@ -41,4 +47,3 @@ module finv (input clk,
    end
 
 endmodule
-  
