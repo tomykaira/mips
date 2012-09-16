@@ -46,7 +46,7 @@ unsigned int table_const(unsigned int key) {
   float a2x = (float)(a0 << 15) / x.fval / 2.0f;
   D(printf("x: %f, 1:%f, 2:%f\n", x.fval, x2, a2x));
   float constant = x2 + a2x;
-  return (ui)constant;
+  return (ui)constant >> 1; // 23 bit
 }
 
 unsigned int table_inc(unsigned int key) {
@@ -63,8 +63,8 @@ unsigned int fsqrt(unsigned a){
   int key = (a >> 14) & F(10);
   ll a1 = ((a & (1 << 23)) ? MANTISSA(a) : MANTISSA(a) << 1) & F(15);
 
-  ui i_constant = (ui) table_const(key);
-  ui diff = (a1 * table_inc(key)) >> 14;
+  ui i_constant = const_table[key] << 1;
+  ui diff = (a1 * inc_table[key]) >> 14;
 
   D(printf("%d, %d\n", i_constant, diff));
 
