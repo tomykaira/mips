@@ -11,12 +11,28 @@ entity i232c is
          changed: out STD_LOGIC);
 end i232c;
 
+-- states
+-- 543210
+-- 000000 : waiting
+-- 000001 : first 0 comes
+-- 000011 : (first) push in the middle of cnt
+-- 000111 : push in the middle of cnt
+-- 001111 : push in the middle of cnt
+-- 011111 : push in the middle of cnt
+-- 111111 : push in the middle of cnt
+-- 111110 : push in the middle of cnt
+-- 111100 : push in the middle of cnt
+-- 111000 : push in the middle of cnt
+-- 110000 : push in the middle of cnt
+-- 100000 : set data, change = 1
+
 architecture blackbox of i232c is
   signal cnt     : std_logic_vector(15 downto 0) := (others=>'1');
   signal state   : std_logic_vector(5 downto 0) := "000000";
   signal rxdfd   : std_logic := '1';      -- inner RXD
   signal fd      : std_logic_vector(7 downto 0) := (others=>'1');
 begin
+  -- 入力をクロックと同期
   get_input: process(clk)
   begin
     if rising_edge(clk) then
