@@ -3,7 +3,9 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity i232c is
-  generic (wtime: std_logic_vector(15 downto 0) := x"008F");
+  -- TODO: 最後の 1 のビットの前に countdown が終ってしまうことがあるので
+  -- wtime を長めにとって対処した。ステートマシンを整えることで対処すべき
+  generic (wtime: std_logic_vector(15 downto 0) := x"0095");
   Port ( clk    : in  STD_LOGIC;
          enable : in  STD_LOGIC;
          rx     : in  STD_LOGIC;
@@ -19,7 +21,7 @@ end i232c;
 -- 000111 : push in the middle of cnt
 -- 001111 : push in the middle of cnt
 -- 011111 : push in the middle of cnt
--- 111111 : push in the middle of cnt
+-- 111111 : skipped
 -- 111110 : push in the middle of cnt
 -- 111100 : push in the middle of cnt
 -- 111000 : push in the middle of cnt
