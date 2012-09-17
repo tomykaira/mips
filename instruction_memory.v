@@ -5,7 +5,7 @@ module instruction_memory (input clk,
                            input [15:0]  a,
                            output reg [31:0] rd);
    // size is fixed to 64KB = 2^16
-   parameter MEM_SIZE=1660;
+   parameter MEM_SIZE=1198;
 
    reg [31:0] RAM[MEM_SIZE-1:0];
 
@@ -14,7 +14,7 @@ module instruction_memory (input clk,
 
    always @ (posedge clk) begin
       rd <= RAM[a]; // word align
-      $display("inst: %h", rd);
+      $display("INST: %h", rd);
    end
 
 endmodule

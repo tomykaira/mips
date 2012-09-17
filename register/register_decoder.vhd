@@ -27,8 +27,8 @@ use IEEE.STD_LOGIC_1164.all;
 -- #
 -- 010000 | I     | -     | I    # mvlo
 -- 010001 | I     | -     | I    # mvhi
--- 010010 | I     | -     | F    # fmvlo
--- 010011 | I     | -     | F    # fmvhi
+-- 010010 | F     | -     | F    # fmvlo
+-- 010011 | F     | -     | F    # fmvhi
 -- 010110 | I     | -     | F    # imovf
 -- 010111 | F     | -     | I    # fmovi
 -- #
@@ -101,7 +101,9 @@ begin -- behave
         case op_id is
           when "000" | "001" | "100" | "101" =>
             vector <= "000";
-          when "010" | "011" | "110" =>
+          when "010" | "011" =>
+            vector <= "101";
+          when "110" =>
             vector <= "001";
           when "111" =>
             vector <= "100";

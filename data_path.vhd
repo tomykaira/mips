@@ -29,6 +29,15 @@ architecture struct of data_path is
       );
   end component;
 
+	component fpu is
+		port (
+			clk     : in  STD_LOGIC;
+			enable  : in  STD_LOGIC;
+			a, b    : in  std_logic_vector(31 downto 0);
+			control : in  std_logic_vector(2 downto 0);
+			output  : out std_logic_vector(31 downto 0));
+	end component;
+
   component register_selector
     port (
       clk                                 : in  std_logic;
@@ -97,13 +106,15 @@ architecture struct of data_path is
   signal write_reg_addr : std_logic_vector(4 downto 0);
   signal sign_immediate : std_logic_vector(31 downto 0);
   signal read_data1, read_data2, rs, rt : std_logic_vector(31 downto 0) := (others => '0');
-  signal src_b, write_back, alu_out, execute_result : std_logic_vector(31 downto 0) := (others => '0');
+  signal src_b, write_back, alu_out, execute_result, fpu_out, arithmetic_result : std_logic_vector(31 downto 0) := (others => '0');
 
   signal op : std_logic_vector(5 downto 0);
 
   signal stack_top, pc_buf : std_logic_vector(31 downto 0);
 
   signal branch_condition : STD_LOGIC;
+
+	signal fpu_enable : STD_LOGIC;
 
 begin  -- struct
 
@@ -124,6 +135,14 @@ begin  -- struct
     control => alu_control,
     output  => alu_out
     );
+
+	main_fpu : fpu port map (
+		clk     => clk,
+		enable  => fpu_enable,
+		a       => read_data1, -- Never use FF before FPU
+		b       => read_data2, -- Never use FF before FPU
+		control => alu_control(2 downto 0),
+		output  => fpu_out);
 
   pc_manager : program_counter port map (
     clk              => clk,
@@ -167,8 +186,11 @@ begin  -- struct
 	result_flip : flip_reset port map (
 		clk   => clk,
 		reset => reset,
-		d     => alu_out, -- TODO: mux output from ALU and FPU
+		d     => arithmetic_result, -- TODO: mux output from ALU and FPU
 		q     => execute_result);
+
+	fpu_enable <= '1' when op(5 downto 3) = "110" else '0';
+	arithmetic_result <= fpu_out when fpu_enable = '1' else alu_out;
 
   op <= instruction(31 downto 26); -- alias
 

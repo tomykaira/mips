@@ -24,6 +24,7 @@ architecture behave of register_selector is
 
   -- use the same entity for floating and integer
   component register_file is
+    generic (zero_register : STD_LOGIC := '0');
     port (
       clk                                 : in  std_logic;
       write_enable3                       : in  std_logic;
@@ -52,7 +53,9 @@ architecture behave of register_selector is
 
 begin -- behave
 
-  int_register : register_file port map (
+  int_register : register_file generic map
+    (zero_register => '1')
+    port map (
     clk           => clk,
     write_enable3 => int_write,
     read_addr1    => read_addr1,
@@ -62,7 +65,9 @@ begin -- behave
     read_data1    => int_read_data1,
     read_data2    => int_read_data2);
     
-  float_register : register_file port map (
+  float_register : register_file generic map
+    (zero_register => '0')
+    port map (
     clk           => clk,
     write_enable3 => float_write,
     read_addr1    => read_addr1,
@@ -89,10 +94,15 @@ begin -- behave
   debug : process (clk)
     variable l : line;
     variable reg : string(1 to 5);
+    variable f : string(1 to 1);
   begin
     if clk'event and clk = '1' and write_enable3 = '1' then
       reg := "REG: ";
       write(l, reg);
+      if addr3_float = '1' then
+        f := "f";
+        write(l, f);
+      end if;
       hwrite(l, "000"&write_addr3);
       hwrite(l, write_data3, right, 9);
       writeline(output, l);

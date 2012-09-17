@@ -86,9 +86,9 @@ use IEEE.STD_LOGIC_1164.all;
 -- # floating
 -- # alu control codes are the same as integer, but has different meaning
 -- 110000 |       0 |     E | W          | 0          | REG     | CUR    | -       | 000           | 0         | 0           | 0         | 0       # fmov
--- 110000 |         |     W | F          |            |         | NEXT   | FRT     | -             |           |             | 1         |         
+-- 110000 |         |     W | F          |            |         | NEXT   | FRD     | -             |           |             | 1         |         
 -- 110001 |         |     E | W          |            |         | CUR    | -       | 001           |           |             | 0         |         # fneg
--- 110001 |         |     W | F          |            |         | NEXT   | FRT     | -             |           |             | 1         |         
+-- 110001 |         |     W | F          |            |         | NEXT   | FRD     | -             |           |             | 1         |         
 -- 110010 |         |     E | E1         |            |         | CUR    | -       | 010           |           |             | 0         |         # fadd
 -- 110010 |         |    E1 | E2         |            |         | CUR    |         |               |           |             |           |         
 -- 110010 |         |    E2 | W          |            |         | CUR    |         |               |           |             |           |         
@@ -131,13 +131,13 @@ use IEEE.STD_LOGIC_1164.all;
 -- 101100 |         |     M | M1         |            |         | CUR    |         |               |           |             |           |  
 -- 101100 |         |    M1 | M2         |            |         | CUR    |         |               |           |             |           |  
 -- 101100 |         |    M2 | W          |            |         | CUR    |         |               |           |             |           |  
--- 101100 |         |     W | F          | 1          | -       | NEXT   | -       |               |           |             | 1         |  
+-- 101100 |         |     W | F          | 1          | -       | NEXT   | RD      |               |           |             | 1         |  
 -- 101010 |         |     D | E          | 0          | IMM     | CUR    | FRT     | 000           | 0         |             | 0         |         # fldi
 -- 101010 |         |     E | M          |            | IMM     | CUR    |         |               |           |             |           |         
 -- 101010 |         |     M | M1         |            | IMM     | CUR    |         |               |           |             |           |         
 -- 101010 |         |    M1 | M2         |            | IMM     | CUR    |         |               |           |             |           |         
 -- 101010 |         |    M2 | W          |            | IMM     | CUR    |         |               |           |             |           |         
--- 101010 |         |     W | F          | 1          | -       | NEXT   | -       |               |           |             | 1         |         
+-- 101010 |         |     W | F          | 1          | -       | NEXT   | FRT     |               |           |             | 1         |         
 -- 101011 |         |     D | E          | 0          | IMM     | CUR    | -       | 000           | 0         |             | 0         |         # fsti
 -- 101011 |         |     E | M          |            | IMM     | CUR    |         |               | 0         |             |           |         
 -- 101011 |         |     M | M1         |            | IMM     | CUR    |         |               | 1         |             |           |         
@@ -148,7 +148,7 @@ use IEEE.STD_LOGIC_1164.all;
 -- 101110 |         |     M | M1         |            |         | CUR    |         |               |           |             |           | 
 -- 101110 |         |    M1 | M2         |            |         | CUR    |         |               |           |             |           | 
 -- 101110 |         |    M2 | W          | 0          |         | CUR    |         |               |           |             |           | 
--- 101110 |         |     W | F          | 1          | -       | NEXT   | -       |               |           |             | 1         |         
+-- 101110 |         |     W | F          | 1          | -       | NEXT   | FRD     |               |           |             | 1         |         
 -- # conditional branch - no execute, because next PC is implicitly decided in a clock
 --#op b   | rx_done | stage | next_stage | bus_to_reg | alu_src | pc_src | reg_dst | alu_control b | mem_write | send_enable | reg_write | rx_enable
 -- 100000 |         |     D | W          | 0          | -       | CUR    | -       | -             | 0         | 0           | 0         | 0       # beq
@@ -558,17 +558,16 @@ begin  -- behave
           when "110" =>
             alu_src     <= '0';
             flags       <= "00010";
-
-            if op(2 downto 1) = "00" then
-              reg_dst <= '0';
-            else
-              reg_dst <= '1';
-            end if;
+            reg_dst <= '1';
 
           -- memory operation
           when "101" =>
             flags      <= "10010";
-            reg_dst    <= '0';
+            if op_id = "100" or op_id = "110" then
+              reg_dst    <= '1';
+            else
+              reg_dst    <= '0';
+            end if;
 
           -- conditional branch
           when "100" =>
