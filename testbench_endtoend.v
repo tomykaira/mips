@@ -58,12 +58,13 @@ module testbench_endtoend();
       xreset <= 1;
       #100;
 
-      #6000;
+      #30000;
 
       // "10\0"
-      send(49);
-      send(48);
       send(0);
+      send(0);
+      send(0);
+      send(10);
    end
   
    // geenrate clock to sequence tests
