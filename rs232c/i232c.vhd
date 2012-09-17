@@ -34,7 +34,6 @@ architecture blackbox of i232c is
   signal rxdfd   : std_logic := '1';      -- inner RXD
   signal fd      : std_logic_vector(7 downto 0) := (others=>'1');
 begin
-  -- 入力をクロックと同期
   get_input: process(clk)
   begin
     if rising_edge(clk) then

@@ -42,7 +42,7 @@ module testbench_endtoend();
          #2000;
          for (i=0; i<8; i = i+1) begin
             rs_rx <= data[i];
-            #2100;
+            #2000;
          end
          rs_rx <= 1;
          #2000;
@@ -62,9 +62,9 @@ module testbench_endtoend();
 
       // "10\0"
       send(0);
-      // send(0);
-      // send(0);
-      // send(10);
+      send(0);
+      send(0);
+      send(10);
    end
   
    // geenrate clock to sequence tests
