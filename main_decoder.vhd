@@ -86,9 +86,9 @@ use IEEE.STD_LOGIC_1164.all;
 -- # floating
 -- # alu control codes are the same as integer, but has different meaning
 -- 110000 |       0 |     E | W          | 0          | REG     | CUR    | -       | 000           | 0         | 0           | 0         | 0       # fmov
--- 110000 |         |     W | F          |            |         | NEXT   | FRT     | -             |           |             | 1         |         
+-- 110000 |         |     W | F          |            |         | NEXT   | FRD     | -             |           |             | 1         |         
 -- 110001 |         |     E | W          |            |         | CUR    | -       | 001           |           |             | 0         |         # fneg
--- 110001 |         |     W | F          |            |         | NEXT   | FRT     | -             |           |             | 1         |         
+-- 110001 |         |     W | F          |            |         | NEXT   | FRD     | -             |           |             | 1         |         
 -- 110010 |         |     E | E1         |            |         | CUR    | -       | 010           |           |             | 0         |         # fadd
 -- 110010 |         |    E1 | E2         |            |         | CUR    |         |               |           |             |           |         
 -- 110010 |         |    E2 | W          |            |         | CUR    |         |               |           |             |           |         
@@ -558,12 +558,7 @@ begin  -- behave
           when "110" =>
             alu_src     <= '0';
             flags       <= "00010";
-
-            if op(2 downto 1) = "00" then
-              reg_dst <= '0';
-            else
-              reg_dst <= '1';
-            end if;
+            reg_dst <= '1';
 
           -- memory operation
           when "101" =>
