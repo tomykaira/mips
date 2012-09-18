@@ -42,7 +42,8 @@ architecture top of top is
       write_data    : out std_logic_vector(31 downto 0);
       data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
       rx_enable     : out STD_LOGIC;
-      rx_done       : in  STD_LOGIC);
+      rx_waiting    : in  STD_LOGIC;
+      rx_pop        : out STD_LOGIC);
   end component;
 
   component sramc is
@@ -72,12 +73,18 @@ architecture top of top is
 
   end component;
 
-  component i232c
-    port ( clk    : in  STD_LOGIC;
-           enable : in  STD_LOGIC;
-           rx     : in  STD_LOGIC;
-           data   : out STD_LOGIC_VECTOR (7 downto 0);
-           changed: out STD_LOGIC);
+  component i232c_buffer is
+    
+    generic (wtime : std_logic_vector(15 downto 0) := x"008F");
+
+    port (
+      clk       : in std_logic;
+      reset     : in std_logic;
+      rx        : in std_logic;
+      do_pop    : in std_logic;           -- 1 to pop data
+      waiting   : out STD_LOGIC;
+      pop_data  : out std_logic_vector(7 downto 0));
+
   end component;
 
   signal data_from_bus, memory_data : std_logic_vector(31 downto 0);
@@ -89,7 +96,7 @@ architecture top of top is
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_done, send_enable : STD_LOGIC;
+  signal rx_enable, rx_waiting, rx_pop, send_enable : STD_LOGIC;
 
 begin  -- test
 
@@ -121,14 +128,17 @@ begin  -- test
     write_data    => write_data,
     data_from_bus => data_from_bus,
     rx_enable     => rx_enable,
-    rx_done       => rx_done);
+    rx_waiting    => rx_waiting,
+    rx_pop        => rx_pop);
 
-  receiver : i232c port map (
-    clk     => iclk,
-    enable  => rx_enable,
-    rx      => RS_RX,
-    data    => rx_data,
-    changed => rx_done);
+  i232c_buffer_inst : i232c_buffer port map (
+    clk => iclk,
+    reset => not xrst,
+    rx => RS_RX,
+    do_pop => rx_pop,
+    waiting => rx_waiting,
+    pop_data => rx_data
+    );
 
   sender : rs232c_buffer port map (
     clk       => iclk,
@@ -153,6 +163,6 @@ begin  -- test
 
   -- is this good design to judge here?
   -- ok for reading twice?
-  data_from_bus <= x"000000" & rx_data when rx_enable = '1' or rx_done = '1' else memory_data;
+  data_from_bus <= x"000000" & rx_data when rx_enable = '1' else memory_data;
 
 end top;

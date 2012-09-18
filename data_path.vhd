@@ -104,7 +104,7 @@ architecture struct of data_path is
 	end component;
 
   signal write_reg_addr : std_logic_vector(4 downto 0);
-  signal sign_immediate : std_logic_vector(31 downto 0);
+  signal sign_immediate, sign_immediate_out : std_logic_vector(31 downto 0);
   signal read_data1, read_data2, rs, rt : std_logic_vector(31 downto 0) := (others => '0');
   signal src_b, write_back, alu_out, execute_result, fpu_out, arithmetic_result : std_logic_vector(31 downto 0) := (others => '0');
 
@@ -150,7 +150,7 @@ begin  -- struct
     pc               => pc_buf,
     pc_src           => pc_src,
     jump             => instruction(25 downto 0),
-    relative         => sign_immediate,
+    relative         => sign_immediate_out,
     reg              => rs,
     stack_top        => stack_top,
     branch_condition => branch_condition);
@@ -183,6 +183,12 @@ begin  -- struct
 		d     => read_data2,
 		q     => rt);
 
+	sign_immediate_flip : flip_reset port map (
+		clk   => clk,
+		reset => reset,
+		d     => sign_immediate,
+		q     => sign_immediate_out);
+
 	result_flip : flip_reset port map (
 		clk   => clk,
 		reset => reset,
@@ -201,7 +207,7 @@ begin  -- struct
   sign_immediate <= x"ffff" & instruction(15 downto 0) when instruction(15) = '1'
                     else x"0000" & instruction(15 downto 0);
 
-  src_b <= sign_immediate when alu_src = '1' else rt;
+  src_b <= sign_immediate_out when alu_src = '1' else rt;
 
 
   mem_addr   <= execute_result;
