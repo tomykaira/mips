@@ -11,7 +11,8 @@ entity mips is
     write_data    : out std_logic_vector(31 downto 0);
     data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
     rx_enable     : out STD_LOGIC;
-    rx_done       : in  STD_LOGIC);
+    rx_waiting    : in  STD_LOGIC;
+    rx_pop        : out STD_LOGIC);
 
 end;
 
@@ -28,7 +29,7 @@ architecture struct of mips is
 
     port (
       op                    : in  STD_LOGIC_VECTOR(5 downto 0);
-      rx_done               : in  STD_LOGIC;
+      rx_wait               : in  STD_LOGIC;
       stage                 : in  std_logic_vector(3 downto 0);
       next_stage            : out std_logic_vector(3 downto 0);
       bus_to_reg            : out STD_LOGIC;
@@ -39,7 +40,8 @@ architecture struct of mips is
       mem_write             : out STD_LOGIC;
       send_enable           : out STD_LOGIC;
       reg_write             : out STD_LOGIC;
-      rx_enable             : out STD_LOGIC
+      rx_enable             : out STD_LOGIC;
+      rx_pop                : out STD_LOGIC
       );
 
   end component;
@@ -83,7 +85,7 @@ architecture struct of mips is
 begin
   cont : main_decoder port map (
     op          => instruction(31 downto 26),
-    rx_done     => rx_done,
+    rx_wait     => rx_waiting,
     stage       => current_stage,
     next_stage  => next_stage,
     bus_to_reg  => bus_to_reg,
@@ -94,7 +96,8 @@ begin
     mem_write   => mem_write,
     send_enable => send_enable,
     reg_write   => reg_write,
-    rx_enable   => rx_enable);
+    rx_enable   => rx_enable,
+    rx_pop      => rx_pop);
 
   stage_flip : flip_reset port map (
     clk   => clk,

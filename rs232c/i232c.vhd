@@ -5,9 +5,8 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity i232c is
   -- TODO: 最後の 1 のビットの前に countdown が終ってしまうことがあるので
   -- wtime を長めにとって対処した。ステートマシンを整えることで対処すべき
-  generic (wtime: std_logic_vector(15 downto 0) := x"0095");
+  generic (wtime: std_logic_vector(15 downto 0) := x"008F");
   Port ( clk    : in  STD_LOGIC;
-         enable : in  STD_LOGIC;
          rx     : in  STD_LOGIC;
          data   : out STD_LOGIC_VECTOR (7 downto 0);
          changed: out STD_LOGIC);
@@ -44,7 +43,7 @@ begin
   write_out: process(clk)
   begin
     if rising_edge(clk) then
-      if state(5)='1' and state(4)='0' and enable = '1' then
+      if state(5)='1' and state(4)='0' and cnt(14 downto 0) = wtime(15 downto 1) then
         data <= fd;
         changed <= '1';
       else
@@ -56,9 +55,7 @@ begin
   statemachine: process(clk)
   begin
     if rising_edge(clk) then
-      if enable = '0' then
-        state <= "000000"; -- reset
-      elsif state(5) = '0' and rxdfd = '0' then
+      if state(5) = '0' and rxdfd = '0' then
         state(0) <= '1';
       elsif state(5) = '1' then
         state(0) <= '0';
@@ -75,7 +72,7 @@ begin
     if rising_edge(clk) then
       if state = "000000" then
         cnt <= wtime;
-      elsif enable = '1' then
+      else
         if cnt = 0 then
           cnt <= wtime;
         else
@@ -89,7 +86,7 @@ begin
   begin
     if rising_edge(clk) then
       if state(1) = '1' or state(4) = '1' then
-        if enable = '1' and cnt(14 downto 0) = wtime(15 downto 1) then
+        if cnt(14 downto 0) = wtime(15 downto 1) then
           fd(7) <= rxdfd;
           fd(6 downto 0) <= fd (7 downto 1);
         end if;
