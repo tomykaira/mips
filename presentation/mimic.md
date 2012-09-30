@@ -1,16 +1,15 @@
-# Mimic
-
-東京大学 理学部情報科学科 3年 冨田寛
+author: 東京大学 理学部情報科学科 3年 冨田寛
+title: Mimic architecture
 
 # Concept
 
 The "fastest" implementation for CPU Ex.
 
-# 「速さ」とはなにか
+## 「速さ」とはなにか
 
 従来の CPU 実験: レイトレーサを高速に動作させること
 
-私の CPU 実験: レイトレーサを動作させるプロダクトを短期間で作成すること
+私の CPU 実験: レイトレーサを動作させるプロダクトを**短期間で**作成すること
 
 # 結果
 
@@ -82,23 +81,21 @@ CPUExSolver2 の生成したものを改造。
 - 回路を記述し、 HDL シミュレータで動作することを命令、ビットレベルで確認する
 - 実機に載せて動作することを確認する
 
-参考: [TDDを明確に定義する - うさぎ組](http://d.hatena.ne.jp/kyon_mm/20120830/1346344839)
-
-# くわしくは
-
-[CPU 実験完動報告 - tomykaira makes love with codes](http://tomykaira.hatenablog.com/entry/2012/09/19/012014)
-
-環境、流れ、作った/使ったツールに言及しているので実験で参考になるはず。
-
-# 謝辞
-
-- @atetubou さん
-- @furaga さん
-- 細川さん
-- @h013 さん、@iwiwi さん
-
 # まとめ
 
 - ひとつの課題
 - ことなる目標
 - ことなる速さ
+
+## くわしくは
+
+[CPU 実験完動報告 - tomykaira makes love with codes](http://tomykaira.hatenablog.com/entry/2012/09/19/012014)
+
+環境、流れ、作った/使ったツールに言及しているので実験で参考になるはず。
+
+## 謝辞
+
+- @atetubou さん
+- @furaga さん
+- 細川さん
+
