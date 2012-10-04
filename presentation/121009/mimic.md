@@ -1,4 +1,4 @@
-author: 東京大学 理学部情報科学科 3年 冨田寛
+author: 東京大学 理学部情報科学科 卜部、冨田、濱中、名取
 title: Mimic architecture
 
 # Concept
