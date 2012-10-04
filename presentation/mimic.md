@@ -211,7 +211,17 @@ PS1 みたいって言われた……
 - 予定の依存関係がない
 - 予定は未定
 
-Github の Issue で管理する。
+## 課題管理
+
+明確なストーリーがないので、場当たり的に Github の Issue で管理する。
+
+- 進捗を明確に把握する
+- 変化に対応する
+- コミュニケーションを記録としてのこす
+
+github flow をベースに構築。
+
+詳細: https://github.com/tomykaira/mips/blob/master/github.md
 
 # まとめ
 
