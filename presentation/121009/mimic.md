@@ -1,7 +1,7 @@
-author: 東京大学 理学部情報科学科 卜部、冨田、濱中、名取
+author: IS3年 完動班 卜部、冨田、濱中、名取
 title: Mimic architecture
 
-# Concept
+# 完動?
 
 The "fastest" implementation for CPU Ex.
 
@@ -11,7 +11,7 @@ The "fastest" implementation for CPU Ex.
 
 私の CPU 実験: レイトレーサを動作させるプロダクトを**短期間で**作成すること
 
-# 結果
+## 結果
 
 本番アーキテクチャ設計開始から**10人日**で実機動作
 
