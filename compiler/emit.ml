@@ -70,9 +70,13 @@ and g' oc = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), Int(i) when -0x8000 <= i && i <= 0x7FFF ->
       Printf.fprintf oc "\taddi\t%s, %s, %d\n" x reg_0 i
   | NonTail(x), Int(i) ->
-      Printf.fprintf oc "\tmvlo\t%s, %d\n\tmvhi\t%s, %d\n" x (i land 0xFFFF) x (Int32.to_int (Int32.shift_right_logical (Int32.logand (Int32.of_int i) (Int32.of_int 0xFFFF0000)) 16))
-  | NonTail(x), Float(i) -> 
-      Printf.fprintf oc "\tfmvlo\t%s, %d\n\tfmvhi\t%s, %d\n" x (Int32.to_int (Int32. logand (Int32.bits_of_float i) (Int32.of_int 0xFFFF))) x (Int32.to_int (Int32.shift_right_logical (Int32.logand (Int32.bits_of_float i) (Int32.of_int 0xFFFF0000)) 16))
+      Printf.fprintf oc "\tmvlo\t%s, %d\n\tmvhi\t%s, %d\n"
+	x (i land 0xFFFF)
+	x (Int32.to_int (Int32.logand (Int32.shift_right_logical (Int32.of_int i) 16) (Int32.of_int 0xFFFF)))
+  | NonTail(x), Float(i) ->
+      Printf.fprintf oc "\tfmvlo\t%s, %d\n\tfmvhi\t%s, %d\n"
+	x (Int32.to_int (Int32. logand (Int32.bits_of_float i) (Int32.of_int 0xFFFF)))
+	x (Int32.to_int (Int32.logand (Int32.shift_right_logical (Int32.bits_of_float i) 16) (Int32.of_int 0xFFFF)))
   | NonTail(x), SetL(Id.L(y)) -> Printf.fprintf oc "\tsetl\t%s, %s\n" x y
   | NonTail(x), SllI(y, z) -> Printf.fprintf oc "\tslli\t%s, %s, %d\n" x y z
   | NonTail(x), SraI(y, z) -> Printf.fprintf oc "\tsrai\t%s, %s, %d\n" x y z
