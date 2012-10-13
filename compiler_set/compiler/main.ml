@@ -67,6 +67,7 @@ let () =
   Arg.parse
     [("--inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
+   ("-b", Arg.Set Global.bin, "maximum number of optimizations iterated");
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
    ("-dbTyping", Arg.Set dbty, "debug: print Syntax.t after typing");
    ("-dbKNormal", Arg.Set dbkn, "debug: print KNormal.t after K normalization");

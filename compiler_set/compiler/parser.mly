@@ -2,6 +2,7 @@
 (* parserが利用する変数、関数、型などの定義 *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
+
 %}
 
 /* 字句を表すデータ型の定義 */
@@ -128,7 +129,9 @@ exp: /* 一般の式 */
     { Let(addtyp $2, $4, $6) }
 | LET REC fundef IN exp
     %prec prec_let
-    { LetRec($3, $5) }
+    { match fst ($3).name with
+      | "read_int" | "read_float" when !Global.bin -> $5
+      | _ -> LetRec($3, $5) }
 | exp actual_args
     %prec prec_app
     { match ($1, $2) with
