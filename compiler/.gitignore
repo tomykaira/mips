@@ -1,0 +1,11 @@
+*.cmi
+*.cmo
+*.cma
+/._bcdi/
+/._d/
+*.o
+lexer.ml
+min-caml
+min-caml.top
+parser.ml
+parser.mli
