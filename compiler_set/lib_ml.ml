@@ -1,4 +1,4 @@
-(* 浮動小数基本演算1 *)
+(* float (1) *)
 let rec fequal a b = a = b in
 let rec fless a b = (a < b) in
 
@@ -7,7 +7,7 @@ let rec fisneg a = (a < 0.0) in
 let rec fiszero a = (a = 0.0) in
 
 
-(* 浮動小数基本演算2 *)
+(* float (2) *)
 let rec fabs a =
 	if a < 0.0 then -. a
 	else a
@@ -17,6 +17,8 @@ let rec fneg a = -. a in
 let rec fhalf a = a *. 0.5 in
 let rec fsqr a = a *. a in
 
+
+
 (* floor, int_of_float, float_of_int はlib_asm.sで定義 *)
 
 (* 算術関数 *)
@@ -25,6 +27,7 @@ let pi2 = pi *. 2.0 in
 let pih = pi *. 0.5 in
 
 (* atan *)
+
 let rec atan_sub i xx y =
 	if i < 0.5 then y
 	else atan_sub (i -. 1.0) xx ((i *. i *. xx) /. (i +. i +. 1.0 +. y))
@@ -44,7 +47,7 @@ let rec atan x =
 	if sgn > 0 then pi /. 2.0 -. b
 	else if sgn < 0 then -. pi /. 2.0 -. b
 	else b
-	in
+	in 
 
 (* tan *)
 let rec tan x = (* -pi/4 <= x <= pi/4 *)
@@ -81,8 +84,6 @@ let rec cos x =
 	let pih = pi *. 0.5 in
 	sin (pih -. x) in
 
-let rec mul10 x = x * 8 + x * 2 in
-
 (* read_int *)
 let read_int_ans = Array.create 1 0 in
 let read_int_s = Array.create 1 0 in
@@ -100,7 +101,7 @@ let rec read_int_token in_token prev =
 			(if prev = 45 then read_int_s.(0) <- (-1) else read_int_s.(0) <- (1))
 		else
 			());
-		read_int_ans.(0) <- mul10 read_int_ans.(0) + (c - 48);
+		read_int_ans.(0) <- read_int_ans.(0) * 10 + (c - 48);
 		read_int_token true c) in
 let rec read_int _ = 
 	read_int_ans.(0) <- 0;
@@ -127,7 +128,7 @@ let rec read_float_token1 in_token prev =
 
 		else
 			());
-		read_float_i.(0) <- mul10 read_float_i.(0) + (c - 48);
+		read_float_i.(0) <- read_float_i.(0) * 10 + (c - 48);
 		read_float_token1 true c) in
 let rec read_float_token2 in_token =
 	let c = input_char () in
@@ -138,8 +139,8 @@ let rec read_float_token2 in_token =
 	if flg then
 		(if in_token then () else read_float_token2 false)
 	else
-		(read_float_f.(0) <- mul10 read_float_f.(0) + (c - 48);
-		read_float_exp.(0) <- mul10 read_float_exp.(0);
+		(read_float_f.(0) <- read_float_f.(0) * 10 + (c - 48);
+		read_float_exp.(0) <- read_float_exp.(0) * 10;
 		read_float_token2 true) in
 let rec read_float _ = 
 	read_float_i.(0) <- 0;
@@ -158,23 +159,7 @@ let rec read_float _ =
 	else
 		-. ans in
 
-(* / 2, * 2はparser.mlyで左・右シフトに変換されるので使ってよい *)
-let rec mul_sub a b =
-	if b = 0 then 0
-	else (
-		let b_mod_2 = b - (b / 2) * 2 in
-		if b_mod_2 = 0 then
-			(mul_sub (a * 2) (b / 2))
-		else
-			(mul_sub (a * 2) (b / 2)) + a
-	) in
-
-let rec mul a b =
-	if b < 0 then 
-		mul_sub (-a) (-b)
-	else
-		mul_sub a b in
-
+(* /2 はparser.mlyで右シフトに変換されるので使ってよい *)
 let rec div_binary_search a b left right =
 	let mid = (left + right) / 2 in
 	let x = mid * b in
@@ -188,35 +173,8 @@ let rec div_binary_search a b left right =
 		else
 			div_binary_search a b left mid in
 
-let rec div_sub a b left =
-	if mul (b * 2) left  <= a then
-		div_sub a b (left * 2)
-	else
-		div_binary_search a b left (left * 2) in
 
-let rec div a b =
-	(* bは0ではない *)
-	let abs_a = if a >= 0 then a else -a in
-	let abs_b = if b >= 0 then b else -b in
-	if abs_a < abs_b then
-		0
-	else (
-		let ans = div_sub abs_a abs_b 1 in
-		if a >= 0 then (
-			if b >= 0 then
-				ans
-			else
-				-ans
-		)
-		else (
-			if b >= 0 then
-				-ans
-			else
-				ans
-		)
-	) in
-
-(* print_int div命令を使わない版 *)
+(* print_int *)
 let rec print_int x =
 	if x < 0 then
 		(print_char 45; print_int (-x))
@@ -322,3 +280,4 @@ let rec print_int x =
 
 
 
+let rec print_newline _ = print_char 10 in

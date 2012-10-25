@@ -58,10 +58,16 @@ let insert_let (e, t) k = (* letを挿入する補助関数 *)
 
 let rec g env = function (* K正規化ルーチン本体 *)
   | Syntax.Unit -> Unit, Type.Unit
-  | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int (* 論理値true, falseを整数1, 0に変換 *)
+  (* falseは0,trueは1 *)
+  | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int 
   | Syntax.Int(i) -> Int(i), Type.Int
   | Syntax.Float(d) -> Float(d), Type.Float
-  | Syntax.Not(e) -> g env (Syntax.If(e, Syntax.Bool(false), Syntax.Bool(true)))
+  | Syntax.Not(e) ->
+      insert_let (g env e)
+	(fun x -> ExtFunApp("not", [x]), Type.Int)
+(*      if not (M.mem "not" !Typing.extenv) then
+        Typing.extenv := M.add "not" (Type.Fun([Type.Bool], Type.Bool)) !Typing.extenv;
+      g env (Syntax.App(Syntax.Var("not"), [e]))*)
   | Syntax.Neg(e) ->
       insert_let (g env e)
 	(fun x -> Neg(x), Type.Int)
@@ -200,6 +206,7 @@ let rec g env = function (* K正規化ルーチン本体 *)
 	    (fun y -> insert_let (g env e3)
 		(fun z -> Put(x, y, z), Type.Unit)))
 
+let f e = fst (g M.empty e)
 
 (******************************************************************)
 (* デバッグ用関数. tを出力. nは深さ. *)
@@ -229,7 +236,7 @@ let rec dbprint n t =
   | IfLT (a, b, p, q) -> Printf.eprintf "If %s < %s Then\n%!" a b;
                          dbprint (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint (n+1) q
   | Let ((a, t), b, c) -> Printf.eprintf "Let (%s:%s) =\n%!" a (Type.show t);
-                          dbprint (n+1) b; ind n; Printf.eprintf "In\n%!"; dbprint (n+1) c
+                          dbprint (n+1) b; ind n; Printf.eprintf "In\n%!"; dbprint n c
   | Var a -> Printf.eprintf "Var %s\n%!" a
   | LetRec (f, a) ->
      Printf.eprintf "LetRec (%s:%s) %s =\n%!" (fst f.name) (Type.show (snd f.name)) (String.concat " " (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")" ) f.args));
@@ -245,4 +252,4 @@ let rec dbprint n t =
   | ExtFunApp (a, l) -> Printf.eprintf "ExtFunApp %s to %s\n%!" a (String.concat " " l)
 
 
-let f e = fst (g M.empty e)
+

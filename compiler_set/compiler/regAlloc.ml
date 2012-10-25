@@ -64,10 +64,8 @@ let rec alloc dest cont regenv x t =
       List.find
         (fun r -> not (S.mem r live))
         (prefer @ all) in
-    (* Format.eprintf "allocated %s to %s@." x r; *)
     Alloc(r)
   with Not_found ->
-    Format.eprintf "register allocation failed for %s@." x;
     let y = (* 型の合うレジスタ変数を探す *)
       List.find
         (fun y ->
@@ -75,7 +73,6 @@ let rec alloc dest cont regenv x t =
           try List.mem (M.find y regenv) all
           with Not_found -> false)
         (List.rev free) in
-    Format.eprintf "spilling %s from %s@." y (M.find y regenv);
     Spill(y)
 
 (* auxiliary function for g and g'_and_restore *)
@@ -90,7 +87,8 @@ let find x t regenv =
   try M.find x regenv
   with Not_found -> raise (NoReg(x, t))
 
-let rec g dest cont regenv = function (* 命令列のレジスタ割り当て. contは後続の命令列 *)
+(* 命令列のレジスタ割り当て. contは後続の命令列 *)
+let rec g dest cont regenv = function 
   | Ans(exp) -> g'_and_restore dest cont regenv exp
   | Let((x, t) as xt, exp, e) ->
       assert (not (M.mem x regenv));
@@ -160,7 +158,17 @@ and g' dest cont regenv = function (* 各命令のレジスタ割り当て *)
   | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
   | CallCls(x, ys, zs) as exp -> g'_call dest cont regenv exp (fun ys zs -> CallCls(find x Type.Int regenv, ys, zs)) ys zs
-  | CallDir(l, ys, zs) as exp -> g'_call dest cont regenv exp (fun ys zs -> CallDir(l, ys, zs)) ys zs
+  | CallDir(Id.L l, ys, zs) as exp ->
+      (match l with
+      (* コンパイラで出力するライブラリ関数。
+	 emit.mlでインラインに展開され,退避不要 *)
+      | "min_caml_print_char" | "min_caml_input_char"
+      | "min_caml_read_char" ->
+	  (Ans(CallDir(Id.L l,
+		       (List.map (fun y -> find y Type.Int regenv) ys),
+	               (List.map (fun z -> find z Type.Float regenv) zs))),
+	   regenv)
+      | _ -> g'_call dest cont regenv exp (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs)
   | Save(x, y) -> assert false
 and g'_if dest cont regenv exp constr e1 e2 = (* ifのレジスタ割り当て *)
   let (e1', regenv1) = g dest cont regenv e1 in

@@ -22,12 +22,9 @@ let rec g env = function (* β簡約ルーチン本体 *)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
   | Let((x, t), e1, e2) -> (* letのβ簡約 *)
       (match g env e1 with
-      | Var(y) ->
-	  Format.eprintf "beta-reducing %s = %s@." x y;
-	  g (M.add x y env) e2
-      | e1' ->
-	  let e2' = g env e2 in
-	  Let((x, t), e1', e2'))
+      | Var(y) -> g (M.add x y env) e2
+      | e1' -> let e2' = g env e2 in
+	       Let((x, t), e1', e2'))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
       LetRec({ name = xt; args = yts; body = g env e1 }, g env e2)
   | Var(x) -> Var(find x env) (* 変数を置換 *)
@@ -39,4 +36,5 @@ let rec g env = function (* β簡約ルーチン本体 *)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
 
-let f = g M.empty
+let f e = Format.eprintf "beta-reducing...@.";
+          g M.empty e

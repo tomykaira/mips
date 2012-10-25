@@ -2,9 +2,6 @@
 
 open KNormal
 
-(* デバッグ用。trueならKnormal.tを出力 *)
-let debug = ref false
-
 let find x env = try M.find x env with Not_found -> x
 
 let rec g env = function (* α変換ルーチン本体 *)

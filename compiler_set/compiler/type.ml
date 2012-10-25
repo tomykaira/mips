@@ -14,9 +14,9 @@ let rec show x =
   | Bool -> "Bool"
   | Int -> "Int"
   | Float -> "Float"
-  | Fun (l,t) -> "(" ^ String.concat "," (List.map show l) ^ ")->" ^ show t
-  | Tuple l -> String.concat " * " (List.map show l)
-  | Array t -> "Array " ^ show t
+  | Fun (l,t) -> "Fun((" ^ String.concat "," (List.map show l) ^ ")->" ^ show t ^ ")"
+  | Tuple l -> "(" ^ String.concat " * " (List.map show l) ^")"
+  | Array t -> "(Array " ^ show t ^ ")"
   | Var a ->
       (match !a with
        | Some t -> "Var " ^ show t

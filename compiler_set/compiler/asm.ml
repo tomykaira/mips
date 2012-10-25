@@ -67,7 +67,6 @@ type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret 
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
 
-let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
 let regs = Array.init 27 (fun i -> Printf.sprintf "$r%d" (i+3)) 
@@ -81,7 +80,7 @@ let reg_fp = "$r1" (* frame pointer *)
 let reg_hp = "$r2" (* heap pointer *)
 let reg_cl = regs.(Array.length regs - 1) (* closure pointer *)
 let reg_sw = regs.(Array.length regs - 2)
-let reg_fsw = fregs.(Array.length regs - 1)
+let reg_fsw = fregs.(Array.length fregs - 1)
 let reg_1  = "$r30" (* fixed to 1 *)
 let reg_m1 = "$r31" (* fixed to -1 *)
 
@@ -127,6 +126,7 @@ let rec concat e1 xt e2 =
 
 
 
+(**************************************************************)
 (* デバッグ用関数. expを出力. nは深さ. *)
 let rec ind m = if m <= 0 then ()
                 else (Printf.eprintf "  "; ind (m-1))
@@ -198,6 +198,7 @@ let rec dbprint n exp =
   | Restore (a) -> Printf.eprintf "Restore %s\n%!" a
 
 
+(************************************************************************)
 (* デバッグ用関数. tを出力 *)
 and dbprint2 n t =
   ind n;

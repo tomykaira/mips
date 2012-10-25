@@ -19,7 +19,6 @@ let rec g env = function (* インライン展開ルーチン本体 *)
       LetRec({ name = (x, t); args = yts; body = g env e1}, g env e2)
   | App(x, ys) when M.mem x env -> (* 関数適用の場合 *)
       let (zs, e) = M.find x env in
-      Format.eprintf "inlining %s@." x;
       let env' =
 	List.fold_left2
 	  (fun env' (z, t) y -> M.add z y env')
@@ -30,4 +29,5 @@ let rec g env = function (* インライン展開ルーチン本体 *)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
   | e -> e
 
-let f e = g M.empty e
+let f e = Format.eprintf "inlining functions...@.";
+          g M.empty e

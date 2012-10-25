@@ -1,4 +1,4 @@
-(* translation into SPARC assembly with infinite number of virtual registers *)
+(* translation into assembly with infinite number of virtual registers *)
 
 open Asm
 
@@ -90,13 +90,18 @@ let rec g env = function
       Ans(CallCls(x, int, float))
   | Closure.AppDir(Id.L(x), ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
-      Ans(CallDir(Id.L(x), int, float))
+      (* xor等を変換 *)
+      (match x with
+      | "min_caml_xor" -> Ans(Xor(List.nth int 0, List.nth int 1))
+      | "min_caml_sqrt" -> Ans(FSqrt(List.hd float))
+      | "min_caml_not" -> Ans(Xor(List.hd int, reg_1))
+      | _ -> Ans(CallDir(Id.L(x), int, float)))
   | Closure.Tuple(xs) -> (* 組の生成 *)
       let y = Id.genid "t" in
       let (offset, store) =
 	expand
 	  (List.map (fun x -> (x, M.find x env)) xs)
-	  (1, Ans(AddI(y, 0)))
+	  (0, Ans(AddI(y, 0)))
 	  (fun x offset store ->  seq(FStI(x, y, offset), store))
 	  (fun x _ offset store -> seq(StI(x, y, offset), store)) in
       Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
@@ -104,25 +109,22 @@ let rec g env = function
 	      store))
   | Closure.LetTuple(xts, y, e2) ->
       let s = Closure.fv e2 in
-      let (offset, load) =
+      let (_, load) =
 	expand
 	  xts
-	  (1, g (M.add_list xts env) e2)
+	  (0, g (M.add_list xts env) e2)
 	  (fun x offset load ->
-	    if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-	    fletd(x, FLdI(y, offset), load))
+	    if not (S.mem x s) then load else 
+	    Let((x, Type.Float), FLdI(y, offset), load))
 	  (fun x t offset load ->
-	    if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
+	    if not (S.mem x s) then load else 
 	    Let((x, t), LdI(y, offset), load)) in
       load
   | Closure.Get(x, y) -> (* 配列の読み出し *)
-      let offset = Id.genid "o" in
       (match M.find x env with
       | Type.Array(Type.Unit) -> Ans(Nop)
-      | Type.Array(Type.Float) ->
-	  Ans(FLdR(x, y))
-      | Type.Array(_) ->
-	  Ans(LdR(x, y))
+      | Type.Array(Type.Float) -> Ans(FLdR(x, y))
+      | Type.Array(_) -> Ans(LdR(x, y))
       | _ -> assert false)
   | Closure.Put(x, y, z) ->
       let offset = Id.genid "o" in
@@ -144,8 +146,8 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
     expand
       zts
       (1, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
-      (fun z offset load -> fletd(z, FLdI(reg_cl, offset), load))
-      (fun z t offset load -> Let((z, t), LdI(reg_cl, offset), load)) in
+      (fun z offset load -> Let((z, Type.Float), FLdI(x, offset), load))
+      (fun z t offset load -> Let((z, t), LdI(x, offset), load)) in
   match t with
   | Type.Fun(_, t2) ->
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
