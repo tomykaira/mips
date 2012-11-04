@@ -22,11 +22,11 @@ let rec xor128 x =
   random_source.(3)
 in
 
-let random_float max=
+let rec random_float max=
   (float_of_int (xor128 () land 0x7fffff)) /. (float_of_int 0x7fffff) *. max
 in
 
-let random_int max=
+let rec random_int max=
   ((xor128 () land 0x7fffffff) mod max)
 in
 
@@ -68,23 +68,24 @@ in
 
 
 (* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、Array.initはmincamlにおいて変更が必要 *)
-let conf=Array.make 10 (0.0)
-let bound=Array.make 4 (0.0)
-let tbl=ref (Array.make 1 [|0.0;0.0;0.0;0.0|])
-let cMap=ref (Array.make 1 (0.0,0.0,0.0))
-let cConf=Array.make 1 256
-let deConf=Array.make 3 0.0
-let dnaArray=ref [||]
-let finalXform=ref (0.0,0.0,0.0,(0.0,0.0,0.0,0.0,0.0,0.0),[],(0.0,0.0,0.0,0.0,0.0,0.0))
-let genes=ref 0
-let enable_finalXform=ref 0
-let batch_ct=10000
-let deCoeffs=ref [||]
-let filterWidth=ref [||]
-let deTbl=ref [||]
-let funcRandTblSize=1024
-let funcRandTbl=Array.make funcRandTblSize 0
-let glConf=Array.make 2 0
+let conf              = create_array 10 (0.0) in
+let bound             = create_array 4 (0.0) in
+let dummy             = create_array 4 0.0 in
+let tbl               = ref (create_array 1 dummy) in
+let cMap              = ref (create_array 1 (0.0,0.0,0.0)) in
+let cConf             = create_array 1 256 in
+let deConf            = create_array 3 0.0 in
+let dnaArray          = ref create_array 0 0 in
+let finalXform        = ref (0.0,0.0,0.0,(0.0,0.0,0.0,0.0,0.0,0.0),[],(0.0,0.0,0.0,0.0,0.0,0.0)) in
+let genes             = ref 0 in
+let enable_finalXform = ref 0 in
+let batch_ct          = 10000 in
+let deCoeffs          = ref create_array 0 0 in
+let filterWidth       = ref create_array 0 0 in
+let deTbl             = ref create_array 0 0 in
+let funcRandTblSize   = 1024 in
+let funcRandTbl       = create_array funcRandTblSize 0 in
+let glConf            = create_array 2 0 in
 
 (**************** ここまで、関数の定義の変更ok *******************)
 
@@ -97,6 +98,7 @@ let rec gene_gen res=
    let head=read_float () in
    head::(gene_gen (res - 1))
   )
+in
 
 let rec dna_gen res=
   if res==0 then []
@@ -107,6 +109,7 @@ let rec dna_gen res=
   let head=(fType,gene_gen len) in
   head::(dna_gen (res - 1))
   )
+in
 
 let read_dnas n=
 let cIndex=read_float () in
@@ -126,11 +129,13 @@ let d4=read_float () in
 let d5=read_float () in
 let d6=read_float () in
 (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),dna_gen num_dna,(d1,d2,d3,d4,d5,d6))
+in
 
 let read_gene ()=
 (genes := read_int();enable_finalXform:=read_int();
 dnaArray:=Array.init (!genes) read_dnas;
 if !enable_finalXform ==1 then (finalXform:=read_dnas 0) else ())
+in
 
 let rec read_cMap_sub iter=
 (
@@ -141,6 +146,7 @@ let rec read_cMap_sub iter=
  if iter==(cConf.(0)-1) then ()
  else read_cMap_sub (iter + 1)
 )
+in
 
 let read_cMap ()=
 (
@@ -148,9 +154,11 @@ let read_cMap ()=
  cMap:=Array.make cConf.(0) (0.0,0.0,0.0);
  read_cMap_sub 0
 )
+in
 
 let array_gen x=
  Array.make 4 0.0
+in
 
 let decode_init ()=
   let rec acmWeight pos min sum=
@@ -168,6 +176,7 @@ let decode_init ()=
      (let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(fn) in
      initRandTbl (fn+1) (initRandTbl_sub fn index (int_of_float (cWeight*.(float_of_int funcRandTblSize)/.sum)))) in
    initRandTbl 0 0)
+in
 
 let rec read_environment pos=
 (
@@ -185,6 +194,7 @@ let rec read_environment pos=
  else 
   read_environment (pos + 1)
 )
+in
 
 let apply_func (fn,coeffs) x y=
 (
@@ -431,6 +441,7 @@ let apply_func (fn,coeffs) x y=
  |_ ->
    (0.0,0.0)
 )
+in
 
 let rec apply_gene_sub fn_ary x y retx rety=
   if fn_ary==[] then (retx,rety)
@@ -440,23 +451,28 @@ let rec apply_gene_sub fn_ary x y retx rety=
        (let (nx,ny)=apply_func head x y in
        apply_gene_sub tail x y (retx+.nx) (rety+.ny))
     )
+in
 
 let apply_gene fn x y col=
   let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(fn) in
   let nx,ny=apply_gene_sub fun_ary (c1*.x+.c3*.y+.c5) (c2*.x+.c4*.y+.c6) 0.0 0.0 in
   ((d1*.nx+.d3*.ny+.d5),(d2*.nx+.d4*.ny+.d6),(col *. (1.0 -. cBlendRate)) +. cIndex*.cBlendRate)
+in
 
 let apply_finalXform x y col=
 let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !finalXform in
   let nx,ny=apply_gene_sub fun_ary (c1*.x+.c3*.y+.c5) (c2*.x+.c4*.y+.c6) 0.0 0.0 in
   ((d1*.nx+.d3*.ny+.d5),(d2*.nx+.d4*.ny+.d6),(col *. (1.0 -. cBlendRate)) +. cIndex*.cBlendRate)
+in
 
 (* 正則性判定 *)
 let regular x y=
   not ((x<bound.(0)) or (x>bound.(1)) or (y<bound.(2)) or (y>bound.(3)))
+in
 
 let random_gen ()=
 (random_float 2.0) -. 1.0
+in
 
 (* 
  current_pos: (x,y,col)
@@ -497,6 +513,7 @@ let nx,ny,ncol=if !enable_finalXform==1 then apply_finalXform tx ty tcol else (t
  else
     (if iter==0 then () else shooting_sub nx ny ncol iter)
 )
+in
 
 let rec shooting iter=
 (
@@ -504,14 +521,17 @@ let rec shooting iter=
  if iter<=0 then ()
  else shooting (iter - batch_ct)
 )
+in
 
 let read_deConf ()=
   deConf.(0) <- read_float ();
   deConf.(1) <- read_float ();
   deConf.(2) <- read_float ()
+in
 
 let gauss rad=
   (exp (-2.0*.rad*.rad)) *. (sqrt (2.0/.3.14159265))
+in
 
 let create_deFilter ()=
   (let max_rad=deConf.(0)*.conf.(2) in
@@ -561,6 +581,7 @@ let create_deFilter ()=
     else ()
   in
   deFilter_sub 0;createFilter 0 0)
+in
 
 let de_filter ()=
   (create_deFilter ();
@@ -629,6 +650,7 @@ let rec apply_deFilter ()=
   in
   deTbl:=Array.init ((ret_width+1)*(ret_height+1)) array_gen;
   apply_deFilter ())
+in
 
 let calcAlpha dnorm gamma linrange=
   if dnorm < linrange then
@@ -636,10 +658,12 @@ let calcAlpha dnorm gamma linrange=
       let frac=dnorm/.linrange in
        (1.0-.frac)*.dnorm*.funcval/.linrange +. frac*.(dnorm**gamma))
   else (dnorm ** gamma)
+in
 
 let calcNewColor r g b ls=
   let co=ls/.255.0 in
   (r*.co,g*.co,b*.co)
+in
 
 let calcC v alpha=
   if alpha>0.0 then
@@ -647,6 +671,7 @@ let calcC v alpha=
      let tmp2=if tmp>255.0 then 255.0 else if tmp<0.0 then 0.0 else tmp in
      int_of_float (tmp2*.alpha))
   else 0
+in
 
 let calcRGBA ir ig ib idense=
   let ls=if idense==0.0 then 0.0 else (1067.8*.(log (1.0+.idense*.7.352941176e-5))/.idense) in
@@ -659,6 +684,7 @@ let calcRGBA ir ig ib idense=
     if talpha>1.0 then 1.0 else talpha),256.0*.talpha/.tdense) in
   let nr,ng,nb=calcNewColor r g b nls in
   (calcC nr alpha,calcC ng alpha,calcC nb alpha)
+in
 
 let output_ppm mode=
 let ret_width=(conf.(0)+.conf.(2)*.6.0) in
@@ -680,9 +706,11 @@ in
   print_int (int_of_float ret_height); print_char ' '; print_int 255; print_char '\n';
 printer 0
 )
+in
 
 let read_glConf ()=
   (glConf.(0)<-read_int ();glConf.(1)<-read_int ())
+in
 
 let flam ()=
 (
@@ -695,5 +723,6 @@ let flam ()=
  shooting glConf.(0);
  if glConf.(1)==1 then (de_filter ();output_ppm 1) else (output_ppm 0)
 )
+in
 
-let _ = flam ()
+flam ()
