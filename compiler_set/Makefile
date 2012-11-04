@@ -23,6 +23,8 @@ INLINE = --inline 50
 # globals.ml, min-rt.ml があるディレクトリ
 MIN_RT_DIR = test/min-rt/
 
+LORELEY_DIR=test/Loreley
+
 # min-rtを実行するときの入力ファイル。上で"BINARY ="としたときはこっちを使う
 SLD_PATH = test/min-rt/sld/contest.sld
 
@@ -31,6 +33,9 @@ SLD_PATH = test/min-rt/sld/contest.sld
 
 # min-rtを実行するときの出力ファイル
 PPM_PATH = test/min-rt/contest.ppm
+
+LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
+LOR_PPM_PATH=$(LOR_PATH).ppm
 
 architecture:
 	cd assembler; make
@@ -70,6 +75,28 @@ min-rt-run:
 min-rt-clean:
 	rm $(MIN_RT_DIR)min-rt.s
 	rm $(MIN_RT_DIR)min-rt.bin
+
+#--------------------------------------------------------------------
+# loreley のコンパイル・実行
+#--------------------------------------------------------------------
+
+# globals.mlとmin-rt.mlをコンパイル。min-rt.sとmin-rt.binを作る
+lor:
+	cat $(LIB_ML) $(LORELEY_DIR)/main.ml > __tmp__.ml
+	compiler/min-caml $(BINARY) $(INLINE) __tmp__
+	cd linker; java linker ../$(LIB_ASM) ../__tmp__.s ${abspath $(LORELEY_DIR)/main.s}
+	assembler/assembler $(LORELEY_DIR)/main.s $(LORELEY_DIR)/main.bin
+
+# min-rt.binを実行
+lor-run:
+	make min-rt
+	touch $(LOR_PPM_PATH)
+	eog $(LOR_PPM_PATH) & 2> /dev/null
+	make -s ./test/min-rt/min-rt.run < $(LOR_PATH) > $(LOR_PPM_PATH)
+
+# min-rt.s, min-rt.binを削除
+lor-clean:
+	rm -rf $(LOR_PPM_PATH) $(LORELEY_DIR)/main.s $(LORELEY_DIR)/main.bin
 
 #--------------------------------------------------------------------
 # その他ファイルのコンパイル
