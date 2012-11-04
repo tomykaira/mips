@@ -30,40 +30,41 @@ let random_int max=
   ((xor128 () land 0x7fffffff) mod max)
 in
 
-
 (* 読み込み関数。レイトレと同じ。mincamlでは変更必須 *)
-let buf = Buffer.create 16
-in
+(* Implemented in lib_ml.ml *)
 
-let rec read_token in_token =
-  try
-    let c = input_char stdin in
-    match c with
-      ' ' | '\t' | '\r' | '\n' ->
-	if in_token then ()
-	else read_token false
-    | _ ->
-	Buffer.add_char buf c;
-	read_token true
-  with
-    End_of_file ->
-      if in_token then () else raise End_of_file
+(*NOMINCAML let buf = Buffer.create 16 *)
+(*NOMINCAML in *)
 
-let read_float () = 
-  Buffer.clear buf;
-  read_token false;
-  try
-    float_of_string (Buffer.contents buf)
-  with
-    Failure _ -> failwith ((Buffer.contents buf) ^ ": float conversion failed.")
+(*NOMINCAML let rec read_token in_token = *)
+(*NOMINCAML   try *)
+(*NOMINCAML     let c = input_char stdin in *)
+(*NOMINCAML     match c with *)
+(*NOMINCAML       ' ' | '\t' | '\r' | '\n' -> *)
+(*NOMINCAML 	if in_token then () *)
+(*NOMINCAML 	else read_token false *)
+(*NOMINCAML     | _ -> *)
+(*NOMINCAML 	Buffer.add_char buf c; *)
+(*NOMINCAML 	read_token true *)
+(*NOMINCAML   with *)
+(*NOMINCAML     End_of_file -> *)
+(*NOMINCAML       if in_token then () else raise End_of_file *)
 
-let read_int () = 
-  Buffer.clear buf;
-  read_token false;
-  try
-    int_of_string (Buffer.contents buf)
-  with
-    Failure _ -> failwith ((Buffer.contents buf) ^ ": int conversion failed.")
+(*NOMINCAML let read_float () =  *)
+(*NOMINCAML   Buffer.clear buf; *)
+(*NOMINCAML   read_token false; *)
+(*NOMINCAML   try *)
+(*NOMINCAML     float_of_string (Buffer.contents buf) *)
+(*NOMINCAML   with *)
+(*NOMINCAML     Failure _ -> failwith ((Buffer.contents buf) ^ ": float conversion failed.") *)
+
+(*NOMINCAML let read_int () =  *)
+(*NOMINCAML   Buffer.clear buf; *)
+(*NOMINCAML   read_token false; *)
+(*NOMINCAML   try *)
+(*NOMINCAML     int_of_string (Buffer.contents buf) *)
+(*NOMINCAML   with *)
+(*NOMINCAML     Failure _ -> failwith ((Buffer.contents buf) ^ ": int conversion failed.") *)
 
 
 (* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、Array.initはmincamlにおいて変更が必要 *)
