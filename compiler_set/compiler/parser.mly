@@ -159,11 +159,6 @@ exp: /* 一般の式 */
     { Array($2, $3) }
 | MATCH exp WITH cases
     { Match($2, List.rev $4) }
-| error
-    { failwith
-	(Printf.sprintf "parse error near characters %d-%d"
-	   (Parsing.symbol_start ())
-	   (Parsing.symbol_end ()))}
 
 fundef:
 | IDENT formal_args EQUAL exp

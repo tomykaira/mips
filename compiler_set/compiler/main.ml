@@ -32,6 +32,18 @@ let debas f t =
   else ());
   t
 
+let parse_buf_exn lexbuf =
+  try
+    Parser.exp Lexer.token lexbuf
+  with exn ->
+    begin
+      let curr = lexbuf.Lexing.lex_curr_p in
+      let line = curr.Lexing.pos_lnum in
+      let cnum = curr.Lexing.pos_cnum in
+      let tok = Lexing.lexeme lexbuf in
+      failwith (Printf.sprintf "Parse error at %d:%d `%s'" line cnum tok)
+    end
+
 (* バッファをコンパイルしてチャンネルへ出力する *)
 let lexbuf outchan l =
   Id.counter := 0;
@@ -45,7 +57,7 @@ let lexbuf outchan l =
 		   (debkn dbal (Alpha.f
 		      (debkn dbkn (KNormal.f
 			 (debsy dbty (Typing.f
-			    (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))
+			    (debsy dbpa (parse_buf_exn l))))))))))))))))))
 
 
 (* 文字列をコンパイルして標準出力に表示する *)
