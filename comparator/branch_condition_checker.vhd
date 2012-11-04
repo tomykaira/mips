@@ -19,12 +19,16 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 -- 100001 | 8     |       | 0
 -- 100010 | 5     |       | 1    # ble
 -- 100010 | 8     |       | 0
+-- 100011 | 5     | 5     | 0    # bne
+-- 100011 | 1     |       | 1
 -- 100100 | 5.0   | 5.0   | 1    # fbeq
 -- 100100 | 2.0   |       | 0
 -- 100101 | 2.0   |       | 1    # fblt
 -- 100101 | 9.0   |       | 0
 -- 100110 | 2.0   |       | 1    # fble
 -- 100110 | 9.0   |       | 0
+-- 100111 | 5.0   | 5.0   | 0    # fbne
+-- 100111 | 2.0   |       | 1
 -- 111111 | 5.0   |       | 0    # others
 -- 111111 | 9.0   |       | 0
 -- /TEST
@@ -50,6 +54,7 @@ architecture behave of branch_condition_checker is
   end component;
 
   signal is_float, lt, eq : STD_LOGIC;
+  signal op_id : std_logic_vector(1 downto 0);
 
 begin  -- behave
 
@@ -62,9 +67,12 @@ begin  -- behave
     );
 
   is_float <= op(2);
+  op_id <= op(1 downto 0);
 
-  go_branch <= '1' when eq = '1' and (op = "100000" or op = "100010" or op = "100100" or op = "100110") else
-               '1' when lt = '1' and (op = "100001" or op = "100010" or op = "100101" or op = "100110") else
+  go_branch <= '0' when op(5 downto 3) /= "100" else
+               '1' when eq = '1' and (op_id = "00" or op_id = "10") else
+               '1' when lt = '1' and (op_id = "01" or op_id = "10") else
+               '1' when eq = '0' and (op_id = "11") else
                '0';
 
 end behave;
