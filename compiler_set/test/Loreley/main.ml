@@ -4,26 +4,30 @@
 (**************** ここから、関数の定義の変更ok *******************)
 
 (*乱数生成機：xorshift。本来32bit用なので31bitのOcamlでは動作が怪しい *)
-let xorX = ref 123456789
-let xorY = ref 362436069
-let xorZ = ref 521288629
-let xorW = ref 88675123
+let xorX = ref 123456789 in
+let xorY = ref 362436069 in
+let xorZ = ref 521288629 in
+let xorW = ref 88675123  in
 
 let xor128 () =
   let t = !xorX lxor (!xorX lsl 11) in
   (xorX := !xorY; xorY := !xorZ; xorZ := !xorW;
   xorW := (!xorW lxor (!xorW lsr 19)) lxor (t lxor (t lsr 8));
   !xorW)
+in
 
 let random_float max=
   (float_of_int (xor128 () land 0x7fffff)) /. (float_of_int 0x7fffff) *. max
+in
 
 let random_int max=
   ((xor128 () land 0x7fffffff) mod max)
+in
 
 
 (* 読み込み関数。レイトレと同じ。mincamlでは変更必須 *)
 let buf = Buffer.create 16
+in
 
 let rec read_token in_token =
   try
