@@ -675,10 +675,9 @@ else
   printer (n+1))
 in
 (
-print_string "P3
-";print_int (int_of_float ret_width);print_char ' ';
-print_int (int_of_float ret_height);print_string " 255
-";
+  print_char 'P'; print_char '3'; print_char '\n';
+  print_int (int_of_float ret_width); print_char ' ';
+  print_int (int_of_float ret_height); print_char ' '; print_int 255; print_char '\n';
 printer 0
 )
 
