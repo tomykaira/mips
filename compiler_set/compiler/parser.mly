@@ -1,11 +1,11 @@
 %{
-(* parser¤¬ÍøÍÑ¤¹¤ëÊÑ¿ô¡¢´Ø¿ô¡¢·¿¤Ê¤É¤ÎÄêµÁ *)
+(* parserãŒåˆ©ç”¨ã™ã‚‹å¤‰æ•°ã€é–¢æ•°ã€å‹ãªã©ã®å®šç¾© *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
 
 %}
 
-/* »ú¶ç¤òÉ½¤¹¥Ç¡¼¥¿·¿¤ÎÄêµÁ */
+/* å­—å¥ã‚’è¡¨ã™ãƒ‡ãƒ¼ã‚¿å‹ã®å®šç¾© */
 %token <bool> BOOL
 %token <int> INT
 %token <int> BIN
@@ -41,7 +41,7 @@ let addtyp x = (x, Type.gentyp ())
 %token RPAREN
 %token EOF
 
-/* Í¥Àè½ç°Ì¤Èassociativity¤ÎÄêµÁ¡ÊÄã¤¤Êı¤«¤é¹â¤¤Êı¤Ø) */
+/* å„ªå…ˆé †ä½ã¨associativityã®å®šç¾©ï¼ˆä½ã„æ–¹ã‹ã‚‰é«˜ã„æ–¹ã¸) */
 %right prec_let
 %right prec_semicolon
 %right SEMICOLON
@@ -55,13 +55,13 @@ let addtyp x = (x, Type.gentyp ())
 %left prec_app
 %left DOT
 
-/* ³«»Ïµ­¹æ¤ÎÄêµÁ */
+/* é–‹å§‹è¨˜å·ã®å®šç¾© */
 %type <Syntax.t> exp
 %start exp
 
 %%
 
-simple_exp: /* ³ç¸Ì¤ò¤Ä¤±¤Ê¤¯¤Æ¤â´Ø¿ô¤Î°ú¿ô¤Ë¤Ê¤ì¤ë¼° */
+simple_exp: /* æ‹¬å¼§ã‚’ã¤ã‘ãªãã¦ã‚‚é–¢æ•°ã®å¼•æ•°ã«ãªã‚Œã‚‹å¼ */
 | LPAREN exp RPAREN
     { $2 }
 | LPAREN RPAREN
@@ -79,7 +79,7 @@ simple_exp: /* ³ç¸Ì¤ò¤Ä¤±¤Ê¤¯¤Æ¤â´Ø¿ô¤Î°ú¿ô¤Ë¤Ê¤ì¤ë¼° */
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
 
-exp: /* °ìÈÌ¤Î¼° */
+exp: /* ä¸€èˆ¬ã®å¼ */
 | simple_exp
     { $1 }
 | NOT exp
@@ -88,9 +88,9 @@ exp: /* °ìÈÌ¤Î¼° */
 | MINUS exp
     %prec prec_unary_minus
     { match $2 with
-    | Float(f) -> Float(-.f) (* -1.23¤Ê¤É¤Ï·¿¥¨¥é¡¼¤Ç¤Ï¤Ê¤¤¤Î¤ÇÊÌ°·¤¤ *)
+    | Float(f) -> Float(-.f) (* -1.23ãªã©ã¯å‹ã‚¨ãƒ©ãƒ¼ã§ã¯ãªã„ã®ã§åˆ¥æ‰±ã„ *)
     | e -> Neg(e) }
-| exp PLUS exp /* Â­¤·»»¤ò¹½Ê¸²òÀÏ¤¹¤ë¥ë¡¼¥ë */
+| exp PLUS exp /* è¶³ã—ç®—ã‚’æ§‹æ–‡è§£æã™ã‚‹ãƒ«ãƒ¼ãƒ« */
     { Add($1, $3) }
 | exp MINUS exp
     { Sub($1, $3) }

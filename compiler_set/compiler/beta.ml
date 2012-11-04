@@ -1,8 +1,8 @@
 open KNormal
 
-let find x env = try M.find x env with Not_found -> x (* ÃÖ´¹¤Î¤¿¤á¤Î´Ø¿ô *)
+let find x env = try M.find x env with Not_found -> x (* ç½®æ›ã®ãŸã‚ã®é–¢æ•° *)
 
-let rec g env = function (* ¦Â´ÊÌó¥ë¡¼¥Á¥óËÜÂÎ *)
+let rec g env = function (* Î²ç°¡ç´„ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
   | Unit -> Unit
   | Int(i) -> Int(i)
   | Float(d) -> Float(d)
@@ -20,7 +20,7 @@ let rec g env = function (* ¦Â´ÊÌó¥ë¡¼¥Á¥óËÜÂÎ *)
   | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, g env e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
-  | Let((x, t), e1, e2) -> (* let¤Î¦Â´ÊÌó *)
+  | Let((x, t), e1, e2) -> (* letã®Î²ç°¡ç´„ *)
       (match g env e1 with
       | Var(y) ->
 	  Format.eprintf "beta-reducing %s = %s@." x y;
@@ -30,7 +30,7 @@ let rec g env = function (* ¦Â´ÊÌó¥ë¡¼¥Á¥óËÜÂÎ *)
 	  Let((x, t), e1', e2'))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
       LetRec({ name = xt; args = yts; body = g env e1 }, g env e2)
-  | Var(x) -> Var(find x env) (* ÊÑ¿ô¤òÃÖ´¹ *)
+  | Var(x) -> Var(find x env) (* å¤‰æ•°ã‚’ç½®æ› *)
   | Tuple(xs) -> Tuple(List.map (fun x -> find x env) xs)
   | LetTuple(xts, y, e) -> LetTuple(xts, find y env, g env e)
   | Get(x, y) -> Get(find x env, find y env)

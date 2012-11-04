@@ -2,11 +2,11 @@
 
 open KNormal
 
-let rec f = function (* ¥Í¥¹¥È¤·¤¿let¤Î´ÊÌó *)
+let rec f = function (* ãƒã‚¹ãƒˆã—ãŸletã®ç°¡ç´„ *)
   | IfEq(x, y, e1, e2) -> IfEq(x, y, f e1, f e2)
   | IfLE(x, y, e1, e2) -> IfLE(x, y, f e1, f e2)
   | IfLT(x, y, e1, e2) -> IfLT(x, y, f e1, f e2)
-  | Let(xt, e1, e2) -> (* let¤Î¾ì¹ç *)
+  | Let(xt, e1, e2) -> (* letã®å ´åˆ *)
       let rec insert = function
 	| Let(yt, e3, e4) -> Let(yt, e3, insert e4)
 	| LetRec(fundefs, e) -> LetRec(fundefs, insert e)

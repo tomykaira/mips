@@ -1,6 +1,6 @@
 let limit = ref 1000
 
-(* ╨ге╛╡╫╫ХмЩ╓Р╓╞╓Й╓╚╓╗╓╧ *)
+(* Ф°─И│╘Е▄√Е┤╕Г░├Ц┌▓Ц│▐Ц┌┼Ц│▀Ц│┬Ц│≥ *)
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
@@ -8,7 +8,7 @@ let rec iter n e =
   if e = e' then e else
   iter (n - 1) e'
 
-(* ╔г╔п╔ц╔╟╔у╔И╔╟╓х╔г╔п╔ц╔╟мя╢ь©Т *)
+(* Ц┐┤Ц┐░Ц┐┐Ц┌╟Ц┐∙Ц┐╘Ц┌╟Ц│╗Ц┐┤Ц┐░Ц┐┐Ц┌╟Г■╗И√╒Ф∙╟ *)
 let dbpa = ref false
 let dbty = ref false
 let dbkn = ref false
@@ -32,7 +32,7 @@ let debas f t =
   else ());
   t
 
-(* ╔п╔ц╔у╔║╓Р╔Ё╔С╔я╔╓╔К╓╥╓ф╔а╔Ц╔С╔м╔К╓ь╫пно╓╧╓К *)
+(* Ц┐░Ц┐┐Ц┐∙Ц┌║Ц┌▓Ц┌ЁЦ┐ЁЦ┐▒Ц┌╓Ц┐╚Ц│≈Ц│╕Ц┐│Ц┐ёЦ┐ЁЦ┐█Ц┐╚Ц│╦Е┤╨Е┼⌡Ц│≥Ц┌▀ *)
 let lexbuf outchan l =
   Id.counter := 0;
   Typing.extenv := M.empty;
@@ -48,10 +48,10 @@ let lexbuf outchan l =
 			    (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))
 
 
-(* й╦╩ЗнС╓Р╔Ё╔С╔я╔╓╔К╓╥╓фи╦╫Ю╫пно╓ки╫╪╗╓╧╓К *)
+(* Ф√┤Е╜≈Е┬≈Ц┌▓Ц┌ЁЦ┐ЁЦ┐▒Ц┌╓Ц┐╚Ц│≈Ц│╕Ф╗≥Ф╨√Е┤╨Е┼⌡Ц│╚Х║╗Г╓╨Ц│≥Ц┌▀ *)
 let string s = lexbuf stdout (Lexing.from_string s) 
 
-(* ╔у╔║╔╓╔К╓Р╔Ё╔С╔я╔╓╔К╓╥╓ф╔у╔║╔╓╔К╓к╫пно╓╧╓К *)
+(* Ц┐∙Ц┌║Ц┌╓Ц┐╚Ц┌▓Ц┌ЁЦ┐ЁЦ┐▒Ц┌╓Ц┐╚Ц│≈Ц│╕Ц┐∙Ц┌║Ц┌╓Ц┐╚Ц│╚Е┤╨Е┼⌡Ц│≥Ц┌▀ *)
 let file f = 
   let inchan = open_in (f ^ ".ml") in
   let outchan = open_out (f ^ ".s") in
@@ -61,7 +61,7 @@ let file f =
     close_out outchan;
   with e -> (close_in inchan; close_out outchan; raise e)
 
-(* ╓Ё╓Ё╓╚╓И╔Ё╔С╔я╔╓╔И╓н╪б╧т╓╛Ё╚╩о╓╣╓Л╓К *)
+(* Ц│⌠Ц│⌠Ц│▀Ц┌┴Ц┌ЁЦ┐ЁЦ┐▒Ц┌╓Ц┐╘Ц│╝Е╝÷Х║▄Ц│▄И√▀Е╖▀Ц│∙Ц┌▄Ц┌▀ *)
 let () = 
   let files = ref [] in
   Arg.parse

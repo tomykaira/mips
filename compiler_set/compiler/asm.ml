@@ -1,9 +1,9 @@
 (* mimic assembly with a few virtual instructions *)
 
-type t = (* Ì¿Îá¤ÎÎó *)
+type t = (* å‘½ä»¤ã®åˆ— *)
   | Ans of exp
   | Let of (Id.t * Type.t) * exp * t
-and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂĞ±ş¤¹¤ë¼° *)
+and exp = (* ä¸€ã¤ä¸€ã¤ã®å‘½ä»¤ã«å¯¾å¿œã™ã‚‹å¼ *)
   | Nop (* virtual instruction *)
 
   | Add of Id.t * Id.t
@@ -24,7 +24,7 @@ and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂĞ±ş¤¹¤ë¼° *)
 
   | Int of int      (* virtual instruction *)
   | Float of float  (* virtual instruction *)
-  | SetL of Id.l    (* virtual instruction, ¥é¥Ù¥ël¤Î¥¢¥É¥ì¥¹¤òÊÖ¤¹ *)
+  | SetL of Id.l    (* virtual instruction, ãƒ©ãƒ™ãƒ«lã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’è¿”ã™ *)
   | SllI of Id.t * int
   | SraI of Id.t * int
   | IMovF of Id.t
@@ -59,12 +59,12 @@ and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂĞ±ş¤¹¤ë¼° *)
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t (* ¥ì¥¸¥¹¥¿ÊÑ¿ô¤ÎÃÍ¤ò¥¹¥¿¥Ã¥¯ÊÑ¿ô¤ØÊİÂ¸ *)
-  | Restore of Id.t (* ¥¹¥¿¥Ã¥¯ÊÑ¿ô¤«¤éÃÍ¤òÉü¸µ *)
+  | Save of Id.t * Id.t (* ãƒ¬ã‚¸ã‚¹ã‚¿å¤‰æ•°ã®å€¤ã‚’ã‚¹ã‚¿ãƒƒã‚¯å¤‰æ•°ã¸ä¿å­˜ *)
+  | Restore of Id.t (* ã‚¹ã‚¿ãƒƒã‚¯å¤‰æ•°ã‹ã‚‰å€¤ã‚’å¾©å…ƒ *)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ = ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô + ¥á¥¤¥ó¤Î¼° *)
+(* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ = ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«é–¢æ•° + ãƒ¡ã‚¤ãƒ³ã®å¼ *)
 type prog = Prog of fundef list * t
 
 let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
@@ -127,7 +127,7 @@ let rec concat e1 xt e2 =
 
 
 
-(* ¥Ç¥Ğ¥Ã¥°ÍÑ´Ø¿ô. exp¤ò½ĞÎÏ. n¤Ï¿¼¤µ. *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨é–¢æ•°. expã‚’å‡ºåŠ›. nã¯æ·±ã•. *)
 let rec ind m = if m <= 0 then ()
                 else (Printf.eprintf "  "; ind (m-1))
 let rec dbprint n exp =
@@ -198,7 +198,7 @@ let rec dbprint n exp =
   | Restore (a) -> Printf.eprintf "Restore %s\n%!" a
 
 
-(* ¥Ç¥Ğ¥Ã¥°ÍÑ´Ø¿ô. t¤ò½ĞÎÏ *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨é–¢æ•°. tã‚’å‡ºåŠ› *)
 and dbprint2 n t =
   ind n;
   match t with
@@ -206,7 +206,7 @@ and dbprint2 n t =
   | Let ((x, y), exp, s) -> Printf.eprintf "Let %s:%s =\n%!" x (Type.show y);
                             dbprint (n+1) exp; dbprint2 n s
 
-(* ¥Ç¥Ğ¥Ã¥°ÍÑ´Ø¿ô. fundef¤ò½ĞÎÏ. *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨é–¢æ•°. fundefã‚’å‡ºåŠ›. *)
 let dbprint3 f =
   ind 1;
   match f.name with

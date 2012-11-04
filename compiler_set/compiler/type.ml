@@ -1,4 +1,4 @@
-type t = (* MinCaml¤Î·¿¤òÉ½¸½¤¹¤ë¥Ç¡¼¥¿·¿ *)
+type t = (* MinCamlã®å‹ã‚’è¡¨ç¾ã™ã‚‹ãƒ‡ãƒ¼ã‚¿å‹ *)
   | Unit
   | Bool
   | Int
@@ -22,5 +22,5 @@ let rec show x =
        | Some t -> "Var " ^ show t
        | None -> "Var")
 
-let gentyp () = Var(ref None) (* ¿·¤·¤¤·¿ÊÑ¿ô¤òºî¤ë *)
+let gentyp () = Var(ref None) (* æ–°ã—ã„å‹å¤‰æ•°ã‚’ä½œã‚‹ *)
 

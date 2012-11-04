@@ -3,8 +3,8 @@ open Asm
 external gethi : float -> int32 = "gethi"
 external getlo : float -> int32 = "getlo"
 
-let stackset = ref S.empty (* ¤¹¤Ç¤ËSave¤µ¤ì¤¿ÊÑ¿ô¤Î½¸¹ç *)
-let stackmap = ref [] (* Save¤µ¤ì¤¿ÊÑ¿ô¤Î¡¢¥¹¥¿¥Ã¥¯¤Ë¤ª¤±¤ë°ÌÃÖ *)
+let stackset = ref S.empty (* ã™ã§ã«Saveã•ã‚ŒãŸå¤‰æ•°ã®é›†åˆ *)
+let stackmap = ref [] (* Saveã•ã‚ŒãŸå¤‰æ•°ã®ã€ã‚¹ã‚¿ãƒƒã‚¯ã«ãŠã‘ã‚‹ä½ç½® *)
 let save x =
   stackset := S.add x !stackset;
   if not (List.mem x !stackmap) then
@@ -15,7 +15,7 @@ let savef x =
     (let pad =
       if List.length !stackmap mod 2 = 0 then [] else [Id.gentmp Type.Int] in
     stackmap := !stackmap @ pad @ [x; x])
-let locate x = (* x¤¬¥¹¥¿¥Ã¥¯¤Î¤É¤³¤Ë¤¢¤ë¤« *)
+let locate x = (* xãŒã‚¹ã‚¿ãƒƒã‚¯ã®ã©ã“ã«ã‚ã‚‹ã‹ *)
   let rec loc = function
     | [] -> []
     | y :: zs when x = y -> 0 :: List.map succ (loc zs)
@@ -25,7 +25,7 @@ let offset x = List.hd (locate x)
 let stacksize () = List.length !stackmap + 1
 
 
-(* ´Ø¿ô¸Æ¤Ó½Ğ¤·¤Î¤¿¤á¤Ë°ú¿ô¤òÊÂ¤ÙÂØ¤¨¤ë(register shuffling) *)
+(* é–¢æ•°å‘¼ã³å‡ºã—ã®ãŸã‚ã«å¼•æ•°ã‚’ä¸¦ã¹æ›¿ãˆã‚‹(register shuffling) *)
 let rec shuffle sw xys =
   (* remove identical moves *)
   let _, xys = List.partition (fun (x, y) -> x = y) xys in
@@ -40,14 +40,14 @@ let rec shuffle sw xys =
 					 xys)
   | xys, acyc -> acyc @ shuffle sw xys
 
-type dest = Tail | NonTail of Id.t (* ËöÈø¤«¤É¤¦¤«¤òÉ½¤¹¥Ç¡¼¥¿·¿ *)
-let rec g oc = function (* Ì¿ÎáÎó¤Î¥¢¥»¥ó¥Ö¥êÀ¸À® *)
+type dest = Tail | NonTail of Id.t (* æœ«å°¾ã‹ã©ã†ã‹ã‚’è¡¨ã™ãƒ‡ãƒ¼ã‚¿å‹ *)
+let rec g oc = function (* å‘½ä»¤åˆ—ã®ã‚¢ã‚»ãƒ³ãƒ–ãƒªç”Ÿæˆ *)
   | dest, Ans(exp) -> g' oc (dest, exp)
   | dest, Let((x, t), exp, e) ->
       g' oc (NonTail(x), exp);
       g oc (dest, e)
-and g' oc = function (* ³ÆÌ¿Îá¤Î¥¢¥»¥ó¥Ö¥êÀ¸À® *)
-  (* ËöÈø¤Ç¤Ê¤«¤Ã¤¿¤é·×»»·ë²Ì¤òdest¤Ë¥»¥Ã¥È *)
+and g' oc = function (* å„å‘½ä»¤ã®ã‚¢ã‚»ãƒ³ãƒ–ãƒªç”Ÿæˆ *)
+  (* æœ«å°¾ã§ãªã‹ã£ãŸã‚‰è¨ˆç®—çµæœã‚’destã«ã‚»ãƒƒãƒˆ *)
   | NonTail(_), Nop -> ()
 
   | NonTail(x), Add(y, z) -> Printf.fprintf oc "\tadd\t%s, %s, %s\n" x y z
@@ -103,7 +103,7 @@ and g' oc = function (* ³ÆÌ¿Îá¤Î¥¢¥»¥ó¥Ö¥êÀ¸À® *)
 
   | NonTail(_), Comment(s) -> Printf.fprintf oc "# %s\n" s
 
-  (* ÂàÈò¤Î²¾ÁÛÌ¿Îá¤Î¼ÂÁõ *)
+  (* é€€é¿ã®ä»®æƒ³å‘½ä»¤ã®å®Ÿè£… *)
   | NonTail(_), Save(x, y) when List.mem x allregs && not (S.mem y !stackset) ->
       save y;
       Printf.fprintf oc "\tsti\t%s, %s, %d\n" x reg_fp (-offset y)
@@ -111,13 +111,13 @@ and g' oc = function (* ³ÆÌ¿Îá¤Î¥¢¥»¥ó¥Ö¥êÀ¸À® *)
       savef y;
       Printf.fprintf oc "\tfsti\t%s, %s, %d\n" x reg_fp (-offset y)
   | NonTail(_), Save(x, y) -> assert (S.mem y !stackset); ()
-  (* Éüµ¢¤Î²¾ÁÛÌ¿Îá¤Î¼ÂÁõ *)
+  (* å¾©å¸°ã®ä»®æƒ³å‘½ä»¤ã®å®Ÿè£… *)
   | NonTail(x), Restore(y) when List.mem x allregs ->
       Printf.fprintf oc "\tldi\t%s, %s, %d\n" x reg_fp (-offset y)
   | NonTail(x), Restore(y) ->
       assert (List.mem x allfregs);
       Printf.fprintf oc "\tfldi\t%s, %s, %d\n" x reg_fp (-offset y)
-  (* ËöÈø¤À¤Ã¤¿¤é·×»»·ë²Ì¤òÂè°ì¥ì¥¸¥¹¥¿¤Ë¥»¥Ã¥È¤·¤Æret *)
+  (* æœ«å°¾ã ã£ãŸã‚‰è¨ˆç®—çµæœã‚’ç¬¬ä¸€ãƒ¬ã‚¸ã‚¹ã‚¿ã«ã‚»ãƒƒãƒˆã—ã¦ret *)
   | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ as exp) ->
       g' oc (NonTail(Id.gentmp Type.Unit), exp);
       Printf.fprintf oc "\treturn\n"
@@ -172,12 +172,12 @@ and g' oc = function (* ³ÆÌ¿Îá¤Î¥¢¥»¥ó¥Ö¥êÀ¸À® *)
       Printf.fprintf oc "\tfble\t%s, %s, " x y;
       g'_non_tail_if oc (NonTail(z)) e1 e2 "fble"
 
-  (* ´Ø¿ô¸Æ¤Ó½Ğ¤·¤Î²¾ÁÛÌ¿Îá¤Î¼ÂÁõ *)
-  | Tail, CallCls(x, ys, zs) -> (* ËöÈø¸Æ¤Ó½Ğ¤· *)
+  (* é–¢æ•°å‘¼ã³å‡ºã—ã®ä»®æƒ³å‘½ä»¤ã®å®Ÿè£… *)
+  | Tail, CallCls(x, ys, zs) -> (* æœ«å°¾å‘¼ã³å‡ºã— *)
       g'_args oc [(x, reg_cl)] ys zs;
       Printf.fprintf oc "\tldi\t%s, %s, 0\n" reg_sw reg_cl;
       Printf.fprintf oc "\tjr\t%s\n" reg_sw;
-  | Tail, CallDir(Id.L(x), ys, zs) -> (* ËöÈø¸Æ¤Ó½Ğ¤· *)
+  | Tail, CallDir(Id.L(x), ys, zs) -> (* æœ«å°¾å‘¼ã³å‡ºã— *)
       g'_args oc [] ys zs;
       Printf.fprintf oc "\tj\t%s\n" x;
 

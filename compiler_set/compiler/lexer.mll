@@ -1,10 +1,10 @@
 {
-(* lexer�����Ѥ����ѿ����ؿ������ʤɤ���� *)
+(* lexerが利用する変数、関数、型などの定義 *)
 open Parser
 open Type
 }
 
-(* ����ɽ����ά�� *)
+(* 正規表現の略記 *)
 let space = [' ' '\t' '\n' '\r']
 let digit = ['0'-'9']
 let lower = ['a'-'z']
@@ -14,7 +14,7 @@ rule token = parse
 | space+
     { token lexbuf }
 | "(*"
-    { comment lexbuf; (* �ͥ��Ȥ��������ȤΤ���Υȥ�å� *)
+    { comment lexbuf; (* ネストしたコメントのためのトリック *)
       token lexbuf }
 | '('
     { LPAREN }
@@ -26,7 +26,7 @@ rule token = parse
     { BOOL(false) }
 | "not"
     { NOT }
-| digit+ (* �����������Ϥ���롼�� *)
+| digit+ (* 整数を字句解析するルール *)
     { let i = int_of_string (Lexing.lexeme lexbuf) in
       let rec f x = if x = 0 then (0, 0)
                     else let (y, z) = f (x lsr 1) in
@@ -35,9 +35,9 @@ rule token = parse
       if i > 0 && a = 1 && b > 0 then BIN(b-1) else INT(i) }
 | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
     { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
-| '-' (* -.����󤷤ˤ��ʤ��Ƥ��ɤ�? ��Ĺ����? *)
+| '-' (* -.より後回しにしなくても良い? 最長一致? *)
     { MINUS }
-| '+' (* +.����󤷤ˤ��ʤ��Ƥ��ɤ�? ��Ĺ����? *)
+| '+' (* +.より後回しにしなくても良い? 最長一致? *)
     { PLUS }
 | "-."
     { MINUS_DOT }
@@ -89,7 +89,7 @@ rule token = parse
     { SEMICOLON }
 | eof
     { EOF }
-| lower (digit|lower|upper|'_')* (* ¾�Ρ�ͽ���פ���Ǥʤ��Ȥ����ʤ� *)
+| lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
     { IDENT(Lexing.lexeme lexbuf) }
 | _
     { failwith

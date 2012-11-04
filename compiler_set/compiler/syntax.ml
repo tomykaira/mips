@@ -1,4 +1,4 @@
-(* MinCaml╓н╧╫й╦╓Ри╫╦╫╓╧╓К╔г║╪╔©╥© *)
+(* MinCamlЦ│╝Ф╖▀Ф√┤Ц┌▓Х║╗Г▐╬Ц│≥Ц┌▀Ц┐┤Ц┐╪Ц┌©Е·▀ *)
 type t = 
   | Unit
   | Bool of bool
@@ -34,7 +34,7 @@ and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 
 (***********************************************************************)
-(* ╔г╔п╔ц╔╟мя╢ь©Т. t╓Р╫пно. n╓о©╪╓╣. *)
+(* Ц┐┤Ц┐░Ц┐┐Ц┌╟Г■╗И√╒Ф∙╟. tЦ┌▓Е┤╨Е┼⌡. nЦ│╞Ф╥╠Ц│∙. *)
 let rec ind m = if m <= 0 then ()
                 else (Printf.eprintf "  "; ind (m-1))
 let rec dbprint n t =

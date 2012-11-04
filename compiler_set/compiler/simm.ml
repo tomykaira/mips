@@ -2,7 +2,7 @@ open Asm
 
 let ze env x = if M.mem x env && M.find x env = 0 then "$r0" else x 
 
-let rec g env = function (* Ì¿ÎáÎó¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+let rec g env = function (* å‘½ä»¤åˆ—ã®16bitå³å€¤æœ€é©åŒ– *)
   | Ans(exp) -> Ans(g' env exp)
   | Let((x, t), Int(i), e) when -0x8000 <= i && i < 0x7FFF ->
       (* Format.eprintf "found simm16 %s = %d@." x i; *)
@@ -11,7 +11,7 @@ let rec g env = function (* Ì¿ÎáÎó¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
       ((* Format.eprintf "erased redundant Set to %s@." x; *)
        e')
   | Let(xt, exp, e) -> Let(xt, g' env exp, g env e)
-and g' env = function (* ³ÆÌ¿Îá¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+and g' env = function (* å„å‘½ä»¤ã®16bitå³å€¤æœ€é©åŒ– *)
   | Add(x, y) when M.mem y env -> AddI(x, M.find y env)
   | Sub(x, y) when M.mem y env -> SubI(x, M.find y env)
   | Mul(x, y) when M.mem y env -> MulI(x, M.find y env)
@@ -31,8 +31,8 @@ and g' env = function (* ³ÆÌ¿Îá¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
   | IfFLT(x, y, e1, e2) -> IfFLT(x, y, g env e1, g env e2)
   | e -> e
 
-let h { name = l; args = xs; fargs = ys; body = e; ret = t } = (* ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+let h { name = l; args = xs; fargs = ys; body = e; ret = t } = (* ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«é–¢æ•°ã®16bitå³å€¤æœ€é©åŒ– *)
   { name = l; args = xs; fargs = ys; body = g M.empty e; ret = t }
 
-let f (Prog(fundefs, e)) = (* ¥×¥í¥°¥é¥àÁ´ÂÎ¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+let f (Prog(fundefs, e)) = (* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ã®16bitå³å€¤æœ€é©åŒ– *)
   Prog(List.map h fundefs, g M.empty e)

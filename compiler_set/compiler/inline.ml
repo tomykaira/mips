@@ -1,6 +1,6 @@
 open KNormal
 
-(* ¥¤¥ó¥é¥¤¥óÅ¸³«¤¹¤ë´Ø¿ô¤ÎºÇÂç¥µ¥¤¥º. Main¤Ç-inline¥ª¥×¥·¥ç¥ó¤Ë¤è¤ê¥»¥Ã¥È¤µ¤ì¤ë *)
+(* ã‚¤ãƒ³ãƒ©ã‚¤ãƒ³å±•é–‹ã™ã‚‹é–¢æ•°ã®æœ€å¤§ã‚µã‚¤ã‚º. Mainã§-inlineã‚ªãƒ—ã‚·ãƒ§ãƒ³ã«ã‚ˆã‚Šã‚»ãƒƒãƒˆã•ã‚Œã‚‹ *)
 let threshold = ref 0 
 
 let rec size = function
@@ -9,15 +9,15 @@ let rec size = function
   | LetTuple(_, _, e) -> 1 + size e
   | _ -> 1
 
-let rec g env = function (* ¥¤¥ó¥é¥¤¥óÅ¸³«¥ë¡¼¥Á¥óËÜÂÎ *)
+let rec g env = function (* ã‚¤ãƒ³ãƒ©ã‚¤ãƒ³å±•é–‹ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
   | IfEq(x, y, e1, e2) -> IfEq(x, y, g env e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(x, y, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(x, y, g env e1, g env e2)
   | Let(xt, e1, e2) -> Let(xt, g env e1, g env e2)
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç *)
+  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* é–¢æ•°å®šç¾©ã®å ´åˆ *)
       let env = if size e1 > !threshold then env else M.add x (yts, e1) env in
       LetRec({ name = (x, t); args = yts; body = g env e1}, g env e2)
-  | App(x, ys) when M.mem x env -> (* ´Ø¿ôÅ¬ÍÑ¤Î¾ì¹ç *)
+  | App(x, ys) when M.mem x env -> (* é–¢æ•°é©ç”¨ã®å ´åˆ *)
       let (zs, e) = M.find x env in
       Format.eprintf "inlining %s@." x;
       let env' =

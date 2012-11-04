@@ -2,7 +2,7 @@
 
 open Asm
 
-(* ÊÑ¿ô¤È·¿¤ÎÁÈ¤òint¤Èfloat¤ËÊ¬Îà¤¹¤ë´Ø¿ô *)
+(* å¤‰æ•°ã¨å‹ã®çµ„ã‚’intã¨floatã«åˆ†é¡ã™ã‚‹é–¢æ•° *)
 let classify xts ini addf addi =
   List.fold_left
     (fun acc (x, t) ->
@@ -13,7 +13,7 @@ let classify xts ini addf addi =
     ini
     xts
 
-(* ÊÑ¿ô¤È·¿¤ÎÁÈ¤Î¥ê¥¹¥È¤òint¤Èfloat¤ËÊ¬¤±¤ë´Ø¿ô *)
+(* å¤‰æ•°ã¨å‹ã®çµ„ã®ãƒªã‚¹ãƒˆã‚’intã¨floatã«åˆ†ã‘ã‚‹é–¢æ•° *)
 let separate xts =
   classify
     xts
@@ -30,7 +30,7 @@ let expand xts ini addf addi =
     (fun (offset, acc) x t ->
       (offset + 1, addi x t offset acc))
 
-(* ¼°¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* å¼ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let rec g env = function 
   | Closure.Unit   -> Ans(Nop)
   | Closure.Int(i) -> Ans(Int(i))
@@ -70,8 +70,8 @@ let rec g env = function
       | Type.Unit -> Ans(Nop)
       | Type.Float -> Ans(FMov(x))
       | _ -> Ans(AddI(x, 0)))
-  | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* ¥¯¥í¡¼¥¸¥ã¤ÎÀ¸À® *)
-      (* Closure¤Î¥¢¥É¥ì¥¹¤ò¥»¥Ã¥È¤·¤Æ¤«¤é¡¢¼«Í³ÊÑ¿ô¤ÎÃÍ¤ò¥¹¥È¥¢ *)
+  | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£ã®ç”Ÿæˆ *)
+      (* Closureã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’ã‚»ãƒƒãƒˆã—ã¦ã‹ã‚‰ã€è‡ªç”±å¤‰æ•°ã®å€¤ã‚’ã‚¹ãƒˆã‚¢ *)
       let e2' = g (M.add x t env) e2 in
       let offset, store_fv =
 	expand
@@ -91,7 +91,7 @@ let rec g env = function
   | Closure.AppDir(Id.L(x), ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
       Ans(CallDir(Id.L(x), int, float))
-  | Closure.Tuple(xs) -> (* ÁÈ¤ÎÀ¸À® *)
+  | Closure.Tuple(xs) -> (* çµ„ã®ç”Ÿæˆ *)
       let y = Id.genid "t" in
       let (offset, store) =
 	expand
@@ -115,7 +115,7 @@ let rec g env = function
 	    if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
 	    Let((x, t), LdI(y, offset), load)) in
       load
-  | Closure.Get(x, y) -> (* ÇÛÎó¤ÎÆÉ¤ß½Ğ¤· *)
+  | Closure.Get(x, y) -> (* é…åˆ—ã®èª­ã¿å‡ºã— *)
       let offset = Id.genid "o" in
       (match M.find x env with
       | Type.Array(Type.Unit) -> Ans(Nop)
@@ -137,7 +137,7 @@ let rec g env = function
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
 
-(* ¥È¥Ã¥×¥ì¥Ù¥ë¤Î´Ø¿ô¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«ã®é–¢æ•°ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
   let (int, float) = separate yts in
   let (_, load) =
@@ -151,7 +151,7 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
   | _ -> assert false
 
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let f (Closure.Prog(fundefs, e)) =
   let fundefs = List.map h fundefs in
   let e = g M.empty e in

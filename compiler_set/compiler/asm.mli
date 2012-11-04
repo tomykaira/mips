@@ -1,7 +1,7 @@
 type t =
   | Ans of exp
   | Let of (Id.t * Type.t) * exp * t
-and exp = (* 办つ办つの炭吾に滦炳する及 *)
+and exp = (* 涓�銇や竴銇ゃ伄鍛戒护銇蹇溿仚銈嬪紡 *)
   | Nop
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t

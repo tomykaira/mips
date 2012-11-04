@@ -1,9 +1,9 @@
 (* give names to intermediate values (K-normalization) *)
 
-(* ¥Ç¥Ğ¥Ã¥°ÍÑ¡£true¤Ê¤éKnormal.t¤ò½ĞÎÏ *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨ã€‚trueãªã‚‰Knormal.tã‚’å‡ºåŠ› *)
 let debug = ref false
 
-type t = (* KÀµµ¬²½¸å¤Î¼° *)
+type t = (* Kæ­£è¦åŒ–å¾Œã®å¼ *)
   | Unit
   | Int of int
   | Float of float
@@ -18,9 +18,9 @@ type t = (* KÀµµ¬²½¸å¤Î¼° *)
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
-  | IfEq of Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô *)
-  | IfLE of Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô *)
-  | IfLT of Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô *)
+  | IfEq of Id.t * Id.t * t * t (* æ¯”è¼ƒ + åˆ†å² *)
+  | IfLE of Id.t * Id.t * t * t (* æ¯”è¼ƒ + åˆ†å² *)
+  | IfLT of Id.t * Id.t * t * t (* æ¯”è¼ƒ + åˆ†å² *)
   | Let of (Id.t * Type.t) * t * t
   | Var of Id.t
   | LetRec of fundef * t
@@ -33,7 +33,7 @@ type t = (* KÀµµ¬²½¸å¤Î¼° *)
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-let rec fv = function (* ¼°¤Ë½Ğ¸½¤¹¤ë¡Ê¼«Í³¤Ê¡ËÊÑ¿ô *)
+let rec fv = function (* å¼ã«å‡ºç¾ã™ã‚‹ï¼ˆè‡ªç”±ãªï¼‰å¤‰æ•° *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
   | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
@@ -48,7 +48,7 @@ let rec fv = function (* ¼°¤Ë½Ğ¸½¤¹¤ë¡Ê¼«Í³¤Ê¡ËÊÑ¿ô *)
   | Put(x, y, z) -> S.of_list [x; y; z]
   | LetTuple(xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
 
-let insert_let (e, t) k = (* let¤òÁŞÆş¤¹¤ëÊä½õ´Ø¿ô *)
+let insert_let (e, t) k = (* letã‚’æŒ¿å…¥ã™ã‚‹è£œåŠ©é–¢æ•° *)
   match e with
   | Var(x) -> k x
   | _ ->
@@ -56,16 +56,16 @@ let insert_let (e, t) k = (* let¤òÁŞÆş¤¹¤ëÊä½õ´Ø¿ô *)
       let e', t' = k x in
       Let((x, t), e, e'), t'
 
-let rec g env = function (* KÀµµ¬²½¥ë¡¼¥Á¥óËÜÂÎ *)
+let rec g env = function (* Kæ­£è¦åŒ–ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
   | Syntax.Unit -> Unit, Type.Unit
-  | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int (* ÏÀÍıÃÍtrue, false¤òÀ°¿ô1, 0¤ËÊÑ´¹ *)
+  | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int (* è«–ç†å€¤true, falseã‚’æ•´æ•°1, 0ã«å¤‰æ› *)
   | Syntax.Int(i) -> Int(i), Type.Int
   | Syntax.Float(d) -> Float(d), Type.Float
   | Syntax.Not(e) -> g env (Syntax.If(e, Syntax.Bool(false), Syntax.Bool(true)))
   | Syntax.Neg(e) ->
       insert_let (g env e)
 	(fun x -> Neg(x), Type.Int)
-  | Syntax.Add(e1, e2) -> (* Â­¤·»»¤ÎKÀµµ¬²½ *)
+  | Syntax.Add(e1, e2) -> (* è¶³ã—ç®—ã®Kæ­£è¦åŒ– *)
       insert_let (g env e1)
 	(fun x -> insert_let (g env e2)
 	    (fun y -> Add(x, y), Type.Int))
@@ -104,7 +104,7 @@ let rec g env = function (* KÀµµ¬²½¥ë¡¼¥Á¥óËÜÂÎ *)
 	    (fun y -> FDiv(x, y), Type.Float))
   | Syntax.Eq _ | Syntax.LE _ | Syntax.LT _ as cmp ->
       g env (Syntax.If(cmp, Syntax.Bool(true), Syntax.Bool(false)))
-  | Syntax.If(Syntax.Not(e1), e2, e3) -> g env (Syntax.If(e1, e3, e2)) (* not¤Ë¤è¤ëÊ¬´ô¤òÊÑ´¹ *)
+  | Syntax.If(Syntax.Not(e1), e2, e3) -> g env (Syntax.If(e1, e3, e2)) (* notã«ã‚ˆã‚‹åˆ†å²ã‚’å¤‰æ› *)
   | Syntax.If(Syntax.Eq(e1, e2), e3, e4) ->
       insert_let (g env e1)
 	(fun x -> insert_let (g env e2)
@@ -126,13 +126,13 @@ let rec g env = function (* KÀµµ¬²½¥ë¡¼¥Á¥óËÜÂÎ *)
 	      let e3', t3 = g env e3 in
 	      let e4', t4 = g env e4 in
 	      IfLT(x, y, e3', e4'), t3))
-  | Syntax.If(e1, e2, e3) -> g env (Syntax.If(Syntax.Eq(e1, Syntax.Bool(false)), e3, e2)) (* Èæ³Ó¤Î¤Ê¤¤Ê¬´ô¤òÊÑ´¹ *)
+  | Syntax.If(e1, e2, e3) -> g env (Syntax.If(Syntax.Eq(e1, Syntax.Bool(false)), e3, e2)) (* æ¯”è¼ƒã®ãªã„åˆ†å²ã‚’å¤‰æ› *)
   | Syntax.Let((x, t), e1, e2) ->
       let e1', t1 = g env e1 in
       let e2', t2 = g (M.add x t env) e2 in
       Let((x, t), e1', e2'), t2
   | Syntax.Var(x) when M.mem x env -> Var(x), M.find x env
-  | Syntax.Var(x) -> (* ³°ÉôÇÛÎó¤Î»²¾È *)
+  | Syntax.Var(x) -> (* å¤–éƒ¨é…åˆ—ã®å‚ç…§ *)
       (match M.find x !Typing.extenv with
       | Type.Array(_) as t -> ExtArray x, t
       | _ -> failwith (Printf.sprintf "external variable %s does not have an array type" x))
@@ -141,7 +141,7 @@ let rec g env = function (* KÀµµ¬²½¥ë¡¼¥Á¥óËÜÂÎ *)
       let e2', t2 = g env' e2 in
       let e1', t1 = g (M.add_list yts env') e1 in
       LetRec({ name = (x, t); args = yts; body = e1' }, e2'), t2
-  | Syntax.App(Syntax.Var(f), e2s) when not (M.mem f env) -> (* ³°Éô´Ø¿ô¤Î¸Æ¤Ó½Ğ¤· *)
+  | Syntax.App(Syntax.Var(f), e2s) when not (M.mem f env) -> (* å¤–éƒ¨é–¢æ•°ã®å‘¼ã³å‡ºã— *)
       (match M.find f !Typing.extenv with
       | Type.Fun(_, t) ->
 	  let rec bind xs = function (* "xs" are identifiers for the arguments *)
@@ -202,7 +202,7 @@ let rec g env = function (* KÀµµ¬²½¥ë¡¼¥Á¥óËÜÂÎ *)
 
 
 (******************************************************************)
-(* ¥Ç¥Ğ¥Ã¥°ÍÑ´Ø¿ô. t¤ò½ĞÎÏ. n¤Ï¿¼¤µ. *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨é–¢æ•°. tã‚’å‡ºåŠ›. nã¯æ·±ã•. *)
 let rec ind m = if m <= 0 then ()
                 else (Printf.eprintf "  "; ind (m-1))
 let rec dbprint n t =
