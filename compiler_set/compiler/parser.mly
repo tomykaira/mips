@@ -40,6 +40,10 @@ let addtyp x = (x, Type.gentyp ())
 %token LPAREN
 %token RPAREN
 %token EOF
+%token MATCH
+%token WITH
+%token PIPE
+%token ARROW
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -47,6 +51,8 @@ let addtyp x = (x, Type.gentyp ())
 %right SEMICOLON
 %right prec_if
 %right LESS_MINUS
+%nonassoc ARROW
+%left PIPE
 %left COMMA
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
@@ -151,6 +157,8 @@ exp: /* 一般の式 */
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { Array($2, $3) }
+| MATCH exp WITH cases
+    { Match($2, List.rev $4) }
 | error
     { failwith
 	(Printf.sprintf "parse error near characters %d-%d"
@@ -186,3 +194,12 @@ pat:
     { $1 @ [addtyp $3] }
 | IDENT COMMA IDENT
     { [addtyp $1; addtyp $3] }
+
+cases:
+| pattern ARROW exp            { [($1, $3)] }
+| PIPE pattern ARROW exp       { [($2, $4)] }
+| cases PIPE pattern ARROW exp { ($3, $5) :: $1 }
+
+pattern:
+| INT
+    { IntPattern($1) }

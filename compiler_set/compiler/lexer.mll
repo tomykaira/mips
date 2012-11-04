@@ -59,6 +59,10 @@ rule token = parse
     { LESS_EQUAL }
 | ">="
     { GREATER_EQUAL }
+| "->"
+    { ARROW }
+| "|"
+    { PIPE }
 | '<'
     { LESS }
 | '>'
@@ -75,6 +79,10 @@ rule token = parse
     { IN }
 | "rec"
     { REC }
+| "match"
+    { MATCH }
+| "with"
+    { WITH }
 | ','
     { COMMA }
 | '_'
