@@ -1,79 +1,54 @@
 open Asm
+open GraphColor
 
-(* for register coalescing *)
-(* [XXX] Call¤¬¤¢¤Ã¤¿¤é¡¢¤½¤³¤«¤éÀè¤ÏÌµ°ÕÌ£¤È¤¤¤¦¤«µÕ¸ú²Ì¤Ê¤Î¤ÇÄÉ¤ï¤Ê¤¤¡£
-         ¤½¤Î¤¿¤á¤Ë¡ÖCall¤¬¤¢¤Ã¤¿¤«¤É¤¦¤«¡×¤òÊÖ¤êÃÍ¤ÎÂè1Í×ÁÇ¤Ë´Þ¤á¤ë¡£ *)
-let rec target' src (dest, t) = function
-  | AddI(x, y) when x = src && is_reg dest && y = 0 ->
-      assert (t <> Type.Unit);
-      assert (t <> Type.Float);
-      false, [dest]
-  | FMov(x) when x = src && is_reg dest ->
-      assert (t = Type.Float);
-      false, [dest]
-  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2)
-  | IfFEq(_, _, e1, e2) | IfFLE(_, _, e1, e2) | IfFLT(_, _, e1, e2)->
-      let c1, rs1 = target src (dest, t) e1 in
-      let c2, rs2 = target src (dest, t) e2 in
-      c1 && c2, rs1 @ rs2
-  | CallCls(x, ys, zs) ->
-      true, (target_args src regs 0 ys @
-	     target_args src fregs 0 zs @
-             if x = src then [reg_cl] else [])
-  | CallDir(_, ys, zs) ->
-      true, (target_args src regs 0 ys @
-	     target_args src fregs 0 zs)
-  | _ -> false, []
-and target src dest = function (* register targeting *)
-  | Ans(exp) -> target' src dest exp
-  | Let(xt, exp, e) ->
-      let c1, rs1 = target' src xt exp in
-      if c1 then true, rs1 else
-      let c2, rs2 = target src dest e in
-      c2, rs1 @ rs2
-and target_args src all n = function (* auxiliary function for Call. °ú¿ô¤òÊÂ¤Ù¤ë *)
-  | [] -> []
-  | y :: ys when src = y -> all.(n) :: target_args src all (n + 1) ys
-  | _ :: ys -> target_args src all (n + 1) ys
+let counter = ref 0
 
 type alloc_result = (* alloc¤Ë¤ª¤¤¤Æspilling¤¬¤¢¤Ã¤¿¤«¤É¤¦¤«¤òÉ½¤¹¥Ç¡¼¥¿·¿ *)
   | Alloc of Id.t (* allocated register *)
   | Spill of Id.t (* spilled variable *)
-let rec alloc dest cont regenv x t =
+let rec alloc dest cont regenv graph x t = 
   (* allocate a register or spill a variable *)
   assert (not (M.mem x regenv));
-  let all =
-    match t with
-    | Type.Unit -> ["%g0"] (* dummy *)
-    | Type.Float -> allfregs
-    | _ -> allregs in
-  if all = ["%g0"] then Alloc("%g0") else (* [XX] ad hoc optimization *)
+  if t = Type.Unit then Alloc("%g0") else (* [XX] ad hoc optimization *)
   if is_reg x then Alloc(x) else
   let free = fv cont in
-  try
-    let (c, prefer) = target x dest cont in
-    let live = (* À¸¤­¤Æ¤¤¤ë¥ì¥¸¥¹¥¿ *)
-      List.fold_left
-        (fun live y ->
-	  if is_reg y then S.add y live else
-          try S.add (M.find y regenv) live
-          with Not_found -> live)
-        S.empty
-        free in
-    let r = (* ¤½¤¦¤Ç¤Ê¤¤¥ì¥¸¥¹¥¿¤òÃµ¤¹ *)
-      List.find
-        (fun r -> not (S.mem r live))
-        (prefer @ all) in
-    Alloc(r)
-  with Not_found ->
-    let y = (* ·¿¤Î¹ç¤¦¥ì¥¸¥¹¥¿ÊÑ¿ô¤òÃµ¤¹ *)
-      List.find
-        (fun y ->
-	  not (is_reg y) &&
-          try List.mem (M.find y regenv) all
-          with Not_found -> false)
-        (List.rev free) in
-    Spill(y)
+  match M.find x graph with
+  | Colored r ->
+      (try
+	let y = List.find
+	    (fun x -> try M.find x regenv = r with Not_found -> false)
+	    free in
+	Spill(y)
+      with Not_found -> Alloc(r))
+  | Prefer prefer ->
+      let all =
+	match t with
+	| Type.Unit -> ["%g0"] (* dummy *)
+	| Type.Float -> List.tl (List.rev allfregs)@[reg_fsw]
+	| _ -> List.tl (List.tl (List.rev allregs))@[reg_sw;reg_cl] in
+      try
+        let live = (* À¸¤­¤Æ¤¤¤ë¥ì¥¸¥¹¥¿ *)
+	  List.fold_left
+            (fun live y ->
+	      if is_reg y then S.add y live else
+              try S.add (M.find y regenv) live
+              with Not_found -> live)
+            S.empty
+            free in
+	let r = (* ¤½¤¦¤Ç¤Ê¤¤¥ì¥¸¥¹¥¿¤òÃµ¤¹ *)
+	  List.find
+            (fun r -> not (S.mem r live))
+            (prefer @ all) in
+	Alloc(r)
+      with Not_found ->
+	let y = (* ·¿¤Î¹ç¤¦¥ì¥¸¥¹¥¿ÊÑ¿ô¤òÃµ¤¹ *)
+	  List.find
+            (fun y ->
+	      not (is_reg y) &&
+	      try List.mem (M.find y regenv) all
+	      with Not_found -> false)
+	    (List.rev free) in
+	Spill(y)
 
 (* auxiliary function for g and g'_and_restore *)
 let add x r regenv =
@@ -87,30 +62,126 @@ let find x t regenv =
   try M.find x regenv
   with Not_found -> raise (NoReg(x, t))
 
+(* Ì¿ÎáÎó¤«¤é,´Ø¿ô¸Æ¤Ó½Ð¤·¤«¤é´Ø¿ô¸Æ¤Ó½Ð¤·¤Þ¤Ç¤Î°ìÄ¾Àþ¤Î¶è´Ö¤òÀÚ¤ê½Ð¤¹´Ø¿ô
+   ¤Ä¤¤¤Ç¤Ëprefer¤Î¾ðÊó¤â½¸¤á¤Æ¤ª¤¯.
+   1ÈÖÌÜ¤ÎÊÖ¤êÃÍ¤Ï´Ø¿ô¸Æ¤Ó½Ð¤·¤¬¤¢¤Ã¤¿¤«¤É¤¦¤«,2ÈÖÌÜ¤ÏÀÚ¤ê½Ð¤µ¤ì¤¿Ì¿ÎáÎó, 
+   3ÈÖÌÜ¤Ïprefer¤Î¾ðÊó,4ÈÖÌÜ¤ÏÊ¬´ô¤Î¤È¤ê¤«¤¿.1¤¬taken *)
+let addm x y p =
+  if is_reg x || x.[0] = '%' || (List.hd y).[0] = '%' then p else
+  try M.add x (remove_and_uniq S.empty (y@M.find x p)) p
+  with Not_found -> M.add x y p
+let rec simple dest = function
+  | Ans(exp) -> simple' dest exp
+  | Let((x,t) as xt, exp, e) ->
+      let (a1, e1', p1, b1) = simple' xt exp in
+      if a1 then (a1, e1', p1, b1)
+      else let (a2, e2', p2, b2) = simple dest e in
+      (a2, concat e1' xt e2', M.fold addm p2 p1, b1@b2)
+and simple' dest = function
+  | IfEq(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfLT(x,y,e1,e2) ->
+      let (a1, e1', p1, b1) = simple dest e1 in
+      let (a2, e2', p2, b2) = simple dest e2 in
+      if M.cardinal p1 > M.cardinal p2 then (a1, seq(Add(x,y),e1'), M.fold addm p1 p2, 1::b1)
+      else (a2, seq(Add(x,y),e2'), M.fold addm p2 p1, 0::b2)
+  | IfFEq(x,y,e1,e2) | IfFLE(x,y,e1,e2) | IfFLT(x,y,e1,e2) ->
+      let (a1, e1', p1, b1) = simple dest e1 in
+      let (a2, e2', p2, b2) = simple dest e2 in
+      if M.cardinal p1 > M.cardinal p2 then (a1, seq(FAdd(x,y),e1'), M.fold addm p1 p2, 1::b1)
+      else (a2, seq(FAdd(x,y),e2'), M.fold addm p2 p1, 0::b2)
+  | CallDir(Id.L("min_caml_print_char" | "min_caml_input_char" | "min_caml_read_char"),_,_) as exp -> (false, Ans(exp), M.empty, [])
+  | CallCls(x,ys,zs) as c ->
+      let rec f x y = match (x,y) with
+	| ([],_) | (_,[]) -> []
+	| (z::xs,w::ys) -> (z,[w])::f xs ys in
+      let prefer = addm x [reg_cl] (List.fold_left (fun x (y, z) -> addm y z x) (List.fold_left (fun x (y, z) -> addm y z x) M.empty (f ys allregs)) (f zs allfregs)) in
+      (true, Ans(c), prefer, [])
+  | CallDir(_,ys,zs) as c ->
+      let rec f x y = match (x,y) with
+	| ([],_) | (_,[]) -> []
+	| (z::xs,w::ys) -> (z,[w])::f xs ys in
+      let prefer = List.fold_left (fun x (y, z) -> addm y z x) (List.fold_left (fun x (y, z) -> addm y z x) M.empty (f ys allregs)) (f zs allfregs) in
+      (true, Ans(c), prefer, [])
+  | (AddI(y,0) | FMov(y)) as x ->
+      let p = addm (fst dest) [y] (addm y [fst dest] M.empty) in
+      (false, Ans(x), p, [])
+  | exp -> (false, Ans(exp), M.empty, [])
+
+
+(* Ì¿ÎáÎó¤Î´Ø¿ô¸Æ¤Ó½Ð¤·¤Þ¤Ç¤Î¶è´Ö¤Ë¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
+let rec gc dest cont regenv e =
+  let cont' = concat e dest cont in
+  let (_, e', prefer, br) = simple ("%g0",Type.Unit) cont' in
+  let (gr1, gf1) = make e' in
+  let (gr2, sr) = spill gr1 (List.length allregs) in
+  let (gf2, sf) = spill gf1 (List.length allfregs) in
+  let gr3 = color allregs regenv prefer gr2 sr in
+  let gf3 = color allfregs regenv prefer gf2 sf in
+  let graph = M.fold M.add gr3 gf3 in
+  g dest cont regenv br graph e
+
 (* Ì¿ÎáÎó¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ. cont¤Ï¸åÂ³¤ÎÌ¿ÎáÎó *)
-let rec g dest cont regenv = function 
-  | Ans(exp) -> g'_and_restore dest cont regenv exp
+and g dest cont regenv br graph = function 
+  | Ans(exp) ->
+      let regenv' =
+	try (match M.find (fst dest) graph with Colored c -> add (fst dest) c regenv | _ -> regenv)
+	with Not_found -> regenv in
+      let (e, regenv'') = g'_and_restore dest cont regenv' br graph exp in
+      (e, regenv'')
   | Let((x, t) as xt, exp, e) ->
-      assert (not (M.mem x regenv));
+      let regenv = M.remove x regenv in
+      counter := !counter + 1; if !counter mod 1000 = 0 then Format.eprintf ".%!";
       let cont' = concat e dest cont in
-      let (e1', regenv1) = g'_and_restore xt cont' regenv exp in
-      (match alloc dest cont' regenv1 x t with
-      | Spill(y) ->
-	  let r = M.find y regenv1 in
-	  let (e2', regenv2) = g dest cont (add x r (M.remove y regenv1)) e in
-	  let save =
-	    try Save(M.find y regenv, y)
-	    with Not_found -> Nop in	    
-	  (seq(save, concat e1' (r, t) e2'), regenv2)
-      | Alloc(r) ->
-	  let (e2', regenv2) = g dest cont (add x r regenv1) e in
-	  (concat e1' (r, t) e2', regenv2))
-and g'_and_restore dest cont regenv exp = (* »ÈÍÑ¤µ¤ì¤ëÊÑ¿ô¤ò¥¹¥¿¥Ã¥¯¤«¤é¥ì¥¸¥¹¥¿¤ØRestore *)
-  try g' dest cont regenv exp
+      let (e1', regenv1') = g'_and_restore xt cont' regenv br graph exp in
+      let regenv1 = M.remove x regenv1' in
+      let is_call = function
+	| CallDir(Id.L("min_caml_print_char" | "min_caml_input_char" | "min_caml_read_char"), _, _) -> false
+	| CallCls _ | CallDir _ -> true
+	| _ -> false in
+      let is_br = function
+	| IfEq _ | IfLE _ | IfLT _ | IfFEq _ | IfFLE _ | IfFLT _ -> true
+	| _ -> false in
+      if is_br exp then
+	let gr =
+	  if M.mem x regenv1' then M.singleton x (Colored (M.find x regenv1'))
+          else M.singleton x (Prefer []) in
+	(match alloc dest cont' regenv1 gr x t with
+        | Spill(y) ->
+  	    let r = M.find y regenv1 in
+	    let (e2', regenv2) = gc dest cont (add x r (M.remove y regenv1)) e in
+	    let save =
+	      try Save(M.find y regenv, y)
+	      with Not_found -> Nop in	    
+	    (seq(save, concat e1' (r, t) e2'), regenv2)
+        | Alloc(r) ->
+	    let (e2', regenv2) = gc dest cont (add x r regenv1) e in
+	    (concat e1' (r, t) e2', regenv2))
+      else if is_call exp then
+	let (reg, regenv1'') =
+	  match t with
+	  | Type.Unit -> ("%g0", regenv1)
+	  | Type.Float -> (fregs.(0), add x fregs.(0) regenv1)
+	  | _ -> (regs.(0), add x regs.(0) regenv1) in
+	let (e2', regenv2) = gc dest cont regenv1'' e in
+	(concat e1' (reg, t) e2', regenv2)
+      else 
+	(match alloc dest cont' regenv1 graph x t with
+        | Spill(y) ->
+  	    let r = M.find y regenv1 in
+	    let (e2', regenv2) = g dest cont (add x r (M.remove y regenv1)) br graph e in
+	    let save =
+	      try Save(M.find y regenv, y)
+	      with Not_found -> Nop in	    
+	    (seq(save, concat e1' (r, t) e2'), regenv2)
+        | Alloc(r) ->
+	    let (e2', regenv2) = g dest cont (add x r regenv1) br graph e in
+	    (concat e1' (r, t) e2', regenv2))
+
+(* »ÈÍÑ¤µ¤ì¤ëÊÑ¿ô¤ò¥¹¥¿¥Ã¥¯¤«¤é¥ì¥¸¥¹¥¿¤ØRestore *)
+and g'_and_restore dest cont regenv br graph exp = 
+  try g' dest cont regenv br graph exp
   with NoReg(x, t) ->
-    ((* Format.eprintf "restoring %s@." x; *)
-     g dest cont regenv (Let((x, t), Restore(x), Ans(exp))))
-and g' dest cont regenv = function (* ³ÆÌ¿Îá¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
+    g dest cont regenv br graph (Let((x, t), Restore(x), Ans(exp)))
+and g' dest cont regenv br graph = function (* ³ÆÌ¿Îá¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
   | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ as exp -> (Ans(exp), regenv)
   | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv)
   | Sub(x, y) -> (Ans(Sub(find x Type.Int regenv, find y Type.Int regenv)), regenv)
@@ -150,18 +221,18 @@ and g' dest cont regenv = function (* ³ÆÌ¿Îá¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
   | FStI(x, y, z) -> (Ans(FStI(find x Type.Float regenv, find y Type.Int regenv, z)), regenv)
   | FLdR(x, y) -> (Ans(FLdR(find x Type.Int regenv, find y Type.Int regenv)), regenv)
 
-  | IfEq(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfLT(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfLE(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfFEq(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | IfEq(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+  | IfLT(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+  | IfLE(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+  | IfFEq(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv br graph exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
   | CallCls(x, ys, zs) as exp -> g'_call dest cont regenv exp (fun ys zs -> CallCls(find x Type.Int regenv, ys, zs)) ys zs
   | CallDir(Id.L l, ys, zs) as exp ->
       (match l with
-      (* ¥³¥ó¥Ñ¥¤¥é¤Ç½ÐÎÏ¤¹¤ë¥é¥¤¥Ö¥é¥ê´Ø¿ô¡£
-	 emit.ml¤Ç¥¤¥ó¥é¥¤¥ó¤ËÅ¸³«¤µ¤ì,ÂàÈòÉÔÍ× *)
+	(* ¥³¥ó¥Ñ¥¤¥é¤Ç½ÐÎÏ¤¹¤ë¥é¥¤¥Ö¥é¥ê´Ø¿ô¡£
+	   emit.ml¤Ç¥¤¥ó¥é¥¤¥ó¤ËÅ¸³«¤µ¤ì,ÂàÈòÉÔÍ× *)
       | "min_caml_print_char" | "min_caml_input_char"
       | "min_caml_read_char" ->
 	  (Ans(CallDir(Id.L l,
@@ -169,30 +240,82 @@ and g' dest cont regenv = function (* ³ÆÌ¿Îá¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
 	               (List.map (fun z -> find z Type.Float regenv) zs))),
 	   regenv)
       | _ -> g'_call dest cont regenv exp (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs)
-  | Save(x, y) -> assert false
-and g'_if dest cont regenv exp constr e1 e2 = (* if¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
-  let (e1', regenv1) = g dest cont regenv e1 in
-  let (e2', regenv2) = g dest cont regenv e2 in
-  let regenv' = (* Î¾Êý¤Ë¶¦ÄÌ¤Î¥ì¥¸¥¹¥¿ÊÑ¿ô¤À¤±ÍøÍÑ *)
-    List.fold_left
-      (fun regenv' x ->
-        try
-	  if is_reg x then regenv' else
-          let r1 = M.find x regenv1 in
-          let r2 = M.find x regenv2 in
-          if r1 <> r2 then regenv' else
-	  M.add x r1 regenv'
-        with Not_found -> regenv')
-      M.empty
-      (fv cont) in
-  (List.fold_left
-     (fun e x ->
-       if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
-       seq(Save(M.find x regenv, x), e)) (* ¤½¤¦¤Ç¤Ê¤¤ÊÑ¿ô¤ÏÊ¬´ôÄ¾Á°¤Ë¥»¡¼¥Ö *)
-     (Ans(constr e1' e2'))
-     (fv cont),
-   regenv')
-and g'_call dest cont regenv exp constr ys zs = (* ´Ø¿ô¸Æ¤Ó½Ð¤·¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
+  | _ -> assert false
+
+and g'_if dest cont regenv br graph exp constr e1 e2 = (* if¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
+  let ((e1', regenv1), (e2', regenv2)) =
+    if List.hd br = 1 then
+      (g dest cont regenv (List.tl br) graph e1, gc dest cont regenv e2)
+    else
+      (gc dest cont regenv e1, g dest cont regenv (List.tl br) graph e2) in
+  let is_sw s = s = reg_sw || s = reg_fsw in
+  if not (M.mem (fst dest) regenv1 && M.mem (fst dest) regenv2) || is_sw (M.find (fst dest) regenv1) || is_sw (M.find (fst dest) regenv2) then
+    let regenv' = (* Î¾Êý¤Ë¶¦ÄÌ¤Î¥ì¥¸¥¹¥¿ÊÑ¿ô¤À¤±ÍøÍÑ *)
+      List.fold_left
+	(fun regenv' x ->
+          try
+	    if is_reg x then regenv' else
+            let r1 = M.find x regenv1 in
+            let r2 = M.find x regenv2 in
+            if r1 <> r2 then regenv' else
+	    add x r1 regenv'
+          with Not_found -> regenv')
+	M.empty
+	(fv cont) in
+    (List.fold_left
+       (fun e x ->
+	 if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
+	 seq(Save(M.find x regenv, x), e))
+       (Ans(constr e1' e2'))
+       (fv cont)
+       ,regenv')
+  else    
+    (* a¤¬true¤Ê¤é1¤¬,false¤Ê¤é2¤¬´ð½à *)
+    let a = M.cardinal regenv1 > M.cardinal regenv2 in
+    (* A¤ÈBÎ¾Êý¤Ë¤¢¤ë(¾ì½ê¤ÏÌä¤ï¤Ê¤¤)ÊÑ¿ô¤À¤±»È¤¦¡£A´ð½à¡£ *)
+    let add' a b = if List.mem a b then b else a::b in
+    let (regenv', rm, fm) = 
+      List.fold_left
+	(fun (regenv', rm, fm) x ->
+	  if is_reg x then (regenv', rm, fm) else
+          try
+	    let rA = M.find x (if a then regenv1 else regenv2) in
+	    let rB = M.find x (if a then regenv2 else regenv1) in
+	    if is_sw rA || is_sw rB then (regenv', rm, fm)
+	    else if rA.[1] = 'r' then (add x rA regenv', add' (rB,rA) rm, fm)
+	    else (add x rA regenv', rm, add' (rB,rA) fm)
+	  with Not_found -> (regenv', rm, fm))
+	(M.empty, [], []) 
+        (fst dest::fv cont) in
+    let rm' = List.rev (Emit.shuffle reg_sw rm) in
+    let fm' = List.rev (Emit.shuffle reg_fsw fm) in
+    let dreg = M.find (fst dest) regenv' in
+    let mov p =
+      if (M.find (fst dest) regenv').[1] = 'r' then AddI(p, 0) else FMov(p) in
+    let move =
+      List.fold_left
+	(fun e (p, r) -> Let((r,Type.Int), AddI(p, 0), e))
+	(Ans(mov dreg))
+	rm' in
+    let move =
+      List.fold_left
+	(fun e (p, fr) -> Let((fr,Type.Float), FMov(p), e))
+	move
+	fm' in
+    let e1'' = if a then e1'
+    else concat e1' (M.find (fst dest) regenv1, snd dest) move in
+    let e2'' = if not a then e2'
+    else concat e2' (M.find (fst dest) regenv2, snd dest) move in
+    (List.fold_left
+       (fun e x ->
+	 if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
+	 seq(Save(M.find x regenv, x), e)) (* ¤½¤¦¤Ç¤Ê¤¤ÊÑ¿ô¤ÏÊ¬´ôÄ¾Á°¤Ë¥»¡¼¥Ö *)
+       (Ans(constr e1'' e2''))
+       (fv cont)
+       ,regenv')
+
+(* ´Ø¿ô¸Æ¤Ó½Ð¤·¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
+and g'_call dest cont regenv exp constr ys zs = 
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) then e else
@@ -204,7 +327,7 @@ and g'_call dest cont regenv exp constr ys zs = (* ´Ø¿ô¸Æ¤Ó½Ð¤·¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤
    M.empty)
 
 let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* ´Ø¿ô¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
-  let regenv = M.add x reg_cl M.empty in
+  let regenv = add x reg_cl M.empty in
   let (i, arg_regs, regenv) =
     List.fold_left
       (fun (i, arg_regs, regenv) y ->
@@ -212,7 +335,7 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* ´Ø¿ô¤Î¥ì
         (i + 1,
 	 arg_regs @ [r],
 	 (assert (not (is_reg y));
-	  M.add y r regenv)))
+	  add y r regenv)))
       (0, [], regenv)
       ys in
   let (d, farg_regs, regenv) =
@@ -222,19 +345,21 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* ´Ø¿ô¤Î¥ì
         (d + 1,
 	 farg_regs @ [fr],
 	 (assert (not (is_reg z));
-	  M.add z fr regenv)))
+	  add z fr regenv)))
       (0, [], regenv)
       zs in
-  let a =
+  let (a, b) =
     match t with
-    | Type.Unit -> Id.gentmp Type.Unit
-    | Type.Float -> fregs.(0)
-    | _ -> regs.(0) in
-  let (e', regenv') = g (a, t) (Ans(AddI(a, 0))) regenv e in
+    | Type.Unit -> (Id.gentmp Type.Unit, fun a -> AddI(a,0))
+    | Type.Float -> (fregs.(0), fun a-> FMov(a))
+    | _ -> (regs.(0), fun a -> AddI(a, 0)) in
+  let (e', regenv') = gc (a, t) (Ans(b a)) regenv e in
   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
 let f (Prog(fundefs, e)) = (* ¥×¥í¥°¥é¥àÁ´ÂÎ¤Î¥ì¥¸¥¹¥¿³ä¤êÅö¤Æ *)
-  Format.eprintf "register allocation: may take some time (up to a few minutes, depending on the size of functions)@.";
+  Format.eprintf "register allocation: may take some time%!";
   let fundefs' = List.map h fundefs in
-  let e', regenv' = g (Id.gentmp Type.Unit, Type.Unit) (Ans(Nop)) M.empty e in
+  let e', regenv' =
+    gc (Id.gentmp Type.Unit, Type.Unit) (Ans(Nop)) M.empty e in
+  Format.eprintf "@.";
   Prog(fundefs', e')

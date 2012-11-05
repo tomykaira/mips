@@ -16,7 +16,7 @@ let locate x = (* xがスタックのどこにあるか *)
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
 let offset x = List.hd (locate x)
-let stacksize () = List.length !stackmap + 1
+let stacksize () = List.length !stackmap
 
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) *)
@@ -265,7 +265,8 @@ let h { name = Id.L(x); args = _; fargs = _; body = e; ret = _ } =
   Out.print buf (Out.Label x);
   stackset := S.empty;
   stackmap := [];
-  g (Tail, e)
+  g (Tail, e);
+  Out.print buf (Out.Comment "")
 
 let f (Prog(fundefs, e)) =
   Format.eprintf "generating assembly...@.";

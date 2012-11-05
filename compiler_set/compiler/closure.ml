@@ -26,6 +26,7 @@ type t = (* クロージャ変換後の式 *)
   | LetTuple of (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
+  | PutTuple of Id.t * Id.t * Id.t list
   | ExtArray of Id.l
 type fundef = { name : Id.l * Type.t;
 		args : (Id.t * Type.t) list;
@@ -45,6 +46,7 @@ let rec fv = function
   | AppDir(_, xs) | Tuple(xs) -> S.of_list xs
   | LetTuple(xts, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xts)))
   | Put(x, y, z) -> S.of_list [x; y; z]
+  | PutTuple(x,y,z) -> S.of_list (x::y::z)
 
 let toplevel : fundef list ref = ref []
 
@@ -149,10 +151,11 @@ let rec dbprint n t =
   | AppCls (a, l) -> Printf.eprintf "AppCls %s to %s\n%!" a (String.concat " " l)
   | AppDir ((Id.L a), l) -> Printf.eprintf "AppDir L %s to %s\n%!" a (String.concat " " l)
   | Tuple l -> Printf.eprintf "Tuple (%s)\n%!" (String.concat " , " l)
-  | LetTuple (l, a, b) -> Printf.eprintf "Let (%s) = %s in\n%!" (String.concat "," (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ ")" ^ Type.show y) l)) a;
-                          dbprint (n+1) b
+  | LetTuple (l, a, b) -> Printf.eprintf "LetTuple (%s) = %s in\n%!" (String.concat "," (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")") l)) a;
+                          dbprint n b
   | Get (a, b) -> Printf.eprintf "Get %s %s \n%!" a b
   | Put (a, b, c) -> Printf.eprintf "Put %s %s %s\n%!" a b c
+  | PutTuple (a, b, c) -> Printf.eprintf "Put %s %s %s\n%!" a b ("( " ^ (String.concat " , " c) ^ " )")
   | ExtArray (Id.L a) -> Printf.eprintf "ExtArray L %s\n%!" a
 
 (* デバッグ用関数. fundefを出力. *)
@@ -160,4 +163,5 @@ let dbprint2 f =
   ind 1;
   match f.name with
     (Id.L a, b) -> Printf.eprintf "%s:\t%s (Args = (%s), FV = {%s}) =\n%!" a (Type.show b) (String.concat "," (List.map (fun (x,y) -> x^":"^(Type.show y)) f.args)) (String.concat "," (List.map (fun (x,y) -> x^":"^(Type.show y)) f.formal_fv));
-           dbprint 2 f.body
+           dbprint 2 f.body;
+      Printf.eprintf "\n%!"

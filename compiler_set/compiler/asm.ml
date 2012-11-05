@@ -119,6 +119,48 @@ and fv = function
 
 let fv e = remove_and_uniq S.empty (fv e)
 
+let rec fv_int_exp = function
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
+  | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
+  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | Save(_,_) -> []
+  | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
+  | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
+  | FStI(_,x,_)   -> [x]
+  | Add(x,y) | Sub(x,y) | Mul(x,y) | And(x,y) | Or(x,y) | Nor(x,y) | Xor(x,y)
+  | LdR(x,y) | StI(x,y,_) | FLdR(x,y)  -> [x;y]       	
+  | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) 
+    -> x :: y :: remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
+  | IfFEq(_,_,e1,e2) | IfFLT(_,_,e1,e2) | IfFLE(_,_,e1,e2)
+    -> remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
+  | CallCls(x, ys, _) -> x :: ys 
+  | CallDir(_, ys, _) -> ys 
+and fv_int = function
+  | Ans(exp) -> fv_int_exp exp
+  | Let((x, t), exp, e) ->
+      fv_int_exp exp @ remove_and_uniq (S.singleton x) (fv_int e)
+let fv_int e = List.filter (fun x -> not (is_reg x) || List.mem x allregs) (remove_and_uniq S.empty (fv_int e))
+
+let rec fv_float_exp = function
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_)  | Restore(_) | Add(_,_)
+  | Sub(_,_) | Mul(_,_) | And(_,_) | Or(_,_) | Nor(_,_) | Xor(_,_) | AddI(_,_)
+  | SubI(_,_) | MulI(_,_) | AndI(_,_) | OrI(_,_) | NorI(_,_) | XorI(_,_)
+  | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
+  | StI(_,_,_) | FLdR(_,_)| Save(_,_) -> []  
+  | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) -> [x]
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y)  -> [x;y]
+  | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2) 
+    -> remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
+  | IfFEq(x,y,e1,e2) | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
+    -> x :: y :: remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
+  | CallCls(_, _, zs) | CallDir(_, _, zs) -> zs 
+and fv_float = function
+  | Ans(exp) -> fv_float_exp exp
+  | Let((x, t), exp, e) ->
+      fv_float_exp exp @ remove_and_uniq (S.singleton x) (fv_float e)
+let fv_float e = List.filter (fun x -> not (is_reg x) || List.mem x allfregs) (remove_and_uniq S.empty (fv_float e))
+
+
+
 let rec concat e1 xt e2 =
   match e1 with
   | Ans(exp) -> Let(xt, exp, e2)
@@ -170,7 +212,7 @@ let rec dbprint n exp =
   | FSqrt a -> Printf.eprintf "FSqrt %s\n%!" a
 
   | LdI (a, b) -> Printf.eprintf "LdI %s %d\n%!" a b
-  | StI (a, b, c) -> Printf.eprintf "LdI %s %s %d\n%!" a b c
+  | StI (a, b, c) -> Printf.eprintf "StI %s %s %d\n%!" a b c
   | LdR (a, b) -> Printf.eprintf "LdR %s %s\n%!" a b
   | FLdI (a, b) -> Printf.eprintf "FLdI %s %d\n%!" a b
   | FStI (a, b, c) -> Printf.eprintf "FStI %s %s %d\n%!" a b c

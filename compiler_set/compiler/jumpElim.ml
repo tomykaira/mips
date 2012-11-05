@@ -2,7 +2,7 @@ open Out
 
 (* 2段ジャンプと直後へのジャンプを削除するモジュール *)
 (* ついでに連続したラベルを一つにまとめる *)
-(* ついでに　ラベル+1行のコード+Returnの組み合わせを1つにまとめる *)
+(* ついでに　ラベル+1行のコード+J/Jr/Returnの組み合わせを1つにまとめる *)
 (* ついでに絶対にたどり着けないコードを除去 *)
 
 (* ラベル+Returnがあったかどうかのフラグ *)
@@ -35,15 +35,15 @@ let rec find env m r = function
       | [] ->  find (addre s !ret env) m [] (Return::xs)
       | [x] -> find (addre s !ret env) m [] (x::Return::xs)
       | x::y::z -> find (addre s !ret env) m z (y::x::Return::xs))
-  | (Label s)::x::Return::xs ->
-      (try let t = List.assoc x m in
-          find (addre s t env) m (Return::x::r) xs
-      with Not_found -> find env ((x,s)::m) (Return::x::Label s::r) xs)
+  | (Label s)::x::((Jr _ | J _ | Return) as y)::xs ->
+      (try let t = List.assoc [x;y] m in
+          find (addre s t env) m (x::r) (y::xs)
+      with Not_found -> find env (([x;y],s)::m) (x::Label s::r) (y::xs))
   | x::xs -> find env m (x::r) xs
   
 
 (* コード中のラベルへのジャンプを別のラベルへのジャンプに書き換える関数 *)
-let rec rename env r = function
+and rename env r = function
   | [] -> List.rev r
   | SetL(x, l)::xs when M.mem l env ->
       rename env r (SetL(x, M.find l env)::xs)
@@ -84,7 +84,7 @@ and g' ret = function
 (* 無駄なラベルを削除する関数 *)
 let rec h'' r s = function
   | [] -> List.rev r
-  | Label l::xs when not (S.mem l s) -> h'' r s xs
+  | Label l::xs when not (S.mem l s) && String.contains l '.' -> h'' r s xs
   | x::xs -> h'' (x::r) s xs
 let rec h' s = function
   | [] -> s
@@ -95,11 +95,12 @@ let h all = h'' [] (h' S.empty all) all
 
 (* 本体 *)
 let f code =
-  Format.eprintf "eliminating jumps...@.";
-  let (env, code1) = find M.empty [] [] code in
-  Format.eprintf "rewriting labels...@.";
-  let code2 = rename env [] code1 in
-  Format.eprintf "eliminating labels...@.";
-  let code3 = h code2 in
-  Format.eprintf "eliminating codes...@.";
-  g [] code3
+  Format.eprintf "eliminating jumps ...@.";
+  let rec f' code =
+    let (env, code1) = find M.empty [] [] code in
+    let code2 = rename env [] code1 in
+    let code3 = h code2 in
+    let code4 = g [] code3 in
+    if code4 = code then code4 else f' code4 in
+  f' code
+

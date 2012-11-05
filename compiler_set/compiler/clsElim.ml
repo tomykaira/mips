@@ -37,19 +37,21 @@ let rec score en n fvs = function
 
 
 (* スコアづけされた変数の集合から上位rn,fn個をとってリストにして返す関数 *)
-let rec take l tenv rn fn fvs =
-  if (rn <= 0 && fn <= 0) || S'.is_empty fvs then l
+let rec take l known env rn fn fvs =
+  if S'.is_empty fvs then l
   else let (n, x) = S'.max_elt fvs in
        let fvs' = S'.remove (n, x) fvs in
-       match M.find x tenv with
-       | Type.Unit | Type.Fun(_,_) -> take l tenv rn fn fvs' 
+       match M.find x env with
+       | Type.Unit -> take l known env rn fn fvs'
+       | Type.Fun(_,_) -> if S.mem x known then failwith "function"
+                          else take l known env rn fn fvs'
        | Type.Float -> if List.mem_assoc x l then
-	                 take l tenv rn fn fvs'
-	               else if fn <= 0 then raise Not_found
-                       else take ((x,Type.Float)::l) tenv rn (fn-1) fvs'
-       | t -> if List.mem_assoc x l then take l tenv rn fn fvs'
-	      else if rn <= 0 then raise Not_found
-              else take ((x,t)::l) tenv (rn-1) fn fvs'
+	                 take l known env rn fn fvs'
+	               else if fn <= 0 then failwith "float"
+                       else take ((x,Type.Float)::l) known env rn (fn-1) fvs'
+       | t -> if List.mem_assoc x l then take l known env rn fn fvs'
+	      else if rn <= 0 then failwith "non float"
+              else take ((x,t)::l) known env (rn-1) fn fvs'
 
 
 (* 関数に引数を追加する関数 *)
@@ -75,43 +77,41 @@ let rec app_only x = function
   | _ -> true
 
 (* 本体 *)
-let rec g tenv = function
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g tenv e1, g tenv e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g tenv e1, g tenv e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g tenv e1, g tenv e2)
+let rec g env known = function
+  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env known e1, g env known e2)
+  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
+  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
   | Let((x, t), e1, e2) ->
-      let tenv' = M.add x t tenv in
-      Let((x, t), g tenv e1, g tenv' e2)
+      Let((x, t), g env known e1, g (M.add x t env) known e2)
   | LetRec({ name = (x, (Type.Fun(p,q) as t)); args = yts; body = e1 }, e2) ->
-      let tenv' = M.add x t tenv in
+      let env' = M.add x t env in
+      let env'' = M.add_list yts env' in
       if not (app_only x e1 && app_only x e2) then
-        LetRec({ name = (x, t); args = yts; body = g (M.add_list yts tenv') e1 },
-	         g tenv' e2)
+        LetRec({ name = (x, t); args = yts; body = g env'' known e1 }, g env' known e2)
       else
         let fvs = S.diff (fv e1) (S.of_list (x::List.map fst yts)) in
         let fvs' =
 	  S.fold (fun x y-> S'.add (0, x) y) fvs (score M.empty 1 fvs e2) in
         let yts' =
 	  try
-	  take [] tenv'
+	  take [] known env'
 	    (rn - List.length (List.filter (fun yt -> snd yt <> Type.Float && snd yt <> Type.Unit) yts))
 	    (fn - List.length (List.filter (fun yt -> snd yt = Type.Float) yts))
-	    fvs' 
-	with Not_found -> [] in
+	    fvs'
+	with Failure _ -> [] in
         if yts' = []  then
-	  LetRec({ name = (x, t); args = yts; body = g (M.add_list yts tenv') e1 }, g tenv' e2)
+	  LetRec({ name = (x, t); args = yts; body = g env'' known e1 }, g env' known e2)
         else
           let yts'' = List.map (fun (y, t) -> (Id.genid y, t)) yts' in
           let benv = List.fold_left2 (fun x y z -> M.add y z x)
 	               M.empty (List.map fst yts') (List.map fst yts'') in
 	  let t' = Type.Fun(p@(List.map snd yts'), q) in
-	  let tenv'' = M.add x t' tenv in
-
-          LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') tenv'') (h x (List.map fst yts'') (Beta.g benv e1)) },
-	         g tenv'' (h x (List.map fst yts') e2))
-  | LetTuple (l, y, e) -> LetTuple(l, y, g (M.add_list l tenv) e)
+	  let env3 = M.add x t' env in
+          LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') env3) (S.add x known) (h x (List.map fst yts'') (Beta.g benv e1)); },
+	         g env3 (S.add x known) (h x (List.map fst yts') e2))
+  | LetTuple (l, y, e) -> LetTuple(l, y, g (M.add_list l env) known e)
   | e -> e
 
 
-let f e = Format.eprintf "Add free variables to argument@.";
-          g M.empty e
+let f e = Format.eprintf "eliminating closures...@.";
+          g M.empty S.empty e

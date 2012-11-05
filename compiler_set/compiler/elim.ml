@@ -4,7 +4,7 @@ let rec effect = function (* 副作用の有無 *)
   | Let(_, e1, e2) | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) -> effect e1 || effect e2
   | LetRec(_, e) | LetTuple(_, _, e) -> effect e
   (* 副作用の無いライブラリ関数 *)
-  | ExtFunApp (("create_array" | "create_float_array" | "floor" | "ceil" | "float_of_int" | "int_of_float" | "truncate" | "not" | "xor" | "sqrt"  | "atan" | "tan" | "sin" | "cos" ), _) -> false
+  | ExtFunApp (("create_array" | "create_float_array" | "create_tuple_array" | "floor" | "ceil" | "float_of_int" | "int_of_float" | "truncate" | "not" | "xor" | "sqrt"  | "atan" | "tan" | "sin" | "cos" ), _) -> false
   | App _ | Put _  | ExtFunApp _ -> true
   | _ -> false
 

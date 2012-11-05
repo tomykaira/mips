@@ -5,7 +5,7 @@ let env4 = ref []
 let env5 = ref []
     
 (* どのくらいの間使いまわすか *)
-let keep = 32
+let keep = 64
 
 (* リストの末尾をn個drop *)
 let rec drop_to n l =
@@ -127,8 +127,8 @@ let rec g env1 env2 env3 e =
 	let x = keep - n in
 	let (a, e1') = g (drop_to x env1) (drop_to x env2) (drop_to x env3) e1 in
         (a+n, LetTuple(l, y, e1'))
-    | App(x,y) -> (100, App(x,y))
-    | ExtFunApp(x,y) -> (100, ExtFunApp(x,y))
+    | App(x,y) -> (10000, App(x,y))
+    | ExtFunApp(x,y) -> (10000, ExtFunApp(x,y))
     | _ -> (0, e)
 	 
 

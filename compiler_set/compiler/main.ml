@@ -8,7 +8,13 @@ let dbal = ref false
 let dbit = ref false
 let dbce = ref false
 let dbcl = ref false
+let dbft = ref false
+let dbut = ref false
+let dbet = ref false
+let dba2 = ref false
+let dblt = ref false
 let dbvi = ref false
+let dbc2 = ref false
 let dbsi = ref false
 let dbra = ref false
 
@@ -24,12 +30,30 @@ let debas f = function
       t
 
 
+(* 特定の最適化処理をしないフラグとそれ用の関数 *)
+let offcs = ref false
+let offbe = ref false
+let offas = ref false
+let offin = ref false
+let offcf = ref false
+let offel = ref false
+let offce = ref false
+let offut = ref true
+let offet = Global.offet := true; Global.offet
+let offa2 = ref false
+let offlt = ref false
+let offc2 = ref true
+let offsi = ref false
+
+let off flag f x = if !flag then x else f x
+
+
 
 (* 最適化処理をくりかえす *)
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' = Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f (Cse.f e))))) in
+  let e' = off offcs Elim.f (off offcf ConstFold.f (off offin Inline.f (off offas Assoc.f (off offbe Beta.f (off offcs Cse.f e))))) in
   Format.eprintf "@.";
   if e = e' then e else
   iter (n - 1) e'
@@ -43,15 +67,21 @@ let lexbuf outchan l =
     (JumpElim.f
      (Emit.f
       (debas dbra (RegAlloc.f
-       (debas dbsi (Simm.f
-	(debas dbvi (Virtual.f
-	 (debcl dbcl (Closure.f
-	  (debkn dbce (ClsElim.f
-	   (debkn dbit (iter !limit
-	    (debkn dbal (Alpha.f
-	     (debkn dbkn (KNormal.f
-	      (debsy dbty (Typing.f
-	       (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))))))
+       (debas dbsi (off offsi Simm.f
+        (debas dbc2 (off offc2 ConstFold2.f
+	 (debas dbvi (Virtual.f
+	  (debcl dblt (off offlt ElimTuple.f
+	   (debcl dba2 (off offa2 Assoc2.f
+	    (debcl dbet (off offet EmbedTuple.f
+	     (debcl dbut (off offut UnfoldTuple.f
+	      (debcl dbft (off (ref (!offet && !offut)) FlattenTuple.f
+	       (debcl dbcl (Closure.f
+	        (debkn dbce (off offce ClsElim.f
+	         (debkn dbit (iter !limit
+	          (debkn dbal (Alpha.f
+	           (debkn dbkn (KNormal.f
+	            (debsy dbty (Typing.f
+	             (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))))))))))))))))))
 
 
 (* 文字列をコンパイルして標準出力に表示する *)
@@ -73,7 +103,8 @@ let () =
   Arg.parse
     [("--inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
-   ("-b", Arg.Set Global.bin, "maximum number of optimizations iterated");
+   ("-b", Arg.Set Global.bin, "use binary file as input");
+
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
    ("-dbTyping", Arg.Set dbty, "debug: print Syntax.t after typing");
    ("-dbKNormal", Arg.Set dbkn, "debug: print KNormal.t after K normalization");
@@ -81,9 +112,29 @@ let () =
    ("-dbIter", Arg.Set dbit, "debug: print KNormal.t after iter");
    ("-dbClsElim", Arg.Set dbce, "debug: print KNormal.t after clsElim");
    ("-dbClosure", Arg.Set dbcl, "debug: print Closure.t after closure");
+   ("-dbFlattenTuple", Arg.Set dbft, "debug: print Closure.t after FT");
+   ("-dbUnfoldTuple", Arg.Set dbut, "debug: print Closure.t after UT");
+   ("-dbEmbedTuple", Arg.Set dbet, "debug: print Closure.t after EmbedTuple");
+   ("-dbAssoc2", Arg.Set dba2, "debug: print Closure.t after Assoc2");
+   ("-dbElimTuple", Arg.Set dblt, "debug: print Closure.t after ElimTuple");
    ("-dbVirtual", Arg.Set dbvi, "debug: print Closure.t after virtualize");
+   ("-dbConstFold2", Arg.Set dbc2, "debug: print Closure.t after CF2");
    ("-dbSimm", Arg.Set dbsi, "debug: print Closure.t after Simm");
-   ("-dbRegAlloc", Arg.Set dbra, "debug: print Closure.t after RegAlloc")]
+   ("-dbRegAlloc", Arg.Set dbra, "debug: print Closure.t after RegAlloc");
+
+   ("-offCSE", Arg.Set offcs, "off: NO CSE");
+   ("-offBeta", Arg.Set offbe, "off: NO beta");
+   ("-offAssoc", Arg.Set offas, "off: NO Assoc");
+   ("-offInline", Arg.Set offin, "off: NO Inline");
+   ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
+   ("-offElim", Arg.Set offel, "off: NO Elim");
+   ("-offClsElim", Arg.Set offce, "off: NO ClsElim");
+   ("-offUnfoldTuple", Arg.Set offut, "off: NO Unfold Tuple");
+   ("-offEmbedTuple", Arg.Set offet, "off: NO Embed Tuple");
+   ("-offAssoc2", Arg.Set offa2, "off: NO Assoc 2");
+   ("-offElimTuple", Arg.Set offlt, "off: NO Elim Tuple");
+   ("-offConstFold2", Arg.Set offc2, "off: NO ConstFold2");
+   ("-offSimm", Arg.Set offsi, "off: NO Simm");]
     (fun s -> files := !files @ [s])
     ("Mitou Min-Caml Compiler (C) Eijiro Sumii\n" ^
      Printf.sprintf "usage: %s [-inline m] [-iter n] ...filenames without \".ml\"..." Sys.argv.(0));

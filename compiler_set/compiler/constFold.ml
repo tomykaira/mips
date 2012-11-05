@@ -2,6 +2,13 @@ open KNormal
 
 (* 定数畳み込みと、x + 0 = x 等の簡約を行うモジュール *)
 
+module S' =
+  Set.Make
+    (struct
+      type t = (Id.t * Id.t)
+      let compare = compare
+    end)
+
 let memi x env =
   try (match M.find x env with Int(_) -> true | _ -> false)
   with Not_found -> false
@@ -16,7 +23,7 @@ let findi x env = (match M.find x env with Int(i) -> i | _ -> raise Not_found)
 let findf x env = (match M.find x env with Float(d) -> d | _ -> raise Not_found)
 let findt x env = (match M.find x env with Tuple(ys) -> ys | _ -> raise Not_found)
 
-let rec g env = function (* 定数畳み込み等を行うルーチン本体 *)
+let rec g env envle envne = function (* 定数畳み込み等を行うルーチン本体 *)
   | Var(x) when memi x env -> Int(findi x env)
   | Var(x) when memf x env -> Float(findf x env)
   | Neg(x) when memi x env -> Int(-(findi x env))
@@ -54,33 +61,52 @@ let rec g env = function (* 定数畳み込み等を行うルーチン本体 *)
   | FDiv(x, y) when memf y env && findf y env = 1.0 -> Var(x)
   | FDiv(x, y) when memf y env && findf y env = -1.0 -> FNeg(x)
 
-  | IfEq(x, y, e1, e2) when memi x env && memi y env -> if findi x env = findi y env then g env e1 else g env e2
-  | IfEq(x, y, e1, e2) when memf x env && memf y env -> if findf x env = findf y env then g env e1 else g env e2
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env e1, g env e2)
-  | IfLE(x, y, e1, e2) when memi x env && memi y env -> if findi x env <= findi y env then g env e1 else g env e2
-  | IfLE(x, y, e1, e2) when memf x env && memf y env -> if findf x env <= findf y env then g env e1 else g env e2
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env e1, g env e2)
-  | IfLT(x, y, e1, e2) when memi x env && memi y env -> if findi x env < findi y env then g env e1 else g env e2
-  | IfLT(x, y, e1, e2) when memf x env && memf y env -> if findf x env < findf y env then g env e1 else g env e2
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env e1, g env e2)
+  | IfEq(x, y, e1, e2) when memi x env && memi y env -> if findi x env = findi y env then g env envle envne e1 else g env envle envne e2
+  | IfEq(x, y, e1, e2) when memi x env ->
+      IfEq(x, y, g (M.add y (Int(findi x env)) env) envle envne e1, g env envle envne e2)
+  | IfEq(x, y, e1, e2) when memi y env ->
+      IfEq(x, y, g (M.add x (Int(findi y env)) env) envle envne e1, g env envle envne e2)
+  | IfEq(x, y, e1, e2) when memf x env && memf y env -> if findf x env = findf y env then g env envle envne e1 else g env envle envne e2
+  | IfEq(x, y, e1, e2) when memf x env ->
+      IfEq(x, y, g (M.add y (Float(findf x env)) env) envle envne e1, g env envle envne e2)
+  | IfEq(x, y, e1, e2) when memf y env ->
+      IfEq(x, y, g (M.add x (Float(findf y env)) env) envle envne e1, g env envle envne e2)
+  | IfEq(x, y, e1, _) when x = y -> g env envle envne e1
+  | IfEq(x, y, _, e2) when S'.mem (x,y) envne || S'.mem (y,x) envne ->
+      g env envle envne e2
+  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env envle envne e1, g env envle (S'.add (x,y) envne) e2)
+
+
+  | IfLE(x, y, e1, e2) when memi x env && memi y env -> if findi x env <= findi y env then g env envle envne e1 else g env envle envne e2
+  | IfLE(x, y, e1, e2) when memf x env && memf y env -> if findf x env <= findf y env then g env envle envne e1 else g env envle envne e2
+  | IfLE(x, y, e1, _) when x = y || S'.mem (x,y) envle -> g env envle envne e1
+  | IfLE(x, y, _, e2) when S'.mem (y,x) envle && (S'.mem (x,y) envne || S'.mem (y,x) envne) -> g env envle envne e2
+  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env (S'.add (x,y) envle) envne e1, g env (S'.add (x,y) envle) (S'.add (x,y) envne) e2)
+
+  | IfLT(x, y, e1, e2) when memi x env && memi y env -> if findi x env < findi y env then g env envle envne e1 else g env envle envne e2
+  | IfLT(x, y, e1, e2) when memf x env && memf y env -> if findf x env < findf y env then g env envle envne e1 else g env envle envne e2
+  | IfLT(x, y, e1, _) when S'.mem (x,y) envle && (S'.mem (x,y) envne || S'.mem (y,x) envne) -> g env envle envne e1
+  | IfLT(x, y, _, e2) when x = y || S'.mem (y,x) envle -> g env envle envne e2
+  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env (S'.add (x,y) envle) (S'.add (x,y) envne) e1, g env (S'.add (y,x) envle) envne e2)
 
   | Let((x, t), e1, e2) -> (* letのケース *)
-      let e1' = g env e1 in
-      let e2' = g (M.add x e1' env) e2 in
+      let e1' = g env envle envne e1 in
+      let e2' = g (M.add x e1' env) envle envne e2 in
       Let((x, t), e1', e2')
   | LetRec({ name = x; args = ys; body = e1 }, e2) ->
-      LetRec({ name = x; args = ys; body = g env e1 }, g env e2)
+      LetRec({ name = x; args = ys; body = g env envle envne e1 }, g env envle envne e2)
   | LetTuple(xts, y, e) when memt y env ->
       List.fold_left2
 	(fun e' xt z -> Let(xt, Var(z), e'))
-	(g env e)
+	(g env envle envne e)
 	xts
 	(findt y env)
-  | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
+  | LetTuple(xts, y, e) -> LetTuple(xts, y, g env envle envne e)
 	
-  | ExtFunApp(s, [x;y]) when s = "xor" && memi x env && memi y env ->
+  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
       Int((findi x env) lxor (findi y env))
-  | ExtFunApp(s, [x]) when s = "not" && memi x env -> Int(1 - (findi x env))
+  | ExtFunApp("not", [x]) when memi x env -> Int(1 - (findi x env))
   | e -> e
 
-let f = g M.empty
+let f e = Format.eprintf "Constant Folding...@.";
+          g M.empty S'.empty S'.empty e

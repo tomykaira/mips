@@ -28,6 +28,24 @@ CREATE_FLOAT_ARRAY_CONTINUE:
 	addi	$r2, $r2, 1
 	j CREATE_FLOAT_ARRAY_LOOP
 
+# * int_tuple_array
+min_caml_int_tuple_array:
+	ble	$r2, $r4, INT_TUPLE_ARRAY_RETURN
+	sti	$r3, $r4, 0
+	add	$r4, $r4, $r5
+	j	min_caml_int_tuple_array
+INT_TUPLE_ARRAY_RETURN:
+	return
+
+# * float_tuple_array
+min_caml_float_tuple_array:
+	ble	$r2, $r3, FLOAT_TUPLE_ARRAY_RETURN
+	fsti	$f0, $r3, 0
+	add	$r3, $r3, $r4
+	j	min_caml_float_tuple_array
+FLOAT_TUPLE_ARRAY_RETURN:
+	return
+
 	
 # * floor		$f0 + MAGICF - MAGICF
 min_caml_floor:

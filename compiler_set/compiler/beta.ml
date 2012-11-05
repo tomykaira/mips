@@ -17,7 +17,10 @@ let rec g env = function (* β簡約ルーチン本体 *)
   | FSub(x, y) -> FSub(find x env, find y env)
   | FMul(x, y) -> FMul(find x env, find y env)
   | FDiv(x, y) -> FDiv(find x env, find y env)
-  | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, g env e1, g env e2)
+  | IfEq(x, y, e1, e2) ->
+      let x' = find x env in
+      let y' = find y env in
+      IfEq(x', y', g (M.add x' y' env) e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
   | Let((x, t), e1, e2) -> (* letのβ簡約 *)

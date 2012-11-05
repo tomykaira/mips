@@ -63,11 +63,7 @@ let rec g env = function (* K正規化ルーチン本体 *)
   | Syntax.Int(i) -> Int(i), Type.Int
   | Syntax.Float(d) -> Float(d), Type.Float
   | Syntax.Not(e) ->
-      insert_let (g env e)
-	(fun x -> ExtFunApp("not", [x]), Type.Int)
-(*      if not (M.mem "not" !Typing.extenv) then
-        Typing.extenv := M.add "not" (Type.Fun([Type.Bool], Type.Bool)) !Typing.extenv;
-      g env (Syntax.App(Syntax.Var("not"), [e]))*)
+      insert_let (g env e) (fun x -> ExtFunApp("not", [x]), Type.Int)
   | Syntax.Neg(e) ->
       insert_let (g env e)
 	(fun x -> Neg(x), Type.Int)
@@ -138,7 +134,7 @@ let rec g env = function (* K正規化ルーチン本体 *)
       let e2', t2 = g (M.add x t env) e2 in
       Let((x, t), e1', e2'), t2
   | Syntax.Var(x) when M.mem x env -> Var(x), M.find x env
-  | Syntax.Var(x) -> (* 外部配列の参照 *)
+  | Syntax.Var(x) -> (* 外部配列の参照.配列の中身は *)
       (match M.find x !Typing.extenv with
       | Type.Array(_) as t -> ExtArray x, t
       | _ -> failwith (Printf.sprintf "external variable %s does not have an array type" x))
@@ -191,6 +187,7 @@ let rec g env = function (* K正規化ルーチン本体 *)
 	      let l =
 		match t2 with
 		| Type.Float -> "create_float_array"
+		| Type.Tuple(_) when not !Global.offet -> "create_tuple_array"
 		| _ -> "create_array" in
 	      ExtFunApp(l, [x; y]), Type.Array(t2)))
   | Syntax.Get(e1, e2) ->
