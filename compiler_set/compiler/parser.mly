@@ -190,11 +190,15 @@ pat:
 | IDENT COMMA IDENT
     { [addtyp $1; addtyp $3] }
 
+pattern:
+| INT
+    { IntPattern($1) }
+| BIN
+    { IntPattern(1 lsl $1) }
+| IDENT
+    { VarPattern($1) }
+
 cases:
 | pattern ARROW exp            { [($1, $3)] }
 | PIPE pattern ARROW exp       { [($2, $4)] }
 | cases PIPE pattern ARROW exp { ($3, $5) :: $1 }
-
-pattern:
-| INT
-    { IntPattern($1) }
