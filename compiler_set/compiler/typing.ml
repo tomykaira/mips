@@ -51,6 +51,7 @@ let rec deref_term = function
   | Array(e1, e2) -> Array(deref_term e1, deref_term e2)
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
+  | Match(e1, cases) -> Match(deref_term e1, List.map (fun (pattern, body) -> (pattern, deref_term body)) cases)
   | e -> e
 
 let rec occur r1 = function (* occur check *)
@@ -153,6 +154,12 @@ let rec g env e = (* 型推論ルーチン *)
 	unify (Type.Array(t)) (g env e1);
 	unify Type.Int (g env e2);
 	Type.Unit
+    | Match(e1, cases) ->		(* currently, only support INT *)
+      unify Type.Int (g env e1);
+      let types = List.map (fun (pattern, e) -> g env e) cases in
+      let first_type = List.hd types in
+      List.iter (unify first_type) types; (* First check is redundant *)
+      first_type
   with Unify(t1, t2) ->
     Printf.eprintf "Unify Error : In %s\n%!";
     dbprint 1 e;

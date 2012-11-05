@@ -199,6 +199,28 @@ let rec g env = function (* K正規化ルーチン本体 *)
 	(fun x -> insert_let (g env e2)
 	    (fun y -> insert_let (g env e3)
 		(fun z -> Put(x, y, z), Type.Unit)))
+  | Syntax.Match(argument, cases) ->
+    let rec take_while_patterns_and_guard cases =
+      match cases with
+	| [] -> failwith "match x with should end with VarPattern"
+	| ((Syntax.VarPattern(_), body) as case) :: cases' -> ([], case)
+	| ((Syntax.IntPattern(_), body) as case) :: cases' ->
+	  let (int_cases, var_case) = take_while_patterns_and_guard cases' in
+	  (case :: int_cases, var_case)
+    in
+    let int_pattern value body cont x =
+      insert_let (g env (Syntax.Int(value)))
+	(fun p1 ->
+	  let (body', _) = g env body in
+	  let (cont_body, cont_type) = cont x in
+	  IfEq(x, p1, body', cont_body), cont_type) in
+    let var_pattern id body x =
+      g env (Syntax.Let((id, Type.Int), Syntax.Var(x), body)) (* Type is limited to Int *)
+    in
+    let (int_cases, var_case) = take_while_patterns_and_guard cases in
+    let (Syntax.VarPattern(var), body) = var_case in
+    let expanded_patterns = List.fold_right (fun (Syntax.IntPattern(value), body) cont -> int_pattern value body cont) int_cases (var_pattern var body) in
+    insert_let (g env argument) expanded_patterns
 
 
 (******************************************************************)

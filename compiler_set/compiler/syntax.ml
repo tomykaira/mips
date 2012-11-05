@@ -31,7 +31,7 @@ type t =
   | Put of t * t * t
   | Match of t * (pattern * t) list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
-and pattern = IntPattern of int
+and pattern = IntPattern of int | VarPattern of Id.t
 
 
 
