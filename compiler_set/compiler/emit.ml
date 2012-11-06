@@ -87,6 +87,8 @@ and g'  = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), FMulN(y, z) -> Out.print buf (Out.FMulN(x,y,z))
   | NonTail(x), FDiv(y, z) -> Out.print buf (Out.FInv(reg_fsw, z));
                               Out.print buf (Out.FMul(x, y, reg_fsw))
+  | NonTail(x), FDivN(y, z) -> Out.print buf (Out.FInv(reg_fsw, z));
+                               Out.print buf (Out.FMulN(x, y, reg_fsw))
   | NonTail(x), FInv(y)  -> Out.print buf (Out.FInv(x, y))
   | NonTail(x), FSqrt(y) -> Out.print buf (Out.FSqrt(x, y))
 
@@ -120,7 +122,7 @@ and g'  = function (* 各命令のアセンブリ生成 *)
   | Tail, (Add _ | Sub _ | Mul _ | And _ | Or _ | Nor _ | Xor _ | AddI _ | SubI _ | MulI _ | AndI _ | OrI _ | NorI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ as exp) ->
       g'  (NonTail(regs.(0)), exp);
       Out.print buf Out.Return
-  | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FMulN _ | FDiv _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _  as exp) ->
+  | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FMulN _ | FDiv _ | FDivN _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _  as exp) ->
       g'  (NonTail(fregs.(0)), exp);
       Out.print buf Out.Return
   | Tail, (Restore(x) as exp) ->
@@ -200,10 +202,10 @@ and g'  = function (* 各命令のアセンブリ生成 *)
   | NonTail(a), CallCls(x, ys, zs) ->
       g'_args  [(x, reg_cl)] ys zs;
       let ss = stacksize () in
-      Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
+      if ss > 0 then Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
       Out.print buf (Out.LdI(reg_sw, reg_cl, 0));
       Out.print buf (Out.CallR(reg_sw));
-      Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
+      if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
       if List.mem a allregs && a <> regs.(0) then
 	Out.print buf (Out.AddI(a, regs.(0), 0))
       else if List.mem a allfregs && a <> fregs.(0) then
@@ -217,9 +219,9 @@ and g'  = function (* 各命令のアセンブリ生成 *)
 	  Out.print buf (Out.Inputb(a));
       | _-> g'_args  [] ys zs;
 	    let ss = stacksize () in
-	    Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
+	    if ss > 0 then Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
 	    Out.print buf (Out.Call x);
-	    Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
+	    if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
 	    if List.mem a allregs && a <> regs.(0) then
 	      Out.print buf (Out.AddI(a, regs.(0), 0))		
 	    else if List.mem a allfregs && a <> fregs.(0) then

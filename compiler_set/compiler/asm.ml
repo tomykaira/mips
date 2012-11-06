@@ -37,6 +37,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FMul  of Id.t * Id.t 
   | FMulN of Id.t * Id.t 
   | FDiv  of Id.t * Id.t (* virtual instruction *)
+  | FDivN of Id.t * Id.t (* virtual instruction *)
   | FInv  of Id.t
   | FSqrt of Id.t
 
@@ -102,7 +103,7 @@ let rec fv_exp = function
   | IMovF(x) | FMovI(x) | LdI(x,_) | FLdI(x,_) | Restore(x) -> [x]
 
   | Add(x,y) | Sub(x,y) | Mul(x,y) | And(x,y) | Or(x,y) | Nor(x,y) | Xor(x,y)
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y)
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) -> [x;y]
  		
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfFEq(x,y,e1,e2)
@@ -122,7 +123,7 @@ let fv e = remove_and_uniq S.empty (fv e)
 let rec fv_int_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
-  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | Save(_,_) -> []
+  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) -> []
   | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
   | FStI(_,x,_)   -> [x]
@@ -147,7 +148,8 @@ let rec fv_float_exp = function
   | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
   | StI(_,_,_) | FLdR(_,_)| Save(_,_) -> []  
   | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) -> [x]
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y)  -> [x;y]
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y) ->
+      [x;y]
   | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2) 
     -> remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
   | IfFEq(x,y,e1,e2) | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
@@ -208,6 +210,7 @@ let rec dbprint n exp =
   | FMul (a, b) -> Printf.eprintf "FMul %s %s\n%!" a b
   | FMulN (a, b) -> Printf.eprintf "FMulN %s %s\n%!" a b
   | FDiv (a, b) -> Printf.eprintf "FDiv %s %s\n%!" a b
+  | FDivN (a, b) -> Printf.eprintf "FDivN %s %s\n%!" a b
   | FInv a -> Printf.eprintf "FInv %s\n%!" a
   | FSqrt a -> Printf.eprintf "FSqrt %s\n%!" a
 

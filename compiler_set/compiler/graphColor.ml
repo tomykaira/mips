@@ -21,45 +21,54 @@ let print_colored_graph g =
   M.iter (fun x (y,_) -> Format.eprintf "%s:%s " x (q y)) g;
   Format.eprintf "@."
 
-(* 命令列(分岐,関数呼び出しなし)に対し整数,浮動小数のグラフを構成 *)
-let addn x l m =
+
+(* グラフにノードを追加する関数 *)
+let addn' x l m =
   try let k = M.find x m in M.add x (remove_and_uniq S.empty (l@k)) m
   with Not_found -> M.add x l m
-let rec make' rr rf = function
-  | Ans(exp) -> (rr, rf)
-  | Let((x,t), _, e) ->
+let addn x l g =
+  List.fold_left
+    (fun r y -> addn' y [x] r)
+    (addn' x l g)
+    l 
+(* 変数のリストから完全グラフを作る関数 *)
+let perf l =
+  List.fold_left
+    (fun r y -> addn y (remove_and_uniq (S.singleton y) l) r)
+    M.empty
+    l 
+(* 2つのグラフを合わせる関数 *)
+let union g1 g2 = M.fold addn' g1 g2 
+(* 命令列(分岐,関数呼び出しなし)に対し整数,浮動小数のグラフを構成 *)
+let rec make' rr rf dest cont = function
+  | Ans(exp) -> make'' rr rf dest cont exp
+  | Let((x,t) as xt, exp, e) ->
+      let cont' = concat e dest cont in
       let rr' =
 	match t with
 	| Type.Float | Type.Unit -> rr
 	| _ ->
-	    let fvs = remove_and_uniq (S.singleton x) (fv_int e) in
-	    List.fold_left
-	      (fun r y -> addn y [x] r)
-	      (addn x fvs rr)
-	      fvs in
+	    let fvs = remove_and_uniq (S.singleton x) (fv_int cont') in
+	    addn x fvs rr in
       let rf' =	
 	match t with
 	| Type.Float ->
-	    let fvs = remove_and_uniq (S.singleton x) (fv_float e) in
-	    List.fold_left
-	      (fun r y -> addn y [x] r)
-	      (addn x fvs rf)
-	      fvs
+	    let fvs = remove_and_uniq (S.singleton x) (fv_float cont') in
+	    addn x fvs rf 
 	| _ -> rf in
-      make' rr' rf' e
+      let (rr'', rf'') = make'' rr' rf' xt cont' exp in
+      make' rr'' rf'' dest cont e
+and make'' rr rf dest cont = function
+  | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfFEq(_,_,e1,e2) | IfFLE(_,_,e1,e2) | IfFLT(_,_,e1,e2) ->
+      let (rr1, rf1) = make' rr rf dest cont e1 in
+      let (rr2, rf2) = make' rr rf dest cont e2 in
+      (union rr1 rr2, union rf1 rf2)
+  | exp -> (rr, rf)
 let make e =
   (* まず,一番最初に生きている変数で完全グラフを作る *)
-  let rr =
-    List.fold_left
-      (fun r y -> addn y (remove_and_uniq (S.singleton y) (fv_int e)) r)
-      M.empty
-      (fv_int e) in
-  let rf =
-    List.fold_left
-      (fun r y -> addn y (remove_and_uniq (S.singleton y) (fv_float e)) r)
-      M.empty
-      (fv_float e) in
-  make' rr rf e
+  let rr = perf (fv_int e) in
+  let rf = perf (fv_float e) in
+  make' rr rf ("%g0", Type.Unit) (Ans(Nop)) e
 	
 
 (* グラフのノードを次数の大きい順に消して,全ての次数をn未満にする *)
