@@ -27,6 +27,9 @@ type t = (* クロージャ変換後の式 *)
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
+  | Nil
+  | Cons of Id.t * Id.t
+  | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
 type fundef = { name : Id.l * Type.t;
 		args : (Id.t * Type.t) list;
 		formal_fv : (Id.t * Type.t) list;
@@ -34,9 +37,9 @@ type fundef = { name : Id.l * Type.t;
 type prog = Prog of fundef list * t
 
 let rec fv = function
-  | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
+  | Unit | Nil | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Cons(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) | IfLT (x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -45,6 +48,8 @@ let rec fv = function
   | AppDir(_, xs) | Tuple(xs) -> S.of_list xs
   | LetTuple(xts, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xts)))
   | Put(x, y, z) -> S.of_list [x; y; z]
+  | LetList((matcher, _), y, e) ->
+    S.add y (S.diff (fv e) (S.of_list (Syntax.matcher_variables matcher)))
 
 let toplevel : fundef list ref = ref []
 
@@ -106,6 +111,9 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
   | KNormal.Put(x, y, z) -> Put(x, y, z)
   | KNormal.ExtArray(x) -> ExtArray(Id.L(x))
   | KNormal.ExtFunApp(x, ys) -> AppDir(Id.L("min_caml_" ^ x), ys)
+  | KNormal.Nil -> Nil
+  | KNormal.Cons(x, y) -> Cons(x, y)
+  | KNormal.LetList((matcher, typ), y, e) -> LetList((matcher, typ), y, g (M.add_list_matcher matcher (ref (Some typ)) env) known e)
 
 let f e =
   toplevel := [];
@@ -156,6 +164,11 @@ let rec dbprint n t =
   | Get (a, b) -> Printf.eprintf "Get %s %s \n%!" a b
   | Put (a, b, c) -> Printf.eprintf "Put %s %s %s\n%!" a b c
   | ExtArray (Id.L a) -> Printf.eprintf "ExtArray L %s\n%!" a
+  | Nil -> Printf.eprintf "Nil\n%!"
+  | Cons(x, xs) -> Printf.eprintf "Cons %s %s\n%!" x xs
+  | LetList ((matcher, typ), a, b) ->
+    Printf.eprintf "Let (%s : %s) = %s in\n%!" (Syntax.string_of_matcher matcher) (Type.show typ) a;
+    dbprint (n+1) b
 
 (* デバッグ用関数. fundefを出力. *)
 let dbprint2 f =
