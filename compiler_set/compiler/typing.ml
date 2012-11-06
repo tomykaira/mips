@@ -183,18 +183,9 @@ let rec g env e = (* 型推論ルーチン *)
       unify (Type.List(ref (Some(type_of_head)))) type_of_tail;
       type_of_tail
     | LetList((matcher, typ), e1, e2) ->
-      let add_type_variables matcher typ =
-	match matcher with
-	  | ListWithNil(variables) -> List.map (fun v -> (v, Type.Var(typ))) variables
-	  | ListWithoutNil(variables) ->
-	    let reversed   = List.rev variables in
-	    let list_var   = List.hd reversed in
-	    let other_vars = List.tl reversed in
-	    (list_var, Type.List(typ)) :: (List.map (fun v -> (v, Type.Var(typ))) other_vars)
-      in
       let body_type = (g env e1) in
       unify (Type.List typ) body_type;
-      g (M.add_list (add_type_variables matcher typ) env) e2
+      g (M.add_list_matcher matcher typ env) e2
 
   with Unify(t1, t2) ->
     Printf.eprintf "Unify Error : In %s\n%!";

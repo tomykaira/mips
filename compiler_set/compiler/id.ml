@@ -18,7 +18,8 @@ let rec id_of_typ = function
   | Type.Float -> "d"
   | Type.Fun _ -> "f"
   | Type.Tuple _ -> "t"
-  | Type.Array _ -> "a" 
+  | Type.Array _ -> "a"
+  | Type.List _ -> "l"
   | Type.Var _ -> assert false
 let gentmp typ =
   incr counter;

@@ -31,12 +31,15 @@ type t = (* K正規化後の式 *)
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
+  | Nil
+  | Cons of Id.t * Id.t
+  | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 let rec fv = function (* 式に出現する（自由な）変数 *)
-  | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
+  | Unit | Nil | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Cons(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) | IfLT(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -47,6 +50,9 @@ let rec fv = function (* 式に出現する（自由な）変数 *)
   | Tuple(xs) | ExtFunApp(_, xs) -> S.of_list xs
   | Put(x, y, z) -> S.of_list [x; y; z]
   | LetTuple(xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
+  | LetList((matcher, _), y, e) ->
+    S.add y (S.diff (fv e) (S.of_list (Syntax.matcher_variables matcher)))
+  
 
 let insert_let (e, t) k = (* letを挿入する補助関数 *)
   match e with
@@ -221,6 +227,20 @@ let rec g env = function (* K正規化ルーチン本体 *)
     let (Syntax.VarPattern(var), body) = var_case in
     let expanded_patterns = List.fold_right (fun (Syntax.IntPattern(value), body) cont -> int_pattern value body cont) int_cases (var_pattern var body) in
     insert_let (g env argument) expanded_patterns
+  | Syntax.Nil -> Nil, Type.List(ref None)
+  | Syntax.Cons(x, xs) ->
+    let (_, x_typ) as g_x = (g env x) in
+    insert_let g_x
+      (fun x -> insert_let (g env xs)
+	(fun xs -> Cons(x, xs), Type.List(ref (Some x_typ))))
+  | Syntax.LetList((matcher, typ), e1, e2) ->
+    match !typ with
+      | Some(actual_typ) ->
+	insert_let (g env e1)
+	  (fun y ->
+	    let e2', t2 = g (M.add_list_matcher matcher typ env) e2 in
+	    LetList((matcher, actual_typ), y, e2'), t2)
+      | None -> failwith "Typing failed to resolve LetList"
 
 
 (******************************************************************)
@@ -265,6 +285,11 @@ let rec dbprint n t =
   | Put (a, b, c) -> Printf.eprintf "Put %s %s %s\n%!" a b c 
   | ExtArray a -> Printf.eprintf "ExtArray %s\n%!" a
   | ExtFunApp (a, l) -> Printf.eprintf "ExtFunApp %s to %s\n%!" a (String.concat " " l)
+  | Nil -> Printf.eprintf "Nil\n%!"
+  | Cons(x, xs) -> Printf.eprintf "Cons %s %s\n%!" x xs
+  | LetList ((matcher, typ), a, b) ->
+    Printf.eprintf "Let (%s : %s) = %s in\n%!" (Syntax.string_of_matcher matcher) (Type.show typ) a;
+    dbprint (n+1) b
 
 
 let f e = fst (g M.empty e)
