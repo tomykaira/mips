@@ -83,5 +83,16 @@ let rec dbprint n t =
   | Array (a, b) -> Printf.eprintf "Array\n$!"; dbprint (n+1) a; dbprint (n+1) b
   | Get (a, b) -> Printf.eprintf "Get\n%!"; dbprint (n+1) a; dbprint (n+1) b
   | Put (a, b, c) ->
-      Printf.eprintf "Put\n%!"; dbprint (n+1) a; dbprint (n+1) b; dbprint (n+1) c 
+      Printf.eprintf "Put\n%!"; dbprint (n+1) a; dbprint (n+1) b; dbprint (n+1) c
+  | Match (exp, patterns) ->
+    Printf.eprintf "Match\n%!"; dbprint (n+1) exp; ind n; Printf.eprintf "with\n%!";
+    List.iter (function
+      | (IntPattern i, body) -> ind n; Printf.eprintf "| %d -> \n%!" i; dbprint (n+1) exp
+      | (VarPattern v, body) -> ind n; Printf.eprintf "| %s -> \n%!" v; dbprint (n+1) exp) patterns
+  | LetList (exp, body, rest) ->
+    Printf.eprintf "Let (%s) =\n%!" (String.concat "::" (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")") exp));
+    dbprint (n+1) body;
+    ind n; Printf.eprintf "in\n%!"; dbprint (n+1) rest
+  | Nil -> Printf.eprintf "List []\n%!"
+  | Cons(x, xs) -> Printf.eprintf "Cons\n%!"; dbprint (n+1) x; dbprint (n+1) xs
 
