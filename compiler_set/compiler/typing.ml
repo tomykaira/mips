@@ -20,6 +20,12 @@ let rec deref_typ = function (* 型変数を中身でおきかえる関数 *)
       let t' = deref_typ t in
       r := Some(t');
       t'
+  | Type.List({ contents = None }) ->
+    failwith "uninstantiated type variable in List detected@."
+  | Type.List({ contents = Some(t) } as r) as list_typ ->
+    let t' = deref_typ t in
+    r := Some(t'); 
+    list_typ
   | t -> t	
 let rec deref_id_typ (x, t) = (x, deref_typ t)
 let rec deref_term = function
@@ -52,6 +58,8 @@ let rec deref_term = function
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Match(e1, cases) -> Match(deref_term e1, List.map (fun (pattern, body) -> (pattern, deref_term body)) cases)
+  | Cons(e1, e2) -> Cons(deref_term e1, deref_term e2)
+  | LetList(xts, e1, e2) -> LetList(List.map deref_id_typ xts, deref_term e1, deref_term e2)
   | e -> e
 
 let rec occur r1 = function (* occur check *)
@@ -61,6 +69,7 @@ let rec occur r1 = function (* occur check *)
   | Type.Var(r2) when r1 == r2 -> true
   | Type.Var({ contents = None }) -> false
   | Type.Var({ contents = Some(t2) }) -> occur r1 t2
+  | Type.List({ contents = Some(t2) }) -> occur r1 t2
   | _ -> false
 
 let rec unify t1 t2 = (* 型が合うように、型変数への代入をする *)
@@ -80,6 +89,12 @@ let rec unify t1 t2 = (* 型が合うように、型変数への代入をする 
   | Type.Var({ contents = None } as r1), _ -> (* 一方が未定義の型変数の場合 *)
       if occur r1 t2 then raise (Unify(t1, t2));
       r1 := Some(t2)
+  | Type.List({ contents = Some(t1) }), Type.List({ contents = None } as r2) ->
+    r2 := Some(t1)
+  | Type.List({ contents = None } as r1), Type.List({ contents = Some(t2) }) ->
+    r1 := Some(t2)
+  | Type.List(r1), Type.List(r2) when r1 == r2 -> ()
+  | Type.List({ contents = Some(t1) }), Type.List({ contents = Some(t2) }) -> unify t1 t2
   | _, Type.Var({ contents = None } as r2) ->
       if occur r2 t1 then raise (Unify(t1, t2));
       r2 := Some(t1)
@@ -160,6 +175,20 @@ let rec g env e = (* 型推論ルーチン *)
       let first_type = List.hd types in
       List.iter (unify first_type) types; (* First check is redundant *)
       first_type
+    | Nil -> Type.List(ref None)
+    | Cons(head, tail) ->
+      let type_of_head = g env head in
+      let type_of_tail = g env tail in
+      unify (Type.List(ref (Some(type_of_head)))) type_of_tail;
+      type_of_tail
+    | LetList(xts, e1, e2) ->
+      match xts with
+	| ((_, typ) :: rest) -> 
+	  unify (Type.List(ref (Some typ))) (g env e1);
+	  List.iter (unify typ) (List.map snd rest); (* all arguments should have the same type *)
+	  g (M.add_list xts env) e2
+	| _ -> failwith "LetList with no variable.  Such input should be filtered by parser"
+
   with Unify(t1, t2) ->
     Printf.eprintf "Unify Error : In %s\n%!";
     dbprint 1 e;
