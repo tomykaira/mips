@@ -32,9 +32,10 @@ type t =
   | Match of t * (pattern * t) list
   | Nil
   | Cons of t * t
-  | LetList of (Id.t * Type.t) list * t * t
+  | LetList of (list_matcher * Type.t option ref) * t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 and pattern = IntPattern of int | VarPattern of Id.t
+and list_matcher = ListWithNil of Id.t list | ListWithoutNil of Id.t list
 
 
 
@@ -42,6 +43,9 @@ and pattern = IntPattern of int | VarPattern of Id.t
 (* デバッグ用関数. tを出力. nは深さ. *)
 let rec ind m = if m <= 0 then ()
                 else (Printf.eprintf "  "; ind (m-1))
+let rec string_of_matcher = function
+  | ListWithNil(ids)    -> String.concat "::" (ids @ ["[]"])
+  | ListWithoutNil(ids) -> String.concat "::" ids
 let rec dbprint n t =
   ind n;
   match t with
@@ -89,8 +93,8 @@ let rec dbprint n t =
     List.iter (function
       | (IntPattern i, body) -> ind n; Printf.eprintf "| %d -> \n%!" i; dbprint (n+1) exp
       | (VarPattern v, body) -> ind n; Printf.eprintf "| %s -> \n%!" v; dbprint (n+1) exp) patterns
-  | LetList (exp, body, rest) ->
-    Printf.eprintf "Let (%s) =\n%!" (String.concat "::" (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")") exp));
+  | LetList ((matcher, typ), body, rest) ->
+    Printf.eprintf "Let (%s :: %s) =\n%!" (string_of_matcher matcher) ((function Some(t) -> Type.show t | None -> "") !typ);
     dbprint (n+1) body;
     ind n; Printf.eprintf "in\n%!"; dbprint (n+1) rest
   | Nil -> Printf.eprintf "List []\n%!"

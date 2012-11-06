@@ -59,7 +59,8 @@ let rec deref_term = function
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Match(e1, cases) -> Match(deref_term e1, List.map (fun (pattern, body) -> (pattern, deref_term body)) cases)
   | Cons(e1, e2) -> Cons(deref_term e1, deref_term e2)
-  | LetList(xts, e1, e2) -> LetList(List.map deref_id_typ xts, deref_term e1, deref_term e2)
+  | LetList((matcher, { contents = Some(typ)}), e1, e2) -> LetList((matcher, ref (Some(deref_typ typ))), deref_term e1, deref_term e2)
+  | LetList((matcher, { contents = None}), e1, e2)      -> failwith "Type of LetList is expected to be fixed"
   | e -> e
 
 let rec occur r1 = function (* occur check *)
@@ -181,13 +182,19 @@ let rec g env e = (* 型推論ルーチン *)
       let type_of_tail = g env tail in
       unify (Type.List(ref (Some(type_of_head)))) type_of_tail;
       type_of_tail
-    | LetList(xts, e1, e2) ->
-      match xts with
-	| ((_, typ) :: rest) -> 
-	  unify (Type.List(ref (Some typ))) (g env e1);
-	  List.iter (unify typ) (List.map snd rest); (* all arguments should have the same type *)
-	  g (M.add_list xts env) e2
-	| _ -> failwith "LetList with no variable.  Such input should be filtered by parser"
+    | LetList((matcher, typ), e1, e2) ->
+      let add_type_variables matcher typ =
+	match matcher with
+	  | ListWithNil(variables) -> List.map (fun v -> (v, Type.Var(typ))) variables
+	  | ListWithoutNil(variables) ->
+	    let reversed   = List.rev variables in
+	    let list_var   = List.hd reversed in
+	    let other_vars = List.tl reversed in
+	    (list_var, Type.List(typ)) :: (List.map (fun v -> (v, Type.Var(typ))) other_vars)
+      in
+      let body_type = (g env e1) in
+      unify (Type.List typ) body_type;
+      g (M.add_list (add_type_variables matcher typ) env) e2
 
   with Unify(t1, t2) ->
     Printf.eprintf "Unify Error : In %s\n%!";

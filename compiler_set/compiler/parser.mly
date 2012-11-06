@@ -165,7 +165,7 @@ exp: /* 一般の式 */
 | EMPTY_BRACKET
     { Nil }
 | LET list_pattern EQUAL exp IN exp
-    { LetList($2, $4, $6) }
+    { LetList(($2, ref None), $4, $6) }
 | exp DOUBLE_COLON exp
     { Cons($1, $3) }
 
@@ -201,17 +201,17 @@ tuple_pattern:
 
 list_pattern:
 | mid_list_pattern
-    { $1 }
+    { ListWithoutNil($1) }
 | mid_list_pattern DOUBLE_COLON EMPTY_BRACKET
-    { $1 }
+    { ListWithNil($1) }
 | IDENT DOUBLE_COLON EMPTY_BRACKET
-    { [addtyp $1] }
+    { ListWithNil([$1]) }
 
 mid_list_pattern:
 | mid_list_pattern DOUBLE_COLON IDENT
-    { $1 @ [addtyp $3] }
+    { $1 @ [$3] }
 | IDENT DOUBLE_COLON IDENT
-    { [addtyp $1; addtyp $3] }
+    { [$1; $3] }
 
 pattern:
 | INT
