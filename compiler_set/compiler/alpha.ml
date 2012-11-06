@@ -49,5 +49,17 @@ let rec g env = function (* α変換ルーチン本体 *)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Nil -> Nil
+  | Cons(x, y) -> Cons(find x env, find y env)
+  | LetList((matcher, typ), y, e) ->
+    let replace_in_matcher env = function
+      | Syntax.ListWithNil(vars)    -> Syntax.ListWithNil(List.map (fun v -> find v env) vars)
+      | Syntax.ListWithoutNil(vars) -> Syntax.ListWithoutNil(List.map (fun v -> find v env) vars)
+    in      
+    let xs = Syntax.matcher_variables matcher in
+    let env' = M.add_list2 xs (List.map Id.genid xs) env in
+    LetList((replace_in_matcher env' matcher, typ),
+	    find y env,
+	    g env' e)
 
 let f = g M.empty
