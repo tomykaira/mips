@@ -7,6 +7,7 @@ type t = (* MinCamlの型を表現するデータ型 *)
   | Tuple of t list
   | Array of t
   | Var of t option ref
+  | List of t option ref
 
 let rec show x =
   match x with
@@ -21,6 +22,10 @@ let rec show x =
       (match !a with
        | Some t -> "Var " ^ show t
        | None -> "Var")
+  | List a ->
+      (match !a with
+       | Some t -> "List of " ^ show t
+       | None -> "List")
 
 let gentyp () = Var(ref None) (* 新しい型変数を作る *)
 
