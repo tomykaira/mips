@@ -30,4 +30,11 @@ let rec f = function (* 不要定義削除ルーチン本体 *)
       if List.exists (fun x -> S.mem x live) xs then LetTuple(xts, y, e') else
       (Format.eprintf "eliminating variables %s@." (Id.pp_list xs);
        e')
+  | LetList((matcher, typ), y, e) ->
+      let xs = Syntax.matcher_variables matcher in
+      let e' = f e in
+      let live = fv e' in
+      if List.exists (fun x -> S.mem x live) xs then LetList((matcher, typ), y, e') else
+      (Format.eprintf "eliminating variables %s@." (Id.pp_list xs);
+       e')
   | e -> e

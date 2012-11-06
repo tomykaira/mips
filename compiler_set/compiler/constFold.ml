@@ -50,6 +50,7 @@ let rec g env = function (* 定数畳み込みルーチン本体 *)
 	xts
 	(findt y env)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
+  | LetList(xts, y, e)  -> LetList(xts, y, g env e)
   | e -> e
 
 let f = g M.empty
