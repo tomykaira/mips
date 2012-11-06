@@ -53,6 +53,10 @@ int ulp(ui expected, ui actual) {
   return max(expected, actual) - min(expected, actual);
 }
 
+int ulp_signed(ui expected, ui actual) {
+  return actual - expected;
+}
+
 int in_ulp(ui expected, ui actual, int max_ulp) {
   return ulp(expected, actual) < max_ulp;
 }

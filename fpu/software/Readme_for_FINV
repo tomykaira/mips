@@ -1,0 +1,31 @@
+finvの改良のために濱中がディレクトリ内でいろいろしてしまったため、
+その記録です。
+まず、元は
+Makefile   fadd.c         fmul.c    fsqrt.cc  join.cc   table.h        util.cc
+const.dat  finv_ikuta.cc  fmul.txt  inc.dat   table.cc  test_source.c  util.h
+…の14のファイルがありました。このうち、
+fadd.c        fmul.c     fsqrt.cc   join.cc       table.h  
+finv_ikuta.cc fmul.txt   table.cc   test_source.c
+…の9ファイルはいじってません。
+
+myfinv.cc
+…finv_ikuta.ccの最適化部分を書き換えたものです。
+　make finvすると、デフォルトでこっちが使われます。
+　実行にテストケースmytest.vecが要りますが、これを作るのにfinv_mytestが入ってます。
+
+const.dat inc.dat
+…については、上記finvの実行で勝手に最適化されて書き換わります。
+　ということで、リポジトリのものは最適化後のものに差し替えました。
+
+util.cc util.h
+…誤差を符号付きで出したかったので、その関数を追加しました。
+　合わせてuitl.hも書き換えています。
+
+blacklist.vec
+…誤差の大きかった仮数部パターンのリストです。名前に特に意味はないですが。
+　finvで勝手にできます。fdivで使います。
+
+myfdiv.cc
+…fmul*finvのテスト用です。
+
+これとMakefileを書き換えて、計18ファイルです。

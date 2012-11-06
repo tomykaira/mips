@@ -1,12 +1,18 @@
 JOIN = join.cc table.o table.h util.o util.h
-FINV = finv_ikuta.cc table.o table.h util.o util.h
+FINV = myfinv.cc table.o table.h util.o util.h
 FSQRT = fsqrt.cc table.o table.h util.o util.h
 TEST_SOURCE = test_source.c util.o util.h
 FADD = fadd.c util.o util.h
 FMUL = fmul.c util.o util.h
+MYFDIV = myfdiv.cc table.o table.h util.o util.h
 
-finv: $(FINV)
+finv: $(FINV) finv_mytest.c
+	gcc -Wall -o test finv_mytest.c
+	./test
 	g++ -Wall -g -o $@ $(FINV)
+
+fdiv: $(MYFDIV)
+	g++ -Wall -g -o $@ $(MYFDIV)
 
 fsqrt: $(FSQRT)
 	g++ -Wall -g -o $@ $(FSQRT)
@@ -29,6 +35,9 @@ fmul: $(FMUL)
 rollback: inc.dat.orig const.dat.orig
 	cp inc.dat.orig inc.dat
 	cp const.dat.orig const.dat
+
+test:finv_mytest.c
+	gcc -Wall -o test finv_mytest.c
 
 clean:
 	rm -rf testrunner *.o

@@ -18,10 +18,14 @@ typedef unsigned int ui;
 #define F(x) ((1 << x) - 1)
 #define MANTISSA_ONLY(x) ((((x) & F(23)) + (127 << 23)))
 
+
+
+
 void print_float(ui x);
 unsigned int rand_float();
 unsigned int place(ll x);
 int ulp(ui expected, ui actual);
+int ulp_signed(ui expected, ui actual);
 int in_ulp(ui expected, ui actual, int max_ulp);
 int is_normal(ui floating);
 
