@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 (* mimic assembly with a few virtual instructions *)
 
 type t = (* 命令の列 *)
@@ -61,11 +63,14 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
+      deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
+      deriving (Show)
 
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
+      deriving (Show)
 
 let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)

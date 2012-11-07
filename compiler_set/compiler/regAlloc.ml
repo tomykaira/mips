@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 open Asm
 
 (* for register coalescing *)
@@ -39,6 +41,7 @@ and target_args src all n = function (* auxiliary function for Call. 引数を�
 type alloc_result = (* allocにおいてspillingがあったかどうかを表すデータ型 *)
   | Alloc of Id.t (* allocated register *)
   | Spill of Id.t (* spilled variable *)
+      deriving (Show)
 let rec alloc dest cont regenv x t =
   (* allocate a register or spill a variable *)
   assert (not (M.mem x regenv));

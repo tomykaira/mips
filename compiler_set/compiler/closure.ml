@@ -1,4 +1,7 @@
+(*pp deriving *)
+
 type closure = { entry : Id.l; actual_fv : Id.t list }
+    deriving (Show)
 type t = (* クロージャ変換後の式 *)
   | Unit
   | Int of int
@@ -30,11 +33,14 @@ type t = (* クロージャ変換後の式 *)
   | Nil
   | Cons of Id.t * Id.t
   | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
+      deriving (Show)
 type fundef = { name : Id.l * Type.t;
 		args : (Id.t * Type.t) list;
 		formal_fv : (Id.t * Type.t) list;
 		body : t }
+    deriving (Show)
 type prog = Prog of fundef list * t
+    deriving (Show)
 
 let rec fv = function
   | Unit | Nil | Int(_) | Float(_) | ExtArray(_) -> S.empty

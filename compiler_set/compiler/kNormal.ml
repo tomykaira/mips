@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 (* give names to intermediate values (K-normalization) *)
 
 (* デバッグ用。trueならKnormal.tを出力 *)
@@ -35,6 +37,7 @@ type t = (* K正規化後の式 *)
   | Cons of Id.t * Id.t
   | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
+    deriving (Show)
 
 let rec fv = function (* 式に出現する（自由な）変数 *)
   | Unit | Nil | Int(_) | Float(_) | ExtArray(_) -> S.empty
