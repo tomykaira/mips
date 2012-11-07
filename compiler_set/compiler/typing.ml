@@ -190,7 +190,7 @@ let rec g env e = (* 型推論ルーチン *)
 
   with Unify(t1, t2) ->
     Printf.eprintf "Unify Error : In %s\n%!";
-    dbprint 1 e;
+    Printf.eprintf "%s\n" (Show.show<Syntax.t> e);
     Printf.eprintf "Unify(%s, %s)\n%!" (Type.show t1) (Type.show t2);
                         raise (Error(deref_term e, deref_typ t1, deref_typ t2))
 

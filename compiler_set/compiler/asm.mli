@@ -87,6 +87,3 @@ val is_reg : Id.t -> bool
 
 val fv : t -> Id.t list
 val concat : t -> Id.t * Type.t -> t -> t
-
-val dbprint2 : int -> t -> unit
-val dbprint3 : fundef -> unit
