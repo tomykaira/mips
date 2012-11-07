@@ -48,7 +48,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FLdI of Id.t * int
   | FStI of Id.t * Id.t * int
   | FLdR of Id.t * Id.t
-	
+
   | Comment of string
 	
   (* virtual instructions *)

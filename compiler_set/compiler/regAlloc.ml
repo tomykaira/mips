@@ -95,8 +95,8 @@ let find x t regenv =
 
 let rec g dest cont regenv = function (* 命令列のレジスタ割り当て. contは後続の命令列 *)
   | Ans(exp) -> g'_and_restore dest cont regenv exp
-  | Let((x, t) as xt, exp, e) ->
-      assert (not (M.mem x regenv));
+  | Let((x, t) as xt, exp, e) as tree ->
+    (if M.mem x regenv then (print_endline (Show.show<Asm.t> tree); failwith (Printf.sprintf "%s in %s\n" x (M.show regenv))) else ()); 
       let cont' = concat e dest cont in
       let (e1', regenv1) = g'_and_restore xt cont' regenv exp in
       (match alloc dest cont' regenv1 x t with

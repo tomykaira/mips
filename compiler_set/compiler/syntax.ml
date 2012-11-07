@@ -40,3 +40,12 @@ and list_matcher = ListWithNil of Id.t list | ListWithoutNil of Id.t list
       deriving (Show)
 
 let matcher_variables = function ListWithNil(vars) -> vars | ListWithoutNil(vars) -> vars
+
+let add_type_variables matcher typ =
+  match matcher with
+    | ListWithNil(variables) -> List.map (fun v -> (v, Type.Var(typ))) variables
+    | ListWithoutNil(variables) ->
+      let reversed   = List.rev variables in
+      let list_var   = List.hd reversed in
+      let other_vars = List.tl reversed in
+      (list_var, Type.List(typ)) :: (List.map (fun v -> (v, Type.Var(typ))) other_vars)
