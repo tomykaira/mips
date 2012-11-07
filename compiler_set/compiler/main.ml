@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 let limit = ref 1000
 
 (* 最適化処理をくりかえす *)
@@ -19,18 +21,10 @@ let dbvi = ref false
 let dbsi = ref false
 let dbra = ref false
 
-let debsy f t = (if !f = true then Syntax.dbprint 0 t else ()); t
-let debkn f t = (if !f = true then KNormal.dbprint 0 t else ()); t
-let debcl f t =
-  (if !f = true then match t with 
-                       Closure.Prog (x, y) -> Printf.eprintf "Functions:\n%!"; List.iter Closure.dbprint2 x; Printf.eprintf "\nMain Program:\n%!"; Closure.dbprint 1 y
-  else ());
-  t
-let debas f t = 
-  (if !f = true then match t with 
-                       Asm.Prog (x, y) -> Printf.eprintf "Functions:\n%!"; List.iter Asm.dbprint3 x; Printf.eprintf "\nMain Program:\n%!"; Asm.dbprint2 1 y
-  else ());
-  t
+let debsy f t = (if !f = true then print_endline (Show.show<Syntax.t> t) else ()); t
+let debkn f t = (if !f = true then print_endline (Show.show<KNormal.t> t) else ()); t
+let debcl f t = (if !f = true then print_endline (Show.show<Closure.prog> t) else ()); t
+let debas f t = (if !f = true then print_endline (Show.show<Asm.prog> t) else ()); t
 
 let parse_buf_exn lexbuf =
   try

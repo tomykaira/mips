@@ -1,4 +1,7 @@
+(*pp deriving *)
+
 type closure = { entry : Id.l; actual_fv : Id.t list }
+    deriving (Show)
 type t =
   | Unit
   | Int of int
@@ -30,14 +33,14 @@ type t =
   | Nil
   | Cons of Id.t * Id.t
   | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
+      deriving (Show)
 type fundef = { name : Id.l * Type.t;
 		args : (Id.t * Type.t) list;
 		formal_fv : (Id.t * Type.t) list;
 		body : t }
+    deriving (Show)
 type prog = Prog of fundef list * t
+    deriving (Show)
 
 val fv : t -> S.t
 val f : KNormal.t -> prog
-
-val dbprint : int -> t -> unit
-val dbprint2 : fundef -> unit
