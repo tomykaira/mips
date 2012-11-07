@@ -1,3 +1,4 @@
+(*pp deriving *)
 type t = (* MinCamlの型を表現するデータ型 *)
   | Unit
   | Bool
@@ -8,6 +9,7 @@ type t = (* MinCamlの型を表現するデータ型 *)
   | Array of t
   | Var of t option ref
   | List of t option ref
+      deriving (Show)
 
 let rec show x =
   match x with

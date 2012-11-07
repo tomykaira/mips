@@ -1,3 +1,4 @@
+(*pp deriving *)
 (* type inference/reconstruction *)
 
 open Syntax

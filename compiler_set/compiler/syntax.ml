@@ -1,3 +1,4 @@
+(*pp deriving *)
 (* MinCamlの構文を表現するデータ型 *)
 type t = 
   | Unit
@@ -36,6 +37,7 @@ type t =
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 and pattern = IntPattern of int | VarPattern of Id.t
 and list_matcher = ListWithNil of Id.t list | ListWithoutNil of Id.t list
+      deriving (Show)
 
 let matcher_variables = function ListWithNil(vars) -> vars | ListWithoutNil(vars) -> vars
 
