@@ -200,6 +200,8 @@ formal_args:
     { addtyp $1 :: $2 }
 | IDENT
     { [addtyp $1] }
+| LPAREN RPAREN
+    { [addtyp "_"] }
 
 actual_args:
 | actual_args simple_exp
