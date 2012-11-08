@@ -3,6 +3,23 @@
 open Syntax
 let addtyp x = (x, Type.gentyp ())
 
+type tuple_element = I of Id.t | T of tuple_element list
+
+(* expand nested LetTuple to multi LetTuples *)
+let expand_nest nested tuple rest =
+  let coll = ref [] in
+  let type_ids = List.map addtyp in
+  let rec expand elm = match elm with
+    | I(id) -> id
+    | T(elements) ->
+      let ids = List.map expand elements in
+      let new_id = Id.genid "t" in
+      coll := (new_id, ids) :: !coll;
+      new_id
+  in
+  let top_ids = List.map expand nested in
+  LetTuple(type_ids top_ids, tuple,
+           List.fold_right (fun (tuple, ids) rest -> LetTuple(type_ids ids, Var tuple, rest)) !coll rest)
 %}
 
 /* 字句を表すデータ型の定義 */
@@ -169,7 +186,9 @@ exp: /* 一般の式 */
 | elems
     { Tuple($1) }
 | LET LPAREN tuple_pattern RPAREN EQUAL exp IN exp
-    { LetTuple($3, $6, $8) }
+    { expand_nest $3 $6 $8 }
+| LET tuple_pattern EQUAL exp IN exp
+    { expand_nest $2 $4 $6 }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
 | exp SEMICOLON exp
@@ -219,11 +238,18 @@ elems:
 | exp COMMA exp
     { [$1; $3] }
 
+
+inner_tuple_pattern:
+| LPAREN tuple_pattern RPAREN
+    { T $2 }
+| IDENT
+    { I $1 }
+
 tuple_pattern:
-| tuple_pattern COMMA IDENT
-    { $1 @ [addtyp $3] }
-| IDENT COMMA IDENT
-    { [addtyp $1; addtyp $3] }
+| tuple_pattern COMMA inner_tuple_pattern
+    { $1 @ [$3] }
+| inner_tuple_pattern COMMA inner_tuple_pattern
+    { [$1; $3] }
 
 list_pattern:
 | mid_list_pattern
