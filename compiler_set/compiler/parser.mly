@@ -66,8 +66,8 @@ let addtyp x = (x, Type.gentyp ())
 %left AST SLASH AST_DOT SLASH_DOT
 %right prec_unary_minus
 %left prec_app
-%right BANG
 %left DOT
+%right BANG
 
 /* 開始記号の定義 */
 %type <Syntax.t> exp
@@ -90,10 +90,10 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
     { Float($1) }
 | IDENT
     { Var($1) }
-| simple_exp DOT LPAREN exp RPAREN
-    { Get($1, $4) }
 | BANG simple_exp
     { Get($2, Int(0)) }
+| simple_exp DOT LPAREN exp RPAREN
+    { Get($1, $4) }
 
 exp: /* 一般の式 */
 | simple_exp
