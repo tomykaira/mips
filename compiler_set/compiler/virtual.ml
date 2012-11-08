@@ -83,6 +83,13 @@ let rec g env = function
       | Type.Bool | Type.Int -> Ans(IfLT(x, y, g env e1, g env e2))
       | Type.Float -> Ans(IfFLT(x, y, g env e1, g env e2))
       | _ -> failwith "inequality supported only for bool, int, and float")
+ | Closure.IfNil(x, e1, e2) ->
+      (match M.find x env with
+      | Type.List(_) ->
+	(* take the cdr and check that is 0 *)
+	let cdr = Id.genid "i" in
+	Let((cdr, Type.Int), LdI(x, 1), Ans(IfEq(cdr, reg_0, g env e1, g env e2)))
+      | _ -> failwith "the argument of IfNil is not a list")
   | Closure.Let((x, t1), e1, e2) ->
       let e1' = g env e1 in
       let e2' = g (M.add x t1 env) e2 in
@@ -158,7 +165,11 @@ let rec g env = function
 	      Ans(StI(z, offset, 0)))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
-  | Closure.Nil -> Ans(Int(0))
+  | Closure.Nil ->
+    let new_list = Id.genid "li" in
+    Let((new_list, Type.List(ref (None))), AddI(reg_hp, 0),
+	Let((reg_hp, Type.Int), AddI(reg_hp, 2),
+	    seq (StI(reg_0, new_list, 0), seq (StI(reg_0, new_list, 1), Ans(AddI(new_list, 0))))))
   | Closure.Cons(x, y) ->
     let element_type = M.find x env in
     let typed_store = (function
@@ -166,10 +177,9 @@ let rec g env = function
       | _ -> (fun x y offset -> StI(x, y, offset))) element_type
     in
     let new_list = Id.genid "li" in
-    let result = Let((new_list, Type.List(ref (Some element_type))), AddI(reg_hp, 0),
+    Let((new_list, Type.List(ref (Some element_type))), AddI(reg_hp, 0),
     Let((reg_hp, Type.Int), AddI(reg_hp, 2),
-    seq (typed_store x new_list 0, seq (StI(y, new_list, 1), Ans(AddI(new_list, 0)))))) in
-    print_endline (Show.show<Asm.t> result); result
+    seq (typed_store x new_list 0, seq (StI(y, new_list, 1), Ans(AddI(new_list, 0))))))
   | Closure.LetList((matcher, typ), list_id, rest) ->
     let expanded_rest =
       g (M.add_list_matcher matcher (ref (Some typ)) env) rest

@@ -20,6 +20,7 @@ type t = (* クロージャ変換後の式 *)
   | IfEq of Id.t * Id.t * t * t
   | IfLE of Id.t * Id.t * t * t
   | IfLT of Id.t * Id.t * t * t
+  | IfNil of Id.t * t * t
   | Let of (Id.t * Type.t) * t * t
   | Var of Id.t
   | MakeCls of (Id.t * Type.t) * closure * t
@@ -47,6 +48,7 @@ let rec fv = function
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
   | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Cons(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) | IfLT (x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | IfNil(x, e1, e2) -> S.add x (S.union (fv e1) (fv e2))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
   | MakeCls((x, t), { entry = l; actual_fv = ys }, e) -> S.remove x (S.union (S.of_list ys) (fv e))
@@ -77,6 +79,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
   | KNormal.IfEq(x, y, e1, e2) -> IfEq(x, y, g env known e1, g env known e2)
   | KNormal.IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
   | KNormal.IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
+  | KNormal.IfNil(x, e1, e2) -> IfNil(x, g env known e1, g env known e2)
   | KNormal.Let((x, t), e1, e2) -> Let((x, t), g env known e1, g (M.add x t env) known e2)
   | KNormal.Var(x) -> Var(x)
   | KNormal.LetRec({ KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* 関数定義の場合 *)

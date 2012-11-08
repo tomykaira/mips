@@ -20,6 +20,7 @@ let addtyp x = (x, Type.gentyp ())
 %token AST_DOT
 %token SLASH_DOT
 %token EQUAL
+%token DOUBLE_EQUAL
 %token LESS_GREATER
 %token LESS_EQUAL
 %token GREATER_EQUAL
@@ -119,6 +120,9 @@ exp: /* 一般の式 */
     { LE($1, $3) }
 | exp GREATER_EQUAL exp
     { LE($3, $1) }
+| IF exp DOUBLE_EQUAL EMPTY_BRACKET THEN exp ELSE exp
+    %prec prec_if
+    { If(IsNil($2), $6, $8) }
 | IF exp THEN exp ELSE exp
     %prec prec_if
     { If($2, $4, $6) }

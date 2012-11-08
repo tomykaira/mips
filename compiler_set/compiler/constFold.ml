@@ -9,10 +9,18 @@ let memf x env =
 let memt x env =
   try (match M.find x env with Tuple(_) -> true | _ -> false)
   with Not_found -> false
+let meml x env =
+  try (match M.find x env with Nil | Cons(_, _) -> true | _ -> false)
+  with Not_found -> false
 
 let findi x env = (match M.find x env with Int(i) -> i | _ -> raise Not_found)
 let findf x env = (match M.find x env with Float(d) -> d | _ -> raise Not_found)
 let findt x env = (match M.find x env with Tuple(ys) -> ys | _ -> raise Not_found)
+let findl x env =
+  let found = M.find x env in
+  match found with
+    | Nil | Cons(_, _) -> found
+    | _ -> raise Not_found
 
 let rec g env = function (* 定数畳み込みルーチン本体 *)
   | Var(x) when memi x env -> Int(findi x env)
@@ -37,6 +45,8 @@ let rec g env = function (* 定数畳み込みルーチン本体 *)
   | IfLT(x, y, e1, e2) when memi x env && memi y env -> if findi x env < findi y env then g env e1 else g env e2
   | IfLT(x, y, e1, e2) when memf x env && memf y env -> if findf x env < findf y env then g env e1 else g env e2
   | IfLT(x, y, e1, e2) -> IfLT(x, y, g env e1, g env e2)
+  | IfNil(x, e1, e2) when meml x env -> if findl x env = KNormal.Nil then g env e1 else g env e2
+  | IfNil(x, e1, e2) -> IfNil(x, g env e1, g env e2)
   | Let((x, t), e1, e2) -> (* letのケース *)
       let e1' = g env e1 in
       let e2' = g (M.add x e1' env) e2 in

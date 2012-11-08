@@ -59,6 +59,7 @@ let rec deref_term = function
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Match(e1, cases) -> Match(deref_term e1, List.map (fun (pattern, body) -> (pattern, deref_term body)) cases)
+  | IsNil(e) -> IsNil(deref_term e)
   | Cons(e1, e2) -> Cons(deref_term e1, deref_term e2)
   | LetList((matcher, { contents = Some(typ)}), e1, e2) -> LetList((matcher, ref (Some(deref_typ typ))), deref_term e1, deref_term e2)
   | LetList((matcher, { contents = None}), e1, e2)      -> failwith "Type of LetList is expected to be fixed"
@@ -178,6 +179,7 @@ let rec g env e = (* 型推論ルーチン *)
       List.iter (unify first_type) types; (* First check is redundant *)
       first_type
     | Nil -> Type.List(ref None)
+    | IsNil(e) -> unify (Type.List(ref None)) (g env e); Type.Bool
     | Cons(head, tail) ->
       let type_of_head = g env head in
       let type_of_tail = g env tail in

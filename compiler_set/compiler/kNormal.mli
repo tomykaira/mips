@@ -18,6 +18,7 @@ type t =
   | IfEq of Id.t * Id.t * t * t
   | IfLE of Id.t * Id.t * t * t
   | IfLT of Id.t * Id.t * t * t
+  | IfNil of Id.t * t * t (* 比較 + 分岐 *)
   | Let of (Id.t * Type.t) * t * t
   | Var of Id.t
   | LetRec of fundef * t

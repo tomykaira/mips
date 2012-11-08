@@ -6,6 +6,7 @@ let rec f = function (* ネストしたletの簡約 *)
   | IfEq(x, y, e1, e2) -> IfEq(x, y, f e1, f e2)
   | IfLE(x, y, e1, e2) -> IfLE(x, y, f e1, f e2)
   | IfLT(x, y, e1, e2) -> IfLT(x, y, f e1, f e2)
+  | IfNil(x, e1, e2) -> IfNil(x, f e1, f e2)
   | Let(xt, e1, e2) -> (* letの場合 *)
       let rec insert = function
 	| Let(yt, e3, e4) -> Let(yt, e3, insert e4)

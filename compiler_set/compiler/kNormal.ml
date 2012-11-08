@@ -23,6 +23,7 @@ type t = (* K正規化後の式 *)
   | IfEq of Id.t * Id.t * t * t (* 比較 + 分岐 *)
   | IfLE of Id.t * Id.t * t * t (* 比較 + 分岐 *)
   | IfLT of Id.t * Id.t * t * t (* 比較 + 分岐 *)
+  | IfNil of Id.t * t * t (* 比較 + 分岐 *)
   | Let of (Id.t * Type.t) * t * t
   | Var of Id.t
   | LetRec of fundef * t
@@ -44,6 +45,7 @@ let rec fv = function (* 式に出現する（自由な）変数 *)
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
   | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Cons(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) | IfLT(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | IfNil(x, e1, e2) -> S.add x (S.union (fv e1) (fv e2))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) ->
@@ -121,6 +123,12 @@ let rec g env = function (* K正規化ルーチン本体 *)
 	      let e3', t3 = g env e3 in
 	      let e4', t4 = g env e4 in
 	      IfEq(x, y, e3', e4'), t3))
+  | Syntax.If(Syntax.IsNil(e1), e3, e4) ->
+      insert_let (g env e1)
+	(fun x ->
+	  let e3', t3 = g env e3 in
+	  let e4', t4 = g env e4 in
+	  IfNil(x, e3', e4'), t3)
   | Syntax.If(Syntax.LE(e1, e2), e3, e4) ->
       insert_let (g env e1)
 	(fun x -> insert_let (g env e2)

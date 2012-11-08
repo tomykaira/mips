@@ -25,6 +25,7 @@ let rec g env = function (* α変換ルーチン本体 *)
   | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, g env e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
+  | IfNil(x, e1, e2) -> IfNil(find x env, g env e1, g env e2)
   | Let((x, t), e1, e2) -> (* letのα変換 *)
       let x' = Id.genid x in
       Let((x', t), g env e1, g (M.add x x' env) e2)

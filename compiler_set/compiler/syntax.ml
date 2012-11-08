@@ -33,6 +33,7 @@ type t =
   | Match of t * (pattern * t) list
   | Nil
   | Cons of t * t
+  | IsNil of t
   | LetList of (list_matcher * Type.t option ref) * t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 and pattern = IntPattern of int | VarPattern of Id.t

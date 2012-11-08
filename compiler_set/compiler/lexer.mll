@@ -51,6 +51,8 @@ rule token = parse
     { AST_DOT }
 | "/."
     { SLASH_DOT }
+| "=="
+    { DOUBLE_EQUAL }
 | '='
     { EQUAL }
 | "<>"
