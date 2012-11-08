@@ -47,6 +47,9 @@ let addtyp x = (x, Type.gentyp ())
 %token ARROW
 %token EMPTY_BRACKET
 %token DOUBLE_COLON
+%token BANG
+%token COLON_EQUAL
+%token REF
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -58,11 +61,12 @@ let addtyp x = (x, Type.gentyp ())
 %nonassoc ARROW
 %left PIPE
 %left COMMA
-%left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
+%left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
 %left AST SLASH AST_DOT SLASH_DOT
 %right prec_unary_minus
 %left prec_app
+%right BANG
 %left DOT
 
 /* 開始記号の定義 */
@@ -88,6 +92,8 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
     { Var($1) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
+| BANG simple_exp
+    { Get($2, Int(0)) }
 
 exp: /* 一般の式 */
 | simple_exp
@@ -172,6 +178,10 @@ exp: /* 一般の式 */
     { LetList(($2, ref None), $4, $6) }
 | exp DOUBLE_COLON exp
     { Cons($1, $3) }
+| exp COLON_EQUAL exp
+    { Put($1, Int(0), $3) }
+| REF exp
+    { Array(Int(1), $2) }
 
 fundef:
 | IDENT formal_args EQUAL exp

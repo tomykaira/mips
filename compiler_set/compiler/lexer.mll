@@ -53,6 +53,8 @@ rule token = parse
     { SLASH_DOT }
 | "=="
     { DOUBLE_EQUAL }
+| ":="
+    { COLON_EQUAL }
 | '='
     { EQUAL }
 | "<>"
@@ -85,6 +87,8 @@ rule token = parse
     { MATCH }
 | "with"
     { WITH }
+| "ref"
+    { REF }
 | ','
     { COMMA }
 | '_'
@@ -101,6 +105,8 @@ rule token = parse
     { LESS_MINUS }
 | ';'
     { SEMICOLON }
+| '!'
+    { BANG }
 | eof
     { EOF }
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
