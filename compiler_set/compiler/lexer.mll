@@ -51,6 +51,8 @@ rule token = parse
     { AST_DOT }
 | "/."
     { SLASH_DOT }
+| "=="
+    { DOUBLE_EQUAL }
 | '='
     { EQUAL }
 | "<>"
@@ -87,6 +89,10 @@ rule token = parse
     { COMMA }
 | '_'
     { IDENT(Id.gentmp Type.Unit) }
+| "[]"
+    { EMPTY_BRACKET }
+| "::"
+    { DOUBLE_COLON }
 | "Array.create" (* [XX] ad hoc *)
     { ARRAY_CREATE }
 | '.'

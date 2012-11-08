@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 (* translation into SPARC assembly with infinite number of virtual registers *)
 
 open Asm
@@ -30,6 +32,26 @@ let expand xts ini addf addi =
     (fun (offset, acc) x t ->
       (offset + 1, addi x t offset acc))
 
+let expand_let_list (variables:Id.t list) typ root_list_var rest =
+  let constructor = match typ with
+    | Type.Float -> (fun var offset -> FLdI(var, offset))
+    | _          -> (fun var offset -> LdI(var, offset))
+  in
+  let list_typ = Type.List(ref (Some typ)) in
+  let rec iter list_var = function
+    | []  -> assert false
+    | [_] -> assert false
+    | v :: last :: [] ->
+      Let((v, typ), constructor list_var 0,
+	  Let((last, list_typ), constructor list_var 1, rest))
+    | v :: vs ->
+      let temp_list_var = Id.genid "temp_list" in
+      Let((v, typ), constructor list_var 0,
+	  Let((temp_list_var, list_typ), constructor list_var 1, iter temp_list_var vs))
+  in
+  iter root_list_var variables
+
+
 (* 式の仮想マシンコード生成 *)
 let rec g env = function 
   | Closure.Unit   -> Ans(Nop)
@@ -61,6 +83,13 @@ let rec g env = function
       | Type.Bool | Type.Int -> Ans(IfLT(x, y, g env e1, g env e2))
       | Type.Float -> Ans(IfFLT(x, y, g env e1, g env e2))
       | _ -> failwith "inequality supported only for bool, int, and float")
+ | Closure.IfNil(x, e1, e2) ->
+      (match M.find x env with
+      | Type.List(_) ->
+	(* take the cdr and check that is 0 *)
+	let cdr = Id.genid "i" in
+	Let((cdr, Type.Int), LdI(x, 1), Ans(IfEq(cdr, reg_0, g env e1, g env e2)))
+      | _ -> failwith "the argument of IfNil is not a list")
   | Closure.Let((x, t1), e1, e2) ->
       let e1' = g env e1 in
       let e2' = g (M.add x t1 env) e2 in
@@ -136,6 +165,32 @@ let rec g env = function
 	      Ans(StI(z, offset, 0)))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
+  | Closure.Nil ->
+    let new_list = Id.genid "li" in
+    Let((new_list, Type.List(ref (None))), AddI(reg_hp, 0),
+	Let((reg_hp, Type.Int), AddI(reg_hp, 2),
+	    seq (StI(reg_0, new_list, 0), seq (StI(reg_0, new_list, 1), Ans(AddI(new_list, 0))))))
+  | Closure.Cons(x, y) ->
+    let element_type = M.find x env in
+    let typed_store = (function
+      | Type.Float -> (fun x y offset -> FStI(x, y, offset))
+      | _ -> (fun x y offset -> StI(x, y, offset))) element_type
+    in
+    let new_list = Id.genid "li" in
+    Let((new_list, Type.List(ref (Some element_type))), AddI(reg_hp, 0),
+    Let((reg_hp, Type.Int), AddI(reg_hp, 2),
+    seq (typed_store x new_list 0, seq (StI(y, new_list, 1), Ans(AddI(new_list, 0))))))
+  | Closure.LetList((matcher, typ), list_id, rest) ->
+    let expanded_rest =
+      g (M.add_list_matcher matcher (ref (Some typ)) env) rest
+    in
+    (
+      match matcher with
+	| Syntax.ListWithNil(vars) ->
+	  expand_let_list (vars @ [Id.genid "dummy_list"]) typ list_id expanded_rest
+	| Syntax.ListWithoutNil(vars) ->
+	  expand_let_list vars typ list_id expanded_rest
+    )
 
 (* トップレベルの関数の仮想マシンコード生成 *)
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =

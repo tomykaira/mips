@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 type t =
   | Ans of exp
   | Let of (Id.t * Type.t) * exp * t
@@ -59,9 +61,12 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t 
   | Restore of Id.t
+      deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
+    deriving (Show)
 type prog = Prog of fundef list * t
+    deriving (Show)
 
 val fletd : Id.t * exp * t -> t (* shorthand of Let for float *)
 val seq : exp * t -> t (* shorthand of Let for unit *)
@@ -82,6 +87,3 @@ val is_reg : Id.t -> bool
 
 val fv : t -> Id.t list
 val concat : t -> Id.t * Type.t -> t -> t
-
-val dbprint2 : int -> t -> unit
-val dbprint3 : fundef -> unit

@@ -20,6 +20,7 @@ let addtyp x = (x, Type.gentyp ())
 %token AST_DOT
 %token SLASH_DOT
 %token EQUAL
+%token DOUBLE_EQUAL
 %token LESS_GREATER
 %token LESS_EQUAL
 %token GREATER_EQUAL
@@ -44,10 +45,13 @@ let addtyp x = (x, Type.gentyp ())
 %token WITH
 %token PIPE
 %token ARROW
+%token EMPTY_BRACKET
+%token DOUBLE_COLON
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
 %right prec_semicolon
+%right DOUBLE_COLON
 %right SEMICOLON
 %right prec_if
 %right LESS_MINUS
@@ -116,6 +120,9 @@ exp: /* 一般の式 */
     { LE($1, $3) }
 | exp GREATER_EQUAL exp
     { LE($3, $1) }
+| IF exp DOUBLE_EQUAL EMPTY_BRACKET THEN exp ELSE exp
+    %prec prec_if
+    { If(IsNil($2), $6, $8) }
 | IF exp THEN exp ELSE exp
     %prec prec_if
     { If($2, $4, $6) }
@@ -145,7 +152,7 @@ exp: /* 一般の式 */
       | _ -> App($1, $2) }
 | elems
     { Tuple($1) }
-| LET LPAREN pat RPAREN EQUAL exp IN exp
+| LET LPAREN tuple_pattern RPAREN EQUAL exp IN exp
     { LetTuple($3, $6, $8) }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
@@ -159,6 +166,12 @@ exp: /* 一般の式 */
     { Array($2, $3) }
 | MATCH exp WITH cases
     { Match($2, List.rev $4) }
+| EMPTY_BRACKET
+    { Nil }
+| LET list_pattern EQUAL exp IN exp
+    { LetList(($2, ref None), $4, $6) }
+| exp DOUBLE_COLON exp
+    { Cons($1, $3) }
 
 fundef:
 | IDENT formal_args EQUAL exp
@@ -184,11 +197,25 @@ elems:
 | exp COMMA exp
     { [$1; $3] }
 
-pat:
-| pat COMMA IDENT
+tuple_pattern:
+| tuple_pattern COMMA IDENT
     { $1 @ [addtyp $3] }
 | IDENT COMMA IDENT
     { [addtyp $1; addtyp $3] }
+
+list_pattern:
+| mid_list_pattern
+    { ListWithoutNil($1) }
+| mid_list_pattern DOUBLE_COLON EMPTY_BRACKET
+    { ListWithNil($1) }
+| IDENT DOUBLE_COLON EMPTY_BRACKET
+    { ListWithNil([$1]) }
+
+mid_list_pattern:
+| mid_list_pattern DOUBLE_COLON IDENT
+    { $1 @ [$3] }
+| IDENT DOUBLE_COLON IDENT
+    { [$1; $3] }
 
 pattern:
 | INT

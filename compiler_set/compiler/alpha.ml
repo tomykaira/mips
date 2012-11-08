@@ -25,6 +25,7 @@ let rec g env = function (* α変換ルーチン本体 *)
   | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, g env e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
+  | IfNil(x, e1, e2) -> IfNil(find x env, g env e1, g env e2)
   | Let((x, t), e1, e2) -> (* letのα変換 *)
       let x' = Id.genid x in
       Let((x', t), g env e1, g (M.add x x' env) e2)
@@ -49,5 +50,17 @@ let rec g env = function (* α変換ルーチン本体 *)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Nil -> Nil
+  | Cons(x, y) -> Cons(find x env, find y env)
+  | LetList((matcher, typ), y, e) ->
+    let replace_in_matcher env = function
+      | Syntax.ListWithNil(vars)    -> Syntax.ListWithNil(List.map (fun v -> find v env) vars)
+      | Syntax.ListWithoutNil(vars) -> Syntax.ListWithoutNil(List.map (fun v -> find v env) vars)
+    in      
+    let xs = Syntax.matcher_variables matcher in
+    let env' = M.add_list2 xs (List.map Id.genid xs) env in
+    LetList((replace_in_matcher env' matcher, typ),
+	    find y env,
+	    g env' e)
 
 let f = g M.empty

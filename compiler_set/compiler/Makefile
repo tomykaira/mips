@@ -3,10 +3,19 @@
 # ack.mlなどのテストプログラムをtest/に用意してmake do_testを実行すると、
 # min-camlとocamlでコンパイル・実行した結果を自動で比較します。
 
+AUXLIB_DIRS = +site-lib/deriving
+OCAMLFLAGS = -w Aef
+
 RESULT = min-caml
 NCSUFFIX = .opt
 CC = gcc
 CFLAGS = -g -O2 -Wall
+
+LIBS = nums deriving
+CLIBS=
+
+INCDIRS = $(AUXLIB_DIRS)
+LIBDIRS = $(AUXLIB_DIRS)
 
 #default: debug-code top $(RESULT) do_test
 $(RESULT): debug-code top
@@ -18,8 +27,8 @@ $(RESULT): debug-code top
 clean:: nobackup
 
 # ↓もし実装を改造したら、それに合わせて変える
-SOURCES = global.ml float.c type.ml id.ml m.ml s.ml \
-syntax.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
+SOURCES = global.ml float.c type.ml id.ml syntax.ml m.ml s.ml \
+parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
 alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
 inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml \
 closure.mli closure.ml asm.mli asm.ml virtual.mli virtual.ml \

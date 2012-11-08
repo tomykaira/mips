@@ -1,5 +1,8 @@
+(*pp deriving *)
 type t = string (* 変数の名前 *)
+      deriving (Show)
 type l = L of string (* トップレベル関数やグローバル配列のラベル *)
+      deriving (Show)
 
 let rec pp_list = function
   | [] -> ""
@@ -18,7 +21,8 @@ let rec id_of_typ = function
   | Type.Float -> "d"
   | Type.Fun _ -> "f"
   | Type.Tuple _ -> "t"
-  | Type.Array _ -> "a" 
+  | Type.Array _ -> "a"
+  | Type.List _ -> "l"
   | Type.Var _ -> assert false
 let gentmp typ =
   incr counter;

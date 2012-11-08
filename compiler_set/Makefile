@@ -42,7 +42,6 @@ LOR_PPM_PATH=$(LOR_PATH).ppm
 architecture:
 	cd assembler; make
 	cd simulator; make
-	cd linker; make
 	cd compiler; make
 
 tools:
@@ -52,7 +51,6 @@ tools:
 architecture-clean:
 	cd assembler; make clean
 	cd simulator; make clean
-	cd linker; make clean
 	cd compiler; make clean
 
 #--------------------------------------------------------------------
