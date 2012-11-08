@@ -3,9 +3,11 @@
 
 (**************** ここから、関数の定義の変更ok *******************)
 
+(*NOMINCAML let array_init = Array.init in *)
+
 (*乱数生成機：xorshift。本来32bit用なので31bitのOcamlでは動作が怪しい *)
 let random_source =
-  let rs = create_array 4 0 in
+  let rs = Array.create 4 0 in
   rs.(0) <- 123456789; 
   rs.(1) <- 362436069;
   rs.(2) <- 521288629; 
@@ -68,24 +70,24 @@ in
 
 
 (* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、array_initはmincamlにおいて変更が必要 *)
-let conf              = create_array 10 (0.0) in
-let bound             = create_array 4 (0.0) in
-let dummy             = create_array 4 0.0 in
-let tbl               = ref (create_array 1 dummy) in
-let cMap              = ref (create_array 1 (0.0,0.0,0.0)) in
-let cConf             = create_array 1 256 in
-let deConf            = create_array 3 0.0 in
-let dnaArray          = ref create_array 0 0 in
+let conf              = Array.create 10 (0.0) in
+let bound             = Array.create 4 (0.0) in
+let dummy             = Array.create 4 0.0 in
+let tbl               = ref (Array.create 1 dummy) in
+let cMap              = ref (Array.create 1 (0.0,0.0,0.0)) in
+let cConf             = Array.create 1 256 in
+let deConf            = Array.create 3 0.0 in
+let dnaArray          = ref (Array.create 0 (0., 0., 0., (0., 0., 0., 0., 0., 0.), [], (0., 0., 0., 0., 0., 0.))) in
 let finalXform        = ref (0.0,0.0,0.0,(0.0,0.0,0.0,0.0,0.0,0.0),[],(0.0,0.0,0.0,0.0,0.0,0.0)) in
 let genes             = ref 0 in
 let enable_finalXform = ref 0 in
 let batch_ct          = 10000 in
-let deCoeffs          = ref create_array 0 0 in
-let filterWidth       = ref create_array 0 0 in
-let deTbl             = ref create_array 0 0 in
+let deCoeffs          = ref (Array.create 0 0.) in
+let filterWidth       = ref (Array.create 0 0) in
+let deTbl             = ref (Array.create 0 (Array.create 0 0.)) in
 let funcRandTblSize   = 1024 in
-let funcRandTbl       = create_array funcRandTblSize 0 in
-let glConf            = create_array 2 0 in
+let funcRandTbl       = Array.create funcRandTblSize 0 in
+let glConf            = Array.create 2 0 in
 
 (**************** ここまで、関数の定義の変更ok *******************)
 
