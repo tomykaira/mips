@@ -99,6 +99,8 @@ rule token = parse
     { DOUBLE_COLON }
 | "Array.create" (* [XX] ad hoc *)
     { ARRAY_CREATE }
+| "Array.make" (* [XX] ad hoc *)
+    { ARRAY_CREATE }
 | '.'
     { DOT }
 | "<-"
