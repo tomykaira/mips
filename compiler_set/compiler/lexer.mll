@@ -71,6 +71,8 @@ rule token = parse
     { LESS }
 | '>'
     { GREATER }
+| "&&"
+    { AND }
 | "if"
     { IF }
 | "then"

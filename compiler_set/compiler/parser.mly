@@ -67,6 +67,7 @@ let expand_nest nested tuple rest =
 %token BANG
 %token COLON_EQUAL
 %token REF
+%token AND
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -78,6 +79,7 @@ let expand_nest nested tuple rest =
 %nonassoc ARROW
 %left PIPE
 %left COMMA
+%left AND
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
 %left AST SLASH AST_DOT SLASH_DOT
@@ -118,6 +120,8 @@ exp: /* 一般の式 */
 | NOT exp
     %prec prec_app
     { Not($2) }
+| exp AND exp                           /* OPTIMIZE: use primitive machine code, or optimize in Virtual */
+    { If($1, If($3, Bool(true), Bool(false)), Bool(false)) }
 | MINUS exp
     %prec prec_unary_minus
     { match $2 with
