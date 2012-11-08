@@ -149,6 +149,11 @@ exp: /* 一般の式 */
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
     { Let(addtyp $2, $4, $6) }
+| LET fundef IN exp
+    %prec prec_let
+    { match fst ($2).name with
+      | "read_int" | "read_float" when !Global.bin -> $4
+      | _ -> LetRec($2, $4) }
 | LET REC fundef IN exp
     %prec prec_let
     { match fst ($3).name with
