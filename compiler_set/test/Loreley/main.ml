@@ -168,7 +168,7 @@ let decode_init ()=
     let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(pos) in
     acmWeight (pos+1) (if min>cWeight then cWeight else min) (sum+.cWeight)
   in
-  let min,sum=acmWeight 0 1000000.0 0.0 in
+  let (min, sum) = acmWeight 0 1000000.0 0.0 in
   (let rec initRandTbl_sub v pos rest=
      if rest==0 then pos else
      (funcRandTbl.(pos)<-v;initRandTbl_sub v (pos+1) (rest-1))
@@ -198,7 +198,8 @@ let rec read_environment pos=
 )
 in
 
-let apply_func (fn,coeffs) x y=
+let apply_func fn_coeff x y=
+  let (fn,coeffs) = fn_coeff in
 (
  match fn with
  1 -> (
