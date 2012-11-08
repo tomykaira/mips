@@ -163,7 +163,7 @@ in
 let decode_init ()=
   let rec acmWeight pos min sum=
     if pos==(!genes) then (min,sum) else
-    let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(pos) in
+    let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(pos) in
     acmWeight (pos+1) (if min>cWeight then cWeight else min) (sum+.cWeight)
   in
   let min,sum=acmWeight 0 1000000.0 0.0 in
@@ -173,7 +173,7 @@ let decode_init ()=
    in
    let rec initRandTbl fn index=
      if fn==(!genes) then () else
-     (let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(fn) in
+     (let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(fn) in
      initRandTbl (fn+1) (initRandTbl_sub fn index (int_of_float (cWeight*.(float_of_int funcRandTblSize)/.sum)))) in
    initRandTbl 0 0)
 in
