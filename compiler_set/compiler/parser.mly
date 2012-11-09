@@ -68,6 +68,7 @@ let expand_nest nested tuple rest =
 %token COLON_EQUAL
 %token REF
 %token AND
+%token OR
 %token L_ARRAY_BRACKET
 %token R_ARRAY_BRACKET
 %token ARRAY_INIT
@@ -82,7 +83,7 @@ let expand_nest nested tuple rest =
 %nonassoc ARROW
 %left PIPE
 %left COMMA
-%left AND
+%left AND OR
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
 %left AST SLASH AST_DOT SLASH_DOT
@@ -124,6 +125,8 @@ exp: /* 一般の式 */
     { Not($2) }
 | exp AND exp                           /* OPTIMIZE: use primitive machine code, or optimize in Virtual */
     { If($1, If($3, Bool(true), Bool(false)), Bool(false)) }
+| exp OR exp                            /* OPTIMIZE: use primitive machine code, or optimize in Virtual */
+    { If($1, Bool(true), If($3, Bool(true), Bool(false))) }
 | MINUS exp
     %prec prec_unary_minus
     { match $2 with

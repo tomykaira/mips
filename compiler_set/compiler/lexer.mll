@@ -73,6 +73,8 @@ rule token = parse
     { GREATER }
 | "&&"
     { AND }
+| "or"
+    { OR }
 | "if"
     { IF }
 | "then"
