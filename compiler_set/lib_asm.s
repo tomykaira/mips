@@ -391,3 +391,27 @@ LOG_END:
 min_caml_land:
 	and $r3, $r3, $r4
 	return
+
+min_caml_sinh:
+	call min_caml_exp
+	# $f0 = e^x
+	finv $f1, $f0
+	# e^x - e^(-x)
+	fsub $f1, $f0, $f1
+	# * 0.5
+	fmvhi $f3, 16128
+	fmvlo $f3, 0
+	fmul $f0, $f1, $f3
+	return
+
+min_caml_cosh:
+	call min_caml_exp
+	# $f0 = e^x
+	finv $f1, $f0
+	# e^x - e^(-x)
+	fadd $f1, $f0, $f1
+	# * 0.5
+	fmvhi $f3, 16128
+	fmvlo $f3, 0
+	fmul $f0, $f1, $f3
+	return
