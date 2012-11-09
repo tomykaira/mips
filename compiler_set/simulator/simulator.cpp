@@ -416,9 +416,6 @@ int simulate(simulation_options * opt)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
-	// 発行命令数を表示
-	cerr << "\n" << cnt << " instructions had been issued" << endl;
-
 	return 0;
 } 
 
