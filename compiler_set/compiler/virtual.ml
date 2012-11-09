@@ -43,11 +43,11 @@ let expand_let_list (variables:Id.t list) typ root_list_var rest =
     | [_] -> assert false
     | v :: last :: [] ->
       Let((v, typ), constructor list_var 0,
-	  Let((last, list_typ), constructor list_var 1, rest))
+	  Let((last, list_typ), LdI(list_var, 1), rest))
     | v :: vs ->
       let temp_list_var = Id.genid "temp_list" in
       Let((v, typ), constructor list_var 0,
-	  Let((temp_list_var, list_typ), constructor list_var 1, iter temp_list_var vs))
+	  Let((temp_list_var, list_typ), LdI(list_var, 1), iter temp_list_var vs))
   in
   iter root_list_var variables
 
