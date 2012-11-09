@@ -15,21 +15,21 @@ let random_source =
   rs
 in
 
-let rec xor128 x =
+let rec xor128 _ =
   let t = (lxor) random_source.(0) ((lsl) random_source.(0) 11) in
   random_source.(0) <- random_source.(1);
   random_source.(1) <- random_source.(2);
   random_source.(2) <- random_source.(3);
-  random_source.(3) <- (lxor) ((lxor) random_source.(3) ((lsr) random_source.(3) 19)) (t lxor (t lsr 8));
+  random_source.(3) <- (lxor) ((lxor) random_source.(3) ((lsr) random_source.(3) 19)) ((lxor) t ((lsr) t 8));
   random_source.(3)
 in
 
 let rec random_float max=
-  (float_of_int (xor128 () land 0x7fffff)) /. (float_of_int 0x7fffff) *. max
+  (float_of_int ((land) (xor128 ()) 8388607)) /. (float_of_int 8388607) *. max
 in
 
 let rec random_int max=
-  ((xor128 () land 0x7fffffff) mod max)
+  ((mod) ((land) (xor128 ()) (((lsr) 1 31) - 1)) max)
 in
 
 (* 読み込み関数。レイトレと同じ。mincamlでは変更必須 *)
