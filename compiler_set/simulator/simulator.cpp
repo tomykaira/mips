@@ -161,6 +161,17 @@ int simulate(simulation_options * opt)
 		}
 	}
 
+	FILE * input_fp = NULL;
+	if (opt->input_file) {
+		input_fp = fopen(opt->input_file, "r");
+		if (input_fp == NULL) {
+			cerr << "input file is enabled, but failed to open: " << opt->input_file << endl;
+			return 1;
+		}
+	} else {
+		input_fp = stdin;
+	}
+
 	// メインループ
 	do
 	{
@@ -398,7 +409,7 @@ int simulate(simulation_options * opt)
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
-				IRT = getchar() & 0xff;
+				IRT = fgetc(input_fp) & 0xff;
 				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
