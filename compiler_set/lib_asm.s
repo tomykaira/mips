@@ -245,4 +245,66 @@ min_caml_read_char:
 #
 #----------------------------------------------------------------------
 
+# algorithm: remez5, 0_log2
+# in: $f3, out: $f3
+min_caml_exp:
+  fsti $f0, $r1, 0
+	# $f4 <- 1.4426950216293335 (1/log(2))
+	# fset $f4, 3fb8aa3b
+	fmvhi $f4, 16312
+	fmvlo $f4, 43579
+	fmul $f0, $f0, $f4
+	addi $r1, $r1, 2
+	call min_caml_floor
+	subi $r1, $r1, 2
+	fsti $f0, $r1, 1
+	addi $r1, $r1, 2
+	call min_caml_int_of_float
+	subi $r1, $r1, 2
+	# px = $f0, x = $f1, C1 = f3, C2 = f4
+	fldi $f1, $r1, 0
+	fldi $f0, $r1, 1
+	fmvhi $f3, 16177
+	fmvlo $f3, 29184
+	fmvhi $f4, 13759
+	fmvlo $f4, 48782
+	fmul $f2, $f3, $f0
+	fsub $f1, $f1, $f2
+	fmul $f2, $f4, $f0
+	fsub $f1, $f1, $f2
+	# x = $f1, a = $f2
+	fmvhi $f2, 15426
+	fmvlo $f2, 12737
+	fmul $f2, $f2, $f1
 
+	fmvhi $f3, 15646
+	fmvlo $f3, 44824
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 15915
+	fmvlo $f3, 51130
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16127
+	fmvlo $f3, 59474
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16256
+	fmvlo $f3, 92
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16255
+	fmvlo $f3, 65534
+	fadd $f2, $f2, $f3
+
+	addi $r3, $r3, 127
+	andi $r3, $r3, 255
+	slli $r3, $r3, 23
+	imovf $f3, $r3
+
+	fmul $f0, $f2, $f3
+	return

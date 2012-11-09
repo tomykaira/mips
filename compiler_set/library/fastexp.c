@@ -95,6 +95,13 @@ static const float LOG2E  =  1.4426950408889634073599;     /* 1/log(2) */
 static const float C1 = 6.93145751953125E-1;
 static const float C2 = 1.42860682030941723212E-6;
 
+void print_hex(float x)
+{
+    union IntAndFloat u;
+    u.f = x;
+    printf("%X\n", u.i);
+}
+
 void remez5_0_log2(float *values, int num)
 {
     int i;
@@ -129,7 +136,9 @@ void remez5_0_log2(float *values, int num)
         union IntAndFloat u;
         u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.f;    }
+        values[i] = a * u.f;
+        print_hex(values[i]);
+    }
 }
 
 void remez7_0_log2(float *values, int num)
@@ -770,7 +779,7 @@ void vecexp_taylor13(float *values, int num)
         /* Build 2^n in float. */
         union IntAndFloat u;
         u.i = (((n + 127) & 0xff) << 23) & 0x7f800000;
-        printf("%d, %d, %x, %f\n", n, 1 << n, u.i, u.f);
+        // printf("%d, %d, %x, %f\n", n, 1 << n, u.i, u.f);
         
 
         values[i] = a * u.f;
@@ -879,7 +888,7 @@ void measure(performance_t *perf, float *values, int n)
             float ex = perf[0].values[i];
             float exf = p->values[i];
 
-            printf("%s: %f -> %f %f\n", p->name, values[i], ex, exf);
+            // printf("%s: %f -> %f %f\n", p->name, values[i], ex, exf);
             float err = fabs(exf - ex) / ex;
             if (p->error_peak < err) {
                 p->error_peak = err;
@@ -898,7 +907,6 @@ float random_float()
     union IntAndFloat u;
     while (exp <= 117 || exp >= 130) { exp = (rand() & 0xff); }
     u.i = ((rand() % 2) << 31) + (exp << 23) + (rand() & 0x7fffff);
-    printf("%f\n", u.f);
     return u.f;
 }
 
@@ -911,30 +919,27 @@ int main(int argc, char *argv[])
     performance_t perf[] = {
         {"libc", vecexp_libc, 0., 0., 0, NULL},
         {"Cephes", vecexp_cephes, 0., 0., 0, NULL},
-        {"Taylor 5th", vecexp_taylor5, 0., 0., 0, NULL},
-        {"Taylor 7th", vecexp_taylor7, 0., 0., 0, NULL},
-        {"Taylor 9th", vecexp_taylor9, 0., 0., 0, NULL},
-        {"Taylor 11th", vecexp_taylor11, 0., 0., 0, NULL},
-        {"Taylor 13th", vecexp_taylor13, 0., 0., 0, NULL},
-        {"Remez 5th [-0.5,+0.5]", vecexp_remez5_05_05, 0., 0., 0, NULL},
-        {"Remez 7th [-0.5,+0.5]", vecexp_remez7_05_05, 0., 0., 0, NULL},
-        {"Remez 9th [-0.5,+0.5]", vecexp_remez9_05_05, 0., 0., 0, NULL},
-        {"Remez 11th [-0.5,+0.5]", vecexp_remez11_05_05, 0., 0., 0, NULL},
-        {"Remez 13th [-0.5,+0.5]", vecexp_remez13_05_05, 0., 0., 0, NULL},
+        /* {"Taylor 5th", vecexp_taylor5, 0., 0., 0, NULL}, */
+        /* {"Taylor 7th", vecexp_taylor7, 0., 0., 0, NULL}, */
+        /* {"Taylor 9th", vecexp_taylor9, 0., 0., 0, NULL}, */
+        /* {"Taylor 11th", vecexp_taylor11, 0., 0., 0, NULL}, */
+        /* {"Taylor 13th", vecexp_taylor13, 0., 0., 0, NULL}, */
+        /* {"Remez 5th [-0.5,+0.5]", vecexp_remez5_05_05, 0., 0., 0, NULL}, */
+        /* {"Remez 7th [-0.5,+0.5]", vecexp_remez7_05_05, 0., 0., 0, NULL}, */
+        /* {"Remez 9th [-0.5,+0.5]", vecexp_remez9_05_05, 0., 0., 0, NULL}, */
+        /* {"Remez 11th [-0.5,+0.5]", vecexp_remez11_05_05, 0., 0., 0, NULL}, */
+        /* {"Remez 13th [-0.5,+0.5]", vecexp_remez13_05_05, 0., 0., 0, NULL}, */
         {"Remez 5th [0,log2]", remez5_0_log2, 0., 0., 0, NULL},
-        {"Remez 7th [0,log2]", remez7_0_log2, 0., 0., 0, NULL},
-        {"Remez 9th [0,log2]", remez9_0_log2, 0., 0., 0, NULL},
-        {"Remez 11th [0,log2]", remez11_0_log2, 0., 0., 0, NULL},
-        {"Remez 13th [0,log2]", remez13_0_log2, 0., 0., 0, NULL},
+        /* {"Remez 7th [0,log2]", remez7_0_log2, 0., 0., 0, NULL}, */
+        /* {"Remez 9th [0,log2]", remez9_0_log2, 0., 0., 0, NULL}, */
+        /* {"Remez 11th [0,log2]", remez11_0_log2, 0., 0., 0, NULL}, */
+        /* {"Remez 13th [0,log2]", remez13_0_log2, 0., 0., 0, NULL}, */
         {NULL, NULL, 0., 0., 0},
     };
 
-    // values = read_source(stdin, &n);
-    n = 100;
-    values = malloc(sizeof(float)*n);
-    for(int i = 0; i < n; i++) {
-        values[i] = random_float();
-    }
+    FILE *fp = fopen("xxx", "r");
+    values = read_source(fp, &n);
+    fclose(fp);
     measure(perf, values, n);
 
     for (p = perf;p->func != NULL;++p) {
