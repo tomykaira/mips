@@ -102,7 +102,7 @@ lor-clean:
 # その他ファイルのコンパイル
 #--------------------------------------------------------------------
 
-TESTS=adder and # array_init cls-bug2 cls-bug cls-rec double_equal even-odd fib \
+TESTS=adder and array_init cls-bug2 cls-bug cls-rec double_equal even-odd fib \
 funcomp gcd join-reg join-reg2 join-stack join-stack2 \
 join-stack3 let-array let-fun list list2 list-float matmul \
 matmul-flat multest nest-tuple non-tail-if2 pattern \
