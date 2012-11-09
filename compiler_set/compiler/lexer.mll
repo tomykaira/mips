@@ -103,6 +103,10 @@ rule token = parse
     { ARRAY_CREATE }
 | "Array.make" (* [XX] ad hoc *)
     { ARRAY_CREATE }
+| "[|"
+    { L_ARRAY_BRACKET }
+| "|]"
+    { R_ARRAY_BRACKET }
 | '.'
     { DOT }
 | "<-"

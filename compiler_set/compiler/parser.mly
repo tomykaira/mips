@@ -68,6 +68,8 @@ let expand_nest nested tuple rest =
 %token COLON_EQUAL
 %token REF
 %token AND
+%token L_ARRAY_BRACKET
+%token R_ARRAY_BRACKET
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -193,6 +195,11 @@ exp: /* 一般の式 */
     { expand_nest $3 $6 $8 }
 | LET tuple_pattern EQUAL exp IN exp
     { expand_nest $2 $4 $6 }
+| LET L_ARRAY_BRACKET array_pattern R_ARRAY_BRACKET EQUAL exp IN exp
+    {
+      let (_, e) = List.fold_left (fun (index, rest) id -> (index + 1, Let(addtyp id, Get($6, Int(index)), rest))) (0, $8) $3 in
+      e
+    }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
 | exp SEMICOLON exp
@@ -262,6 +269,12 @@ list_pattern:
     { ListWithNil($1) }
 | IDENT DOUBLE_COLON EMPTY_BRACKET
     { ListWithNil([$1]) }
+
+array_pattern:
+| array_pattern SEMICOLON IDENT
+    { $1 @ [$3] }
+| IDENT SEMICOLON IDENT
+    { [$1; $3] }
 
 mid_list_pattern:
 | mid_list_pattern DOUBLE_COLON IDENT
