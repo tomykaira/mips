@@ -55,22 +55,22 @@ in
 
 let rec print_triple triple =
   print_int triple.(0);
-  print_char 32;
+  print_char ' ';
   print_int triple.(1);
-  print_char 32;
+  print_char ' ';
   print_int triple.(2);
-  print_char 10; 
+  print_char '\n'; 
 in
 
 let _ = (
-  print_char 80;
-  print_char 51;
+  print_char 'P';
+  print_char '3';
   print_newline ();
 
   print_int (center * 2);
-  print_char 32;
+  print_char ' ';
   print_int (center * 2);
-  print_char 32;
+  print_char ' ';
   print_int 255;
   print_newline (); (* XxY*)
 
