@@ -3,9 +3,11 @@
 
 (**************** ここから、関数の定義の変更ok *******************)
 
+(*NOMINCAML let Array.init = Array.init in *)
+
 (*乱数生成機：xorshift。本来32bit用なので31bitのOcamlでは動作が怪しい *)
 let random_source =
-  let rs = create_array 4 0 in
+  let rs = Array.create 4 0 in
   rs.(0) <- 123456789; 
   rs.(1) <- 362436069;
   rs.(2) <- 521288629; 
@@ -13,21 +15,21 @@ let random_source =
   rs
 in
 
-let rec xor128 x =
+let rec xor128 _ =
   let t = (lxor) random_source.(0) ((lsl) random_source.(0) 11) in
   random_source.(0) <- random_source.(1);
   random_source.(1) <- random_source.(2);
   random_source.(2) <- random_source.(3);
-  random_source.(3) <- (lxor) ((lxor) random_source.(3) ((lsr) random_source.(3) 19)) (t lxor (t lsr 8));
+  random_source.(3) <- (lxor) ((lxor) random_source.(3) ((lsr) random_source.(3) 19)) ((lxor) t ((lsr) t 8));
   random_source.(3)
 in
 
 let rec random_float max=
-  (float_of_int (xor128 () land 0x7fffff)) /. (float_of_int 0x7fffff) *. max
+  (float_of_int ((land) (xor128 ()) 8388607)) /. (float_of_int 8388607) *. max
 in
 
 let rec random_int max=
-  ((xor128 () land 0x7fffffff) mod max)
+  ((mod) ((land) (xor128 ()) (((lsr) 1 31) - 1)) max)
 in
 
 (* 読み込み関数。レイトレと同じ。mincamlでは変更必須 *)
@@ -68,24 +70,24 @@ in
 
 
 (* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、Array.initはmincamlにおいて変更が必要 *)
-let conf              = create_array 10 (0.0) in
-let bound             = create_array 4 (0.0) in
-let dummy             = create_array 4 0.0 in
-let tbl               = ref (create_array 1 dummy) in
-let cMap              = ref (create_array 1 (0.0,0.0,0.0)) in
-let cConf             = create_array 1 256 in
-let deConf            = create_array 3 0.0 in
-let dnaArray          = ref create_array 0 0 in
+let conf              = Array.create 10 (0.0) in
+let bound             = Array.create 4 (0.0) in
+let dummy             = Array.create 4 0.0 in
+let tbl               = ref (Array.create 1 dummy) in
+let cMap              = ref (Array.create 1 (0.0,0.0,0.0)) in
+let cConf             = Array.create 1 256 in
+let deConf            = Array.create 3 0.0 in
+let dnaArray          = ref (Array.create 0 (0., 0., 0., (0., 0., 0., 0., 0., 0.), [], (0., 0., 0., 0., 0., 0.))) in
 let finalXform        = ref (0.0,0.0,0.0,(0.0,0.0,0.0,0.0,0.0,0.0),[],(0.0,0.0,0.0,0.0,0.0,0.0)) in
 let genes             = ref 0 in
 let enable_finalXform = ref 0 in
 let batch_ct          = 10000 in
-let deCoeffs          = ref create_array 0 0 in
-let filterWidth       = ref create_array 0 0 in
-let deTbl             = ref create_array 0 0 in
+let deCoeffs          = ref (Array.create 0 0.) in
+let filterWidth       = ref (Array.create 0 0) in
+let deTbl             = ref (Array.create 0 (Array.create 0 0.)) in
 let funcRandTblSize   = 1024 in
-let funcRandTbl       = create_array funcRandTblSize 0 in
-let glConf            = create_array 2 0 in
+let funcRandTbl       = Array.create funcRandTblSize 0 in
+let glConf            = Array.create 2 0 in
 
 (**************** ここまで、関数の定義の変更ok *******************)
 
@@ -163,17 +165,17 @@ in
 let decode_init ()=
   let rec acmWeight pos min sum=
     if pos==(!genes) then (min,sum) else
-    let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(pos) in
+    let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(pos) in
     acmWeight (pos+1) (if min>cWeight then cWeight else min) (sum+.cWeight)
   in
-  let min,sum=acmWeight 0 1000000.0 0.0 in
+  let (min, sum) = acmWeight 0 1000000.0 0.0 in
   (let rec initRandTbl_sub v pos rest=
      if rest==0 then pos else
      (funcRandTbl.(pos)<-v;initRandTbl_sub v (pos+1) (rest-1))
    in
    let rec initRandTbl fn index=
      if fn==(!genes) then () else
-     (let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),fun_ary,(d1,d2,d3,d4,d5,d6))= !dnaArray.(fn) in
+     (let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(fn) in
      initRandTbl (fn+1) (initRandTbl_sub fn index (int_of_float (cWeight*.(float_of_int funcRandTblSize)/.sum)))) in
    initRandTbl 0 0)
 in
@@ -196,7 +198,8 @@ let rec read_environment pos=
 )
 in
 
-let apply_func (fn,coeffs) x y=
+let apply_func fn_coeff x y=
+  let (fn,coeffs) = fn_coeff in
 (
  match fn with
  1 -> (
@@ -255,7 +258,7 @@ let apply_func (fn,coeffs) x y=
    let rN=abs_float power in
    let cn=dist/.power*.0.5 in
    let t_rnd=(floor ((random_float 1.0)*.rN)) in
-   let tmpr=(2.0*.3.14159265*.t_rnd+.(if (int_of_float t_rnd) land 1==0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
+   let tmpr=(2.0*.3.14159265*.t_rnd+.(if ((land) (int_of_float t_rnd) 1) ==0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
    let r=weight*.((x*.x+.y*.y) ** cn) in
    let sina,cosa=sin tmpr,cos tmpr in
    (r*.cosa,r*.sina)
@@ -694,7 +697,7 @@ if n==(int_of_float (ret_width*.ret_height)) then ()
 else
  (let [|oa;ob;oc;od|]= (if mode==1 then !deTbl.(n) else !tbl.(n)) in
   let a,b,c=calcRGBA oa ob oc od in
-  print_int a;print_char ' ';
+   print_int a;print_char ' ';
   print_int b;print_char ' ';
   print_int c;print_char ' ';
   print_char '\n';

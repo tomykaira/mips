@@ -3,6 +3,23 @@
 open Syntax
 let addtyp x = (x, Type.gentyp ())
 
+type tuple_element = I of Id.t | T of tuple_element list
+
+(* expand nested LetTuple to multi LetTuples *)
+let expand_nest nested tuple rest =
+  let coll = ref [] in
+  let type_ids = List.map addtyp in
+  let rec expand elm = match elm with
+    | I(id) -> id
+    | T(elements) ->
+      let ids = List.map expand elements in
+      let new_id = Id.genid "t" in
+      coll := (new_id, ids) :: !coll;
+      new_id
+  in
+  let top_ids = List.map expand nested in
+  LetTuple(type_ids top_ids, tuple,
+           List.fold_right (fun (tuple, ids) rest -> LetTuple(type_ids ids, Var tuple, rest)) !coll rest)
 %}
 
 /* 字句を表すデータ型の定義 */
@@ -50,6 +67,11 @@ let addtyp x = (x, Type.gentyp ())
 %token BANG
 %token COLON_EQUAL
 %token REF
+%token AND
+%token OR
+%token L_ARRAY_BRACKET
+%token R_ARRAY_BRACKET
+%token ARRAY_INIT
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -61,13 +83,14 @@ let addtyp x = (x, Type.gentyp ())
 %nonassoc ARROW
 %left PIPE
 %left COMMA
-%left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL
+%left AND OR
+%left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL DOUBLE_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
 %left AST SLASH AST_DOT SLASH_DOT
 %right prec_unary_minus
 %left prec_app
-%right BANG
 %left DOT
+%right BANG
 
 /* 開始記号の定義 */
 %type <Syntax.t> exp
@@ -90,17 +113,20 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
     { Float($1) }
 | IDENT
     { Var($1) }
-| simple_exp DOT LPAREN exp RPAREN
-    { Get($1, $4) }
 | BANG simple_exp
     { Get($2, Int(0)) }
-
+| simple_exp DOT LPAREN exp RPAREN
+    { Get($1, $4) }
 exp: /* 一般の式 */
 | simple_exp
     { $1 }
 | NOT exp
     %prec prec_app
     { Not($2) }
+| exp AND exp                           /* OPTIMIZE: use primitive machine code, or optimize in Virtual */
+    { If($1, If($3, Bool(true), Bool(false)), Bool(false)) }
+| exp OR exp                            /* OPTIMIZE: use primitive machine code, or optimize in Virtual */
+    { If($1, Bool(true), If($3, Bool(true), Bool(false))) }
 | MINUS exp
     %prec prec_unary_minus
     { match $2 with
@@ -115,6 +141,8 @@ exp: /* 一般の式 */
 | exp SLASH BIN
     { Sra($1, $3) }
 | exp EQUAL exp
+    { Eq($1, $3) }
+| exp DOUBLE_EQUAL exp
     { Eq($1, $3) }
 | exp LESS_GREATER exp
     { Not(Eq($1, $3)) }
@@ -143,9 +171,16 @@ exp: /* 一般の式 */
     { FMul($1, $3) }
 | exp SLASH_DOT exp
     { FDiv($1, $3) }
+| exp AST AST exp
+    { App(Var("exp"), [FMul($1, App(Var("log"), [$4]))]) }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
     { Let(addtyp $2, $4, $6) }
+| LET fundef IN exp
+    %prec prec_let
+    { match fst ($2).name with
+      | "read_int" | "read_float" when !Global.bin -> $4
+      | _ -> LetRec($2, $4) }
 | LET REC fundef IN exp
     %prec prec_let
     { match fst ($3).name with
@@ -159,7 +194,14 @@ exp: /* 一般の式 */
 | elems
     { Tuple($1) }
 | LET LPAREN tuple_pattern RPAREN EQUAL exp IN exp
-    { LetTuple($3, $6, $8) }
+    { expand_nest $3 $6 $8 }
+| LET tuple_pattern EQUAL exp IN exp
+    { expand_nest $2 $4 $6 }
+| LET L_ARRAY_BRACKET array_pattern R_ARRAY_BRACKET EQUAL exp IN exp
+    {
+      let (_, e) = List.fold_left (fun (index, rest) id -> (index + 1, Let(addtyp id, Get($6, Int(index)), rest))) (0, $8) $3 in
+      e
+    }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
 | exp SEMICOLON exp
@@ -170,6 +212,23 @@ exp: /* 一般の式 */
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { Array($2, $3) }
+| ARRAY_INIT exp simple_exp
+    %prec prec_app
+    {
+      (* automatically generated from AST *)
+      Let (addtyp "n", $2,
+           (Let (addtyp "a", Array (Var "n", App ($3, [Int 0])),
+           LetRec
+             ({name =("iter", Type.gentyp ());
+               args =[("i", Type.gentyp ())];
+               body = If
+                 (LT (Var "i", Var "n"),
+                Let
+                  (("Tu1", Type.Unit),
+                   Put (Var "a", Var "i", App ($3, [Var "i"])),
+                   App (Var "iter", [Add (Var "i", Int 1)])), Var "a")},
+          App (Var "iter", [Int 1])))))
+    }
 | MATCH exp WITH cases
     { Match($2, List.rev $4) }
 | EMPTY_BRACKET
@@ -192,6 +251,8 @@ formal_args:
     { addtyp $1 :: $2 }
 | IDENT
     { [addtyp $1] }
+| LPAREN RPAREN
+    { [addtyp "_"] }
 
 actual_args:
 | actual_args simple_exp
@@ -207,11 +268,18 @@ elems:
 | exp COMMA exp
     { [$1; $3] }
 
+
+inner_tuple_pattern:
+| LPAREN tuple_pattern RPAREN
+    { T $2 }
+| IDENT
+    { I $1 }
+
 tuple_pattern:
-| tuple_pattern COMMA IDENT
-    { $1 @ [addtyp $3] }
-| IDENT COMMA IDENT
-    { [addtyp $1; addtyp $3] }
+| tuple_pattern COMMA inner_tuple_pattern
+    { $1 @ [$3] }
+| inner_tuple_pattern COMMA inner_tuple_pattern
+    { [$1; $3] }
 
 list_pattern:
 | mid_list_pattern
@@ -220,6 +288,12 @@ list_pattern:
     { ListWithNil($1) }
 | IDENT DOUBLE_COLON EMPTY_BRACKET
     { ListWithNil([$1]) }
+
+array_pattern:
+| array_pattern SEMICOLON IDENT
+    { $1 @ [$3] }
+| IDENT SEMICOLON IDENT
+    { [$1; $3] }
 
 mid_list_pattern:
 | mid_list_pattern DOUBLE_COLON IDENT

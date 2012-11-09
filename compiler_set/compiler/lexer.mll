@@ -71,6 +71,10 @@ rule token = parse
     { LESS }
 | '>'
     { GREATER }
+| "&&"
+    { AND }
+| "or"
+    { OR }
 | "if"
     { IF }
 | "then"
@@ -99,6 +103,16 @@ rule token = parse
     { DOUBLE_COLON }
 | "Array.create" (* [XX] ad hoc *)
     { ARRAY_CREATE }
+| "Array.make" (* [XX] ad hoc *)
+    { ARRAY_CREATE }
+| "Array.init" (* [XX] ad hoc *)
+    { ARRAY_INIT }
+| "array_init" (* [XX] ad hoc *)
+    { ARRAY_INIT }
+| "[|"
+    { L_ARRAY_BRACKET }
+| "|]"
+    { R_ARRAY_BRACKET }
 | '.'
     { DOT }
 | "<-"
@@ -107,6 +121,10 @@ rule token = parse
     { SEMICOLON }
 | '!'
     { BANG }
+| '\'' (space|digit|lower|upper|'_') '\''
+    { INT(Char.code (Lexing.lexeme lexbuf).[1]) }
+| "'\\n\'"
+    { INT(Char.code '\n') }
 | eof
     { EOF }
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)

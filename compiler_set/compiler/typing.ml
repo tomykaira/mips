@@ -92,15 +92,16 @@ let rec unify t1 t2 = (* 型が合うように、型変数への代入をする 
   | Type.Var({ contents = None } as r1), _ -> (* 一方が未定義の型変数の場合 *)
       if occur r1 t2 then raise (Unify(t1, t2));
       r1 := Some(t2)
+  | _, Type.Var({ contents = None } as r2) ->
+      if occur r2 t1 then raise (Unify(t1, t2));
+      r2 := Some(t1)
   | Type.List({ contents = Some(t1) }), Type.List({ contents = None } as r2) ->
     r2 := Some(t1)
   | Type.List({ contents = None } as r1), Type.List({ contents = Some(t2) }) ->
     r1 := Some(t2)
   | Type.List(r1), Type.List(r2) when r1 == r2 -> ()
+  | Type.List({ contents = None }), Type.List({ contents = None }) -> () (* TODO: this is correct? *)
   | Type.List({ contents = Some(t1) }), Type.List({ contents = Some(t2) }) -> unify t1 t2
-  | _, Type.Var({ contents = None } as r2) ->
-      if occur r2 t1 then raise (Unify(t1, t2));
-      r2 := Some(t1)
   | _, _ -> raise (Unify(t1, t2))
 
 
