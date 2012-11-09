@@ -39,10 +39,12 @@ PPM_PATH = test/min-rt/contest.ppm
 LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
 LOR_PPM_PATH=$(LOR_PATH).ppm
 
+MIN_CAML=BISECT_FILE=compiler/coverage compiler/min-caml
+
 architecture:
 	cd assembler; make
 	cd simulator; make
-	cd compiler; make
+	cd compiler; make br
 
 tools:
 	cd assembler; make
@@ -53,6 +55,9 @@ architecture-clean:
 	cd simulator; make clean
 	cd compiler; make clean
 
+report:
+	cd compiler; bisect-report -html report coverage*.out
+
 #--------------------------------------------------------------------
 # min-rtのコンパイル・実行
 #--------------------------------------------------------------------
@@ -60,7 +65,7 @@ architecture-clean:
 # globals.mlとmin-rt.mlをコンパイル。min-rt.sとmin-rt.binを作る
 min-rt:
 	cat $(LIB_ML) $(MIN_RT_DIR)globals.ml $(MIN_RT_DIR)min-rt-new.ml > __tmp__.ml
-	compiler/min-caml $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $(MIN_RT_DIR)min-rt.s}
 	assembler/assembler $(MIN_RT_DIR)min-rt.s $(MIN_RT_DIR)min-rt.bin
 
@@ -83,7 +88,7 @@ min-rt-clean:
 # globals.mlとmin-rt.mlをコンパイル。min-rt.sとmin-rt.binを作る
 lor:
 	cat $(LIB_ML) $(LORELEY_DIR)/main.ml > __tmp__.ml
-	compiler/min-caml $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $(LORELEY_DIR)/main.s}
 	assembler/assembler $(LORELEY_DIR)/main.s $(LORELEY_DIR)/main.bin
 
@@ -157,27 +162,27 @@ test-large: $(LARGE_TESTS:%=test/%.run_large)
 # .bin, .sが存在しないときのみビルド
 %.bin:
 	cat $(LIB_ML) $*.ml > __tmp__.ml
-	compiler/min-caml $(OPTION) $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 	assembler/assembler $*.s $*.bin
 
 # .bin, .sが存在しててもビルドする
 %.bin_f:
 	cat $(LIB_ML) $*.ml > __tmp__.ml
-	compiler/min-caml $(OPTION) $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 	assembler/assembler $*.s $*.bin
 
 # .sが存在しないときのみビルド
 %.s:
 	cat $(LIB_ML) $*.ml > __tmp__.ml
-	compiler/min-caml $(OPTION) $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 
 # .sが存在しててもビルド
 %.s_f:
 	cat $(LIB_ML) $*.ml > __tmp__.ml
-	compiler/min-caml $(OPTION) $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 
 # MLがソースファイルのとき

@@ -19,12 +19,17 @@ LIBDIRS = $(AUXLIB_DIRS)
 
 #default: debug-code top $(RESULT) do_test
 $(RESULT): debug-code top
+br: bisect-byte-code
 ## [自分（住井）用の注]
 ## ・OCamlMakefileや古いGNU Makeのバグ(?)で上のような定義が必要(??)
 ## ・OCamlMakefileではdebug-codeとnative-codeのそれぞれで
 ##   .mliがコンパイルされてしまうので、両方ともdefault:の右辺に入れると
 ##   再make時に（.mliが変更されているので）.mlも再コンパイルされる
-clean:: nobackup
+clean:: nobackup clean-coverage
+
+clean-coverage:
+	rm -rf coverage*
+	rm -rf report
 
 # ↓もし実装を改造したら、それに合わせて変える
 SOURCES = global.ml float.c type.ml id.ml syntax.ml m.ml s.ml \
@@ -35,27 +40,11 @@ closure.mli closure.ml asm.mli asm.ml virtual.mli virtual.ml \
 simm.mli simm.ml regAlloc.mli regAlloc.ml emit.mli emit.ml \
 main.mli main.ml
 
-# ↓テストプログラムが増えたら、これも増やす
-TESTS = print sum-tail gcd sum fib ack even-odd \
-adder funcomp cls-rec cls-bug cls-bug2 \
-shuffle spill spill2 spill3 join-stack join-stack2 join-stack3 \
-join-reg join-reg2 non-tail-if non-tail-if2 \
-inprod inprod-rec inprod-loop matmul matmul-flat
-
-#do_test: $(TESTS:%=test/%.cmp)
-
-.PRECIOUS: test/%.s test/% test/%.res test/%.ans test/%.cmp
-TRASH = $(TESTS:%=test/%.s) $(TESTS:%=test/%) $(TESTS:%=test/%.res) $(TESTS:%=test/%.ans) $(TESTS:%=test/%.cmp)
-
-test/%.s: $(RESULT) test/%.ml
-	./$(RESULT) test/$*
-test/%: test/%.s libmincaml.S stub.c
-	$(CC) $(CFLAGS) -m32 $^ -lm -o $@
-test/%.res: test/%
-	$< > $@
-test/%.ans: test/%.ml
-	ocaml $< > $@
-test/%.cmp: test/%.res test/%.ans
-	diff $^ > $@
-
 include OCamlMakefile
+
+bisect-byte-code:		$(PRE_TARGETS)
+			$(QUIET)$(MAKE) -r -f $(OCAMLMAKEFILE) $(BCRESULT) \
+				REAL_RESULT="$(BCRESULT)" \
+				OCAMLFLAGS="-I +bisect -pp \"camlp4o str.cma `ocamlc -where`/bisect/bisect_pp.cmo\" $(OCAMLFLAGS)" \
+				OCAMLLDFLAGS="-I +bisect bisect.cma $(OCAMLLDFLAGS)" \
+				make_deps=yes
