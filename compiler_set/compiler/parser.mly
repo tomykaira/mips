@@ -139,6 +139,8 @@ exp: /* 一般の式 */
     { Sra($1, $3) }
 | exp EQUAL exp
     { Eq($1, $3) }
+| exp DOUBLE_EQUAL exp
+    { Eq($1, $3) }
 | exp LESS_GREATER exp
     { Not(Eq($1, $3)) }
 | exp LESS exp
@@ -152,9 +154,6 @@ exp: /* 一般の式 */
 | IF exp DOUBLE_EQUAL EMPTY_BRACKET THEN exp ELSE exp
     %prec prec_if
     { If(IsNil($2), $6, $8) }
-| IF exp DOUBLE_EQUAL exp THEN exp ELSE exp
-    %prec prec_if
-    { If(Eq($2, $4), $6, $8) }
 | IF exp THEN exp ELSE exp
     %prec prec_if
     { If($2, $4, $6) }
