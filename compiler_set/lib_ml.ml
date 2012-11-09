@@ -46,6 +46,9 @@ let rec atan x =
 	else b
 	in
 
+let rec atan2 x y =
+
+
 (* tan *)
 let rec tan x = (* -pi/4 <= x <= pi/4 *)
 	let rec tan_sub i xx y =
