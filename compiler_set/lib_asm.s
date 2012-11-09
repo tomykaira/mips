@@ -245,4 +245,145 @@ min_caml_read_char:
 #
 #----------------------------------------------------------------------
 
+# algorithm: remez5, 0_log2
+# in: $f0, out: $f0
+min_caml_exp:
+  fsti $f0, $r1, 0
+	# $f4 <- 1.4426950216293335 (1/log(2))
+	# fset $f4, 3fb8aa3b
+	fmvhi $f4, 16312
+	fmvlo $f4, 43579
+	fmul $f0, $f0, $f4
+	addi $r1, $r1, 2
+	call min_caml_floor
+	subi $r1, $r1, 2
+	fsti $f0, $r1, 1
+	addi $r1, $r1, 2
+	call min_caml_int_of_float
+	subi $r1, $r1, 2
+	# px = $f0, x = $f1, C1 = f3, C2 = f4
+	fldi $f1, $r1, 0
+	fldi $f0, $r1, 1
+	fmvhi $f3, 16177
+	fmvlo $f3, 29184
+	fmvhi $f4, 13759
+	fmvlo $f4, 48782
+	fmul $f2, $f3, $f0
+	fsub $f1, $f1, $f2
+	fmul $f2, $f4, $f0
+	fsub $f1, $f1, $f2
+	# x = $f1, a = $f2
+	fmvhi $f2, 15426
+	fmvlo $f2, 12737
+	fmul $f2, $f2, $f1
 
+	fmvhi $f3, 15646
+	fmvlo $f3, 44824
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 15915
+	fmvlo $f3, 51130
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16127
+	fmvlo $f3, 59474
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16256
+	fmvlo $f3, 92
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f1
+
+	fmvhi $f3, 16255
+	fmvlo $f3, 65534
+	fadd $f2, $f2, $f3
+
+	addi $r3, $r3, 127
+	andi $r3, $r3, 255
+	slli $r3, $r3, 23
+	imovf $f3, $r3
+
+	fmul $f0, $f2, $f3
+	return
+
+# algorithm: remez5, 1_e
+# in: $f0, out: $f0
+min_caml_log:
+	# 0
+	fmvhi $f4, 0
+	fmvlo $f4, 0
+	fblt $f0, $f4, LOG_END	# if ($f0 < 0) return itself, otherwise this loop will not stop
+
+	# 1
+	fmvhi $f5, 16256
+	fmvlo $f5, 0
+
+	# e
+	fmvhi $f6, 16429
+	fmvlo $f6, 63572
+
+	# 1/e
+	fmvhi $f7, 16060
+	fmvlo $f7, 23218
+
+	# y
+	addi $r3, $r0, 0
+
+	fble $f5, $f0, LOG_LOOP_LT_1_END
+
+LOG_LOOP_LT_1:
+	subi $r3, $r3, 1
+	fmul $f0, $f0, $f6
+	fblt $f0, $f5, LOG_LOOP_LT_1
+
+LOG_LOOP_LT_1_END:
+	fblt $f0, $f6, LOG_LOOP_GT_E_END
+
+LOG_LOOP_GT_E:
+	addi $r3, $r3, 1
+	fmul $f0, $f0, $f7
+	fblt $f6, $f0, LOG_LOOP_GT_E
+
+LOG_LOOP_GT_E_END:
+	
+	# x = $f0, a = $f2
+	fmvhi $f2, 15438
+	fmvlo $f2, 18672
+	fmul $f2, $f2, $f0
+
+	fmvhi $f3, 48658
+	fmvlo $f3, 58995
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f0
+
+	fmvhi $f3, 16174
+	fmvlo $f3, 35574
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f0
+
+	fmvhi $f3, 49123
+	fmvlo $f3, 52990
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f0
+
+	fmvhi $f3, 16449
+	fmvlo $f3, 23445
+	fadd $f2, $f2, $f3
+	fmul $f2, $f2, $f0
+
+	fmvhi $f3, 49125
+	fmvlo $f3, 27378
+	fadd $f2, $f2, $f3
+
+	fsti $f2, $r1, 0
+	addi $r1, $r1, 1
+	# y = $r3 to $f0
+	call min_caml_float_of_int
+	subi $r1, $r1, 1
+	fldi $f1, $r1, 0
+	fadd $f0, $f0, $f1
+LOG_END:
+	return
