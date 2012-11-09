@@ -46,6 +46,11 @@ Simply create a console project, and add this file to the project.
 #include <stdlib.h>
 #include <time.h>
 
+union IntAndFloat {
+    unsigned int i;
+    float f;
+};
+
 
 /*
     Useful macro definitions for memory alignment:
@@ -84,11 +89,6 @@ typedef struct {
     float *values;
 } performance_t;
 
-typedef union {
-    float d;
-    unsigned short s[4];
-} ieee754;
-
 static const float MAXLOG =  7.08396418532264106224E2;     /* log 2**1022 */
 static const float MINLOG = -7.08396418532264106224E2;     /* log 2**-1022 */
 static const float LOG2E  =  1.4426950408889634073599;     /* 1/log(2) */
@@ -101,7 +101,6 @@ void remez5_0_log2(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = floor(x / log 2) */
         a = LOG2E * x;
@@ -127,12 +126,10 @@ void remez5_0_log2(float *values, int num)
         a += 0.99999989311082729779536722205742989232069120354073;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void remez7_0_log2(float *values, int num)
@@ -141,7 +138,6 @@ void remez7_0_log2(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = floor(x / log 2) */
         a = LOG2E * x;
@@ -171,12 +167,10 @@ void remez7_0_log2(float *values, int num)
         a += 0.99999999994275232965232540108706952362552348759169;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void remez9_0_log2(float *values, int num)
@@ -185,7 +179,6 @@ void remez9_0_log2(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = floor(x / log 2) */
         a = LOG2E * x;
@@ -219,12 +212,10 @@ void remez9_0_log2(float *values, int num)
         a += 0.99999999999998091336479463057053516986466888462081;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void remez11_0_log2(float *values, int num)
@@ -233,7 +224,6 @@ void remez11_0_log2(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = floor(x / log 2) */
         a = LOG2E * x;
@@ -271,12 +261,10 @@ void remez11_0_log2(float *values, int num)
         a += 0.99999999999999999566016490920259318691496540598896;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void remez13_0_log2(float *values, int num)
@@ -285,7 +273,6 @@ void remez13_0_log2(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = floor(x / log 2) */
         a = LOG2E * x;
@@ -327,12 +314,10 @@ void remez13_0_log2(float *values, int num)
         a += 0.99999999999999999999928421898456045238677548461656;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 
@@ -343,7 +328,6 @@ void vecexp_remez5_05_05(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -369,12 +353,10 @@ void vecexp_remez5_05_05(float *values, int num)
         a += 1.00000068337676053288862820129773498043487842807125;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_remez7_05_05(float *values, int num)
@@ -383,7 +365,6 @@ void vecexp_remez7_05_05(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -413,12 +394,10 @@ void vecexp_remez7_05_05(float *values, int num)
         a += 0.99999999923843009897272522306505037302103095520883;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_remez9_05_05(float *values, int num)
@@ -427,7 +406,6 @@ void vecexp_remez9_05_05(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -461,12 +439,10 @@ void vecexp_remez9_05_05(float *values, int num)
         a += 1.00000000000052833535680371242873466617726870356609;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_remez11_05_05(float *values, int num)
@@ -475,7 +451,6 @@ void vecexp_remez11_05_05(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -513,12 +488,10 @@ void vecexp_remez11_05_05(float *values, int num)
         a += 0.9999999999999997500224010478732616185808429624127;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_remez13_05_05(float *values, int num)
@@ -527,7 +500,6 @@ void vecexp_remez13_05_05(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -569,12 +541,10 @@ void vecexp_remez13_05_05(float *values, int num)
         a += 1.0000000000000000000857966908786376708355989802095;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 
@@ -585,7 +555,6 @@ void vecexp_taylor5(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -611,12 +580,10 @@ void vecexp_taylor5(float *values, int num)
         a += 1.0;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_taylor7(float *values, int num)
@@ -625,7 +592,6 @@ void vecexp_taylor7(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -655,12 +621,10 @@ void vecexp_taylor7(float *values, int num)
         a += 1.0;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_taylor9(float *values, int num)
@@ -669,7 +633,6 @@ void vecexp_taylor9(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -703,12 +666,10 @@ void vecexp_taylor9(float *values, int num)
         a += 1.0;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_taylor11(float *values, int num)
@@ -717,7 +678,6 @@ void vecexp_taylor11(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -755,12 +715,10 @@ void vecexp_taylor11(float *values, int num)
         a += 1.0;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = a * u.d;
-    }
+        values[i] = a * u.f;    }
 }
 
 void vecexp_taylor13(float *values, int num)
@@ -769,7 +727,6 @@ void vecexp_taylor13(float *values, int num)
     for (i = 0;i < num;++i) {
         int n;
         float a, px, x = values[i];
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -811,11 +768,12 @@ void vecexp_taylor13(float *values, int num)
         a += 1.0;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = (((n + 127) & 0xff) << 23) & 0x7f800000;
+        printf("%d, %d, %x, %f\n", n, 1 << n, u.i, u.f);
+        
 
-        values[i] = a * u.d;
+        values[i] = a * u.f;
     }
 }
 
@@ -828,7 +786,6 @@ void vecexp_cephes(float *values, int num)
         int n;
         float x = values[i];
         float a, xx, px, qx;
-        ieee754 u;
 
         /* n = round(x / log 2) */
         a = LOG2E * x + 0.5;
@@ -863,11 +820,10 @@ void vecexp_cephes(float *values, int num)
         x = 1.0 + 2.0 * x;
 
         /* Build 2^n in float. */
-        u.d = 0;
-        n += 1023;
-        u.s[3] = (unsigned short)((n << 4) & 0x7FF0);
+        union IntAndFloat u;
+        u.i = ((n + 127) & 0xff) << 23;
 
-        values[i] = x * u.d;
+        values[i] = x * u.f;
     }
 }
 
@@ -877,7 +833,7 @@ void vecexp_libc(float *values, int n)
 {
     int i;
     for (i = 0;i < n;++i) {
-        values[i] = exp(values[i]);
+        values[i] = expf(values[i]);
     }
 }
 
@@ -922,8 +878,8 @@ void measure(performance_t *perf, float *values, int n)
         for (i = 0;i < n;++i) {
             float ex = perf[0].values[i];
             float exf = p->values[i];
-            printf("%f %f\n", ex, exf);
 
+            printf("%s: %f -> %f %f\n", p->name, values[i], ex, exf);
             float err = fabs(exf - ex) / ex;
             if (p->error_peak < err) {
                 p->error_peak = err;
@@ -934,6 +890,16 @@ void measure(performance_t *perf, float *values, int n)
         p->error_rms /= n;
         p->error_rms = sqrt(p->error_rms);
     }
+}
+
+float random_float()
+{
+    int exp = 0;
+    union IntAndFloat u;
+    while (exp <= 117 || exp >= 130) { exp = (rand() & 0xff); }
+    u.i = ((rand() % 2) << 31) + (exp << 23) + (rand() & 0x7fffff);
+    printf("%f\n", u.f);
+    return u.f;
 }
 
 int main(int argc, char *argv[])
@@ -963,7 +929,12 @@ int main(int argc, char *argv[])
         {NULL, NULL, 0., 0., 0},
     };
 
-    values = read_source(stdin, &n);
+    // values = read_source(stdin, &n);
+    n = 100;
+    values = malloc(sizeof(float)*n);
+    for(int i = 0; i < n; i++) {
+        values[i] = random_float();
+    }
     measure(perf, values, n);
 
     for (p = perf;p->func != NULL;++p) {
