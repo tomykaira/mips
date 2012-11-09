@@ -111,7 +111,9 @@ lor-clean:
 %.run_f:
 	make tools
 	make $*.bin_f
-	simulator/simulator $*.bin
+	simulator/simulator $*.bin | tee /tmp/`basename $*`.out
+	ocaml $*.ml | tee /tmp/`basename $*`.ans
+	diff /tmp/`basename $*`.out /tmp/`basename $*`.ans
 
 # .bin, .sが存在しないときのみビルド
 %.bin:
