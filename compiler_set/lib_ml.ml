@@ -46,8 +46,13 @@ let rec atan x =
   else b
   in
 
-let rec atan2 x y =
-
+let rec atan2 y x =
+  let ans = atan (y /. x) in
+  if x >= 0. then
+    ans
+  else
+    if y >= 0. then pi +. ans else ans -. pi
+in
 
 (* tan *)
 let rec tan x = (* -pi/4 <= x <= pi/4 *)
