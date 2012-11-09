@@ -115,7 +115,6 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
     { Get($2, Int(0)) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
-
 exp: /* 一般の式 */
 | simple_exp
     { $1 }

@@ -115,6 +115,10 @@ rule token = parse
     { SEMICOLON }
 | '!'
     { BANG }
+| '\'' (space|digit|lower|upper|'_') '\''
+    { INT(Char.code (Lexing.lexeme lexbuf).[1]) }
+| "'\\n\'"
+    { INT(Char.code '\n') }
 | eof
     { EOF }
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)

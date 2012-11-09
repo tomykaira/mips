@@ -697,7 +697,7 @@ if n==(int_of_float (ret_width*.ret_height)) then ()
 else
  (let [|oa;ob;oc;od|]= (if mode==1 then !deTbl.(n) else !tbl.(n)) in
   let a,b,c=calcRGBA oa ob oc od in
-  print_int a;print_char ' ';
+   print_int a;print_char ' ';
   print_int b;print_char ' ';
   print_int c;print_char ' ';
   print_char '\n';
