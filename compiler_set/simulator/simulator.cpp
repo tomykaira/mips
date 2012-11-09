@@ -39,7 +39,7 @@ uint32_t freg[INTREG_NUM];
 uint32_t lreg;
 
 // いいかげんな call stack
-#define CALL_STACK_SIZE 256
+#define CALL_STACK_SIZE 65535
 
 // 即値
 #define IMM get_imm(inst)
