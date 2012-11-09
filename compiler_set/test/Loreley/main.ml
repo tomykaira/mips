@@ -258,7 +258,7 @@ let apply_func fn_coeff x y=
    let rN=abs_float power in
    let cn=dist/.power*.0.5 in
    let t_rnd=(floor ((random_float 1.0)*.rN)) in
-   let tmpr=(2.0*.3.14159265*.t_rnd+.(if (int_of_float t_rnd) land 1==0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
+   let tmpr=(2.0*.3.14159265*.t_rnd+.(if ((land) (int_of_float t_rnd) 1) ==0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
    let r=weight*.((x*.x+.y*.y) ** cn) in
    let sina,cosa=sin tmpr,cos tmpr in
    (r*.cosa,r*.sina)
