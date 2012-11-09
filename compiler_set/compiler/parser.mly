@@ -70,6 +70,7 @@ let expand_nest nested tuple rest =
 %token AND
 %token L_ARRAY_BRACKET
 %token R_ARRAY_BRACKET
+%token ARRAY_INIT
 
 /* 優先順位とassociativityの定義（低い方から高い方へ) */
 %right prec_let
@@ -208,6 +209,23 @@ exp: /* 一般の式 */
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { Array($2, $3) }
+| ARRAY_INIT exp simple_exp
+    %prec prec_app
+    {
+      (* automatically generated from AST *)
+      Let (addtyp "n", $2,
+           (Let (addtyp "a", Array (Var "n", App ($3, [Int 0])),
+           LetRec
+             ({name =("iter", Type.gentyp ());
+               args =[("i", Type.gentyp ())];
+               body = If
+                 (LT (Var "i", Var "n"),
+                Let
+                  (("Tu1", Type.Unit),
+                   Put (Var "a", Var "i", App ($3, [Var "i"])),
+                   App (Var "iter", [Add (Var "i", Int 1)])), Var "a")},
+          App (Var "iter", [Int 1])))))
+    }
 | MATCH exp WITH cases
     { Match($2, List.rev $4) }
 | EMPTY_BRACKET

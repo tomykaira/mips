@@ -3,7 +3,7 @@
 
 (**************** ここから、関数の定義の変更ok *******************)
 
-(*NOMINCAML let array_init = Array.init in *)
+(*NOMINCAML let Array.init = Array.init in *)
 
 (*乱数生成機：xorshift。本来32bit用なので31bitのOcamlでは動作が怪しい *)
 let random_source =
@@ -69,7 +69,7 @@ in
 (*NOMINCAML     Failure _ -> failwith ((Buffer.contents buf) ^ ": int conversion failed.") *)
 
 
-(* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、array_initはmincamlにおいて変更が必要 *)
+(* グローバルな変数。一部の領域は設定ファイルを読み込みながら動的に確保される。Array.make、Array.initはmincamlにおいて変更が必要 *)
 let conf              = Array.create 10 (0.0) in
 let bound             = Array.create 4 (0.0) in
 let dummy             = Array.create 4 0.0 in
@@ -135,7 +135,7 @@ in
 
 let read_gene ()=
 (genes := read_int();enable_finalXform:=read_int();
-dnaArray:=array_init (!genes) read_dnas;
+dnaArray:=Array.init (!genes) read_dnas;
 if !enable_finalXform ==1 then (finalXform:=read_dnas 0) else ())
 in
 
@@ -191,7 +191,7 @@ let rec read_environment pos=
   bound.(3) <- (conf.(4) +. conf.(6) *. conf.(7));
   let ret_width=(conf.(0)+.conf.(2)*.6.0) in
   let ret_height=(conf.(1)+.conf.(2)*.6.0) in
-  tbl := (array_init (int_of_float (ret_width*.ret_height)) array_gen)
+  tbl := (Array.init (int_of_float (ret_width*.ret_height)) array_gen)
  ) 
  else 
   read_environment (pos + 1)
@@ -651,7 +651,7 @@ let rec apply_deFilter ()=
   in
   apply_de_sub ov2 ov2
   in
-  deTbl:=array_init ((ret_width+1)*(ret_height+1)) array_gen;
+  deTbl:=Array.init ((ret_width+1)*(ret_height+1)) array_gen;
   apply_deFilter ())
 in
 

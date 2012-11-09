@@ -319,14 +319,3 @@ let rec print_int x =
 				(print_char (48 + tx); true) in
 		(* 1の位を表示 *)
 		print_char (48 + x) in
-
-let rec array_init n f =
-  let a = Array.create n (f 0) in
-  let iter i =
-    if i < n then
-      (a.(i) <- f i; iter (i + 1))
-    else
-      a
-  in
-  iter 1
-in
