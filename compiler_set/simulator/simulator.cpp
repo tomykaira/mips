@@ -2,6 +2,9 @@
 #include <cmath>
 #include <cassert>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <getopt.h>
 #include "fpu.h"
 
 // 命令の各要素にアクセスする関数を定義
@@ -38,14 +41,6 @@ uint32_t lreg;
 // いいかげんな call stack
 #define CALL_STACK_SIZE 256
 
-#define DEBUG_INSTRUCTION 1
-#define DEBUG_DATAFLOW    1
-#define DEBUG_IO          1
-#define NO_DEBUG          0
-
-#define D_INSTRUCTION if (DEBUG_INSTRUCTION) printf
-#define D_DATAFLOW if (DEBUG_DATAFLOW) printf
-#define D_IO if (DEBUG_IO) printf
 // 即値
 #define IMM get_imm(inst)
 // rs（整数レジスタ）
@@ -101,6 +96,21 @@ float asF(uint32_t r)
 	return a.f;
 }
 
+typedef struct _options {
+	bool enable_stdout;
+	bool enable_record_instruction;
+	bool enable_record_mem;
+	bool enable_record_register;
+	bool enable_record_io;
+	char * input_file;
+	char * target_binary;
+} simulation_options;
+
+#define D_INSTRUCTION if (log_fp && opt->enable_record_instruction) fprintf
+#define D_REGISTER if (log_fp && opt->enable_record_register) fprintf
+#define D_MEMORY if (log_fp && opt->enable_record_mem) fprintf
+#define D_IO if (log_fp && opt->enable_record_io) fprintf
+
 //-----------------------------------------------------------------------------
 //
 // エンディアンの変換
@@ -114,40 +124,46 @@ float asF(uint32_t r)
 // シミュレート
 //
 //-----------------------------------------------------------------------------
-int simulate(char* srcPath)
+int simulate(simulation_options * opt)
 {
 	uint32_t inst;
 
 	uint8_t opcode, funct;
 	
-	conv tmp1;
-
-	// 初期化
-	// FR = sizeof(RAM) / 4 - 1;
-	// cerr << "FR = " << FR << endl;
-
 	int internal_stack[CALL_STACK_SIZE];
 	int stack_pointer = 0;
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
 
 	// バイナリを読み込む
-	FILE* srcFile = fopen(srcPath, "rb");
+	FILE* srcFile = fopen(opt->target_binary, "rb");
 	if (srcFile == NULL)
 	{
-		cerr << "couldn't open " << srcPath << endl;
+		cerr << "couldn't open " << opt->target_binary << endl;
 		return 1;
 	}
-  int i = 0;
+	int i = 0;
 	while (fscanf(srcFile, "%x", &ROM[i]) != EOF) { i++; }
 	fclose(srcFile);
-	
-	cerr << srcPath << endl;
+
+	// create output files
+	FILE * log_fp = NULL;
+	if (opt->enable_record_io
+	    || opt->enable_record_register
+	    || opt->enable_record_instruction
+	    || opt->enable_record_mem) {
+		int id = getpid();
+		char log_path[255];
+		sprintf(log_path, "%s.%d.log", opt->target_binary, id);
+		log_fp = fopen(log_path, "w");
+		if (!log_fp) {
+			cerr << "log is enabled, but failed to open log file: " << log_path << endl;
+			return 1;
+		}
+	}
 
 	// メインループ
 	do
 	{
-		bool error = false;
-	
 		ZR = 0;
 
 		// フレーム/ヒープレジスタは絶対に負になることはない
@@ -165,7 +181,7 @@ int simulate(char* srcPath)
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)];
 
-    D_INSTRUCTION("INST: %08x\n", inst);
+		D_INSTRUCTION(log_fp, "INST: %08x\n", inst);
 
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
@@ -188,123 +204,123 @@ int simulate(char* srcPath)
 		switch(opcode)
 		{
 			case ADD:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS + IRT);
+				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);
 				IRD = IRS + IRT;
 				break;
 			case SUB:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS - IRT);
+				D_REGISTER(log_fp, "REG: SUB %02X %08X\n", get_rd(inst), IRS - IRT);
 				IRD = IRS - IRT;
 				break;
 			case MUL:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS * IRT);
+				D_REGISTER(log_fp, "REG: MUL %02X %08X\n", get_rd(inst), IRS * IRT);
 				IRD = IRS * IRT;
 				break;
 			case AND:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS & IRT);
+				D_REGISTER(log_fp, "REG: AND %02X %08X\n", get_rd(inst), IRS & IRT);
 				IRD = IRS & IRT;
 				break;
 			case OR:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS | IRT);
+				D_REGISTER(log_fp, "REG: OR %02X %08X\n", get_rd(inst), IRS | IRT);
 				IRD = IRS | IRT;
 				break;
 			case NOR:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), ~(IRS | IRT));
+				D_REGISTER(log_fp, "REG: NOR %02X %08X\n", get_rd(inst), ~(IRS | IRT));
 				IRD = ~(IRS | IRT);
 				break;
 			case XOR:
-				D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), IRS ^ IRT);
+				D_REGISTER(log_fp, "REG: XOR %02X %08X\n", get_rd(inst), IRS ^ IRT);
 				IRD = IRS ^ IRT;
 				break;
 			case ADDI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS + IMM);
+				D_REGISTER(log_fp, "REG: ADDI %02X %08X\n", get_rt(inst), IRS + IMM);
 				IRT = IRS + IMM;
 				break;
 			case SUBI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS - IMM);
+				D_REGISTER(log_fp, "REG: SUBI %02X %08X\n", get_rt(inst), IRS - IMM);
 				IRT = IRS - IMM;
 				break;
 			case MULI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS * IMM);
+				D_REGISTER(log_fp, "REG: MULI %02X %08X\n", get_rt(inst), IRS * IMM);
 				IRT = IRS * IMM;
 				break;
 			case SLLI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS << IMM);
+				D_REGISTER(log_fp, "REG: SLLI %02X %08X\n", get_rt(inst), IRS << IMM);
 				IRT = IRS << IMM;
 				break;
 			case SRAI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS >> IMM);
+				D_REGISTER(log_fp, "REG: SRAI %02X %08X\n", get_rt(inst), IRS >> IMM);
 				IRT = IRS >> IMM;
 				break;
 			case ANDI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS & IMM);
+				D_REGISTER(log_fp, "REG: ANDI %02X %08X\n", get_rt(inst), IRS & IMM);
 				IRT = IRS & IMM;
 				break;
 			case ORI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS | IMM);
+				D_REGISTER(log_fp, "REG: ORI %02X %08X\n", get_rt(inst), IRS | IMM);
 				IRT = IRS | IMM;
 				break;
 			case NORI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), ~(IRS | IMM));
+				D_REGISTER(log_fp, "REG: NORI %02X %08X\n", get_rt(inst), ~(IRS | IMM));
 				IRT = ~(IRS | IMM);
 				break;
 			case XORI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRS ^ IMM);
+				D_REGISTER(log_fp, "REG: XORI %02X %08X\n", get_rt(inst), IRS ^ IMM);
 				IRT = IRS ^ IMM;
 				break;
 			case FADD:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfadd(FRS, FRT));
+				D_REGISTER(log_fp, "REG: FADD f%02X %08X\n", get_rd(inst), myfadd(FRS, FRT));
 				FRD = myfadd(FRS, FRT);
 				break;
 			case FSUB:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfsub(FRS, FRT));
+				D_REGISTER(log_fp, "REG: FSUB f%02X %08X\n", get_rd(inst), myfsub(FRS, FRT));
 				FRD = myfsub(FRS, FRT);
 				break;
 			case FMUL:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfmul(FRS, FRT));
+				D_REGISTER(log_fp, "REG: FMUL f%02X %08X\n", get_rd(inst), myfmul(FRS, FRT));
 				FRD = myfmul(FRS, FRT);
 				break;
 			case FMULN:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfmul(FRS, -FRT));
+				D_REGISTER(log_fp, "REG: FMULN f%02X %08X\n", get_rd(inst), myfmul(FRS, -FRT));
 				FRD = myfmul(FRS, -FRT);
 				break;
 			case FINV:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfinv(FRS));
+				D_REGISTER(log_fp, "REG: FINV f%02X %08X\n", get_rd(inst), myfinv(FRS));
 				FRD = myfinv(FRS);
 				break;
 			case FSQRT:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfsqrt(FRS));
+				D_REGISTER(log_fp, "REG: FSQRT f%02X %08X\n", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
 				break;
 			case FMOV:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), FRS);
+				D_REGISTER(log_fp, "REG: FMOV f%02X %08X\n", get_rd(inst), FRS);
 				FRD = FRS;
 				break;
 			case FNEG:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), myfneg(FRS));
+				D_REGISTER(log_fp, "REG: FNEG f%02X %08X\n", get_rd(inst), myfneg(FRS));
 				FRD = myfneg(FRS);
 				break;
 			case IMOVF:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rt(inst), IRS);
+				D_REGISTER(log_fp, "REG: IMOVF f%02X %08X\n", get_rt(inst), IRS);
 				memcpy(&FRT, &IRS, 4);
 				break;
 			case FMOVI:
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), FRS);
+				D_REGISTER(log_fp, "REG: FMOVI %02X %08X\n", get_rt(inst), FRS);
 				memcpy(&IRT, &FRS, 4);
 				break;
 			case MVLO:
-        D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), (IRT & 0xffff0000) | (IMM & 0xffff));
+				D_REGISTER(log_fp, "REG: MVLO %02X %08X\n", get_rt(inst), (IRT & 0xffff0000) | (IMM & 0xffff));
 				IRT = (IRT & 0xffff0000) | (IMM & 0xffff);
 				break;
 			case MVHI:
-        D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (IRT & 0xffff));
+				D_REGISTER(log_fp, "REG: MVHI %02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (IRT & 0xffff));
 				IRT = ((uint32_t)IMM << 16) | (IRT & 0xffff);
 				break;
 			case FMVLO:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rt(inst), (FRT & 0xffff0000) | (IMM & 0xffff));
+				D_REGISTER(log_fp, "REG: FMVLO f%02X %08X\n", get_rt(inst), (FRT & 0xffff0000) | (IMM & 0xffff));
 				FRT = (FRT & 0xffff0000) | (IMM & 0xffff);
 				break;
 			case FMVHI:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
+				D_REGISTER(log_fp, "REG: FMVHI f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
 				FRT = ((uint32_t)IMM << 16) | (FRT & 0xffff);
 				break;
 			case J:
@@ -352,45 +368,44 @@ int simulate(char* srcPath)
 				pc = internal_stack[stack_pointer--];
 				break;
 			case LDR:
-        D_DATAFLOW("REG: %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				D_REGISTER(log_fp, "REG: LDR %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				IRD = RAM[(IRS + IRT)];
 				break;
 			case FLDR:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				D_REGISTER(log_fp, "REG: FLDR f%02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
-        D_DATAFLOW("MEM: %d %d\n", IRS+IMM, IRT);
+				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
 				assert(IRS + IMM >= 0);
 				RAM[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
-        D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
-				D_DATAFLOW("FSTI: RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
+				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
 				assert(IRS + IMM >= 0);
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
-				D_DATAFLOW("REG: f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
 				IRT = getchar() & 0xff;
-				D_DATAFLOW("REG: %02X %08X\n", get_rt(inst), IRT);
+				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
-				if (NO_DEBUG) {
+				if (opt->enable_stdout) {
 					printf("%c", (char)IRT);
-				} else {
-					D_IO("IO: %c\n", (char)IRT);
 				}
+				D_IO(log_fp, "IO: %c\n", (char)IRT);
 				break;
 			case HALT:
 				break;
@@ -401,24 +416,84 @@ int simulate(char* srcPath)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
-	// 発行命令数を表示
-	cerr << "\n" << cnt << " instructions had been issued" << endl;
-
 	return 0;
 } 
 
 int main(int argc, char** argv)
 {
-	if (argc <= 1)
-	{
-		cerr << "usage: ./simulator binaryfile" << endl;
+	int c;
+	int length = 0;
+
+	simulation_options opt;
+	opt.enable_stdout             = true;
+	opt.enable_record_instruction = false;
+	opt.enable_record_mem         = false;
+	opt.enable_record_register    = false;
+	opt.enable_record_io          = false;
+	opt.input_file                = NULL;
+	opt.target_binary             = NULL;
+
+	while (1) {
+		int option_index = 0;
+		static struct option long_options[] = {
+			{"reg",        no_argument,       0,  'r' },
+			{"inst",       no_argument,       0,  'i' },
+			{"mem",        no_argument,       0,  'm' },
+			{"io",         no_argument,       0,  'o' },
+			{"no-stdout",  no_argument,       0,  'S' },
+			{"input",      required_argument, 0,  'f' },
+			{0,            0,                 0,  0   }
+		};
+
+		c = getopt_long(argc, argv, "rimoSf:", long_options, &option_index);
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'r':
+			opt.enable_record_register = true;
+			break;
+
+		case 'i':
+			opt.enable_record_instruction = true;
+			break;
+
+		case 'm':
+			opt.enable_record_mem = true;
+			break;
+
+		case 'o':
+			opt.enable_record_io = true;
+			break;
+
+		case 'S':
+			opt.enable_stdout = false;
+			break;
+
+		case 'f':
+			length = strlen(optarg);
+			opt.input_file = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.input_file, optarg);
+			break;
+
+		default:
+			printf("?? getopt returned character code 0%o ??\n", c);
+		}
+	}
+
+	if (optind < argc) {
+		length = strlen(argv[optind]);
+		opt.target_binary = (char*)calloc(length + 1, sizeof(char));
+		strcpy(opt.target_binary, argv[optind]);
+	} else {
+		cerr << "usage: ./simulator [OPTIONS] binaryfile" << endl;
 		return 1;
 	}
 
-	load_tables();
+	load_tables(); // FPU
 	
-	cerr << "<simulate> ";
+	cerr << "<simulate> " << endl;
 
-	return simulate(argv[1]);
+	return simulate(&opt);
 }
 

@@ -12,3 +12,6 @@ __tmp__.*
 *.cmo
 *.log
 continuous_commit
+*.cmp
+compiler/coverage*.out
+compiler/report/

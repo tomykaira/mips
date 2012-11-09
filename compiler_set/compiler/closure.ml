@@ -96,9 +96,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
       let known', e1' =
 	if S.is_empty zs then known', e1' else
 	(* 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す *)
-	(Format.eprintf "free variable(s) %s found in function %s@." (Id.pp_list (S.elements zs)) x;
-	 Format.eprintf "function %s cannot be directly applied in fact@." x;
-	 toplevel := toplevel_backup;
+	(toplevel := toplevel_backup;
 	 let e1' = g (M.add_list yts env') known e1 in
 	 known, e1') in
       let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
@@ -108,10 +106,8 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
       if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
 	MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
       else
-	(Format.eprintf "eliminating closure(s) %s@." x;
-	 e2') (* 出現しなければMakeClsを削除 *)
+	e2' (* 出現しなければMakeClsを削除 *)
   | KNormal.App(x, ys) when S.mem x known -> (* 関数適用の場合 *)
-      Format.eprintf "directly applying %s@." x;
       AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> AppCls(f, xs)
   | KNormal.Tuple(xs) -> Tuple(xs)

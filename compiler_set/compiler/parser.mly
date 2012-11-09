@@ -22,7 +22,6 @@ let expand_nest nested tuple rest =
            List.fold_right (fun (tuple, ids) rest -> LetTuple(type_ids ids, Var tuple, rest)) !coll rest)
 %}
 
-/* 字句を表すデータ型の定義 */
 %token <bool> BOOL
 %token <int> INT
 %token <int> BIN
@@ -73,7 +72,7 @@ let expand_nest nested tuple rest =
 %token R_ARRAY_BRACKET
 %token ARRAY_INIT
 
-/* 優先順位とassociativityの定義（低い方から高い方へ) */
+/* low to high */
 %right prec_let
 %right prec_semicolon
 %right DOUBLE_COLON
@@ -92,13 +91,12 @@ let expand_nest nested tuple rest =
 %left DOT
 %right BANG
 
-/* 開始記号の定義 */
 %type <Syntax.t> exp
 %start exp
 
 %%
 
-simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
+simple_exp:
 | LPAREN exp RPAREN
     { $2 }
 | LPAREN RPAREN
@@ -117,7 +115,8 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 */
     { Get($2, Int(0)) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
-exp: /* 一般の式 */
+
+exp:
 | simple_exp
     { $1 }
 | NOT exp
@@ -132,7 +131,7 @@ exp: /* 一般の式 */
     { match $2 with
     | Float(f) -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
     | e -> Neg(e) }
-| exp PLUS exp /* 足し算を構文解析するルール */
+| exp PLUS exp
     { Add($1, $3) }
 | exp MINUS exp
     { Sub($1, $3) }
@@ -189,6 +188,8 @@ exp: /* 一般の式 */
 | exp actual_args
     %prec prec_app
     { match ($1, $2) with
+      | (Var("lsl"), [x;Int(y)]) -> Sll(x, y)
+      | (Var("lsr"), [x;Int(y)]) -> Sra(x, y)
       | (Var("create_array"), [x;y]) -> Array(x, y)
       | _ -> App($1, $2) }
 | elems

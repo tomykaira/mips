@@ -67,10 +67,8 @@ let rec alloc dest cont regenv x t =
       List.find
         (fun r -> not (S.mem r live))
         (prefer @ all) in
-    (* Format.eprintf "allocated %s to %s@." x r; *)
     Alloc(r)
   with Not_found ->
-    Format.eprintf "register allocation failed for %s@." x;
     let y = (* 型の合うレジスタ変数を探す *)
       List.find
         (fun y ->
@@ -78,7 +76,6 @@ let rec alloc dest cont regenv x t =
           try List.mem (M.find y regenv) all
           with Not_found -> false)
         (List.rev free) in
-    Format.eprintf "spilling %s from %s@." y (M.find y regenv);
     Spill(y)
 
 (* auxiliary function for g and g'_and_restore *)
@@ -113,8 +110,7 @@ let rec g dest cont regenv = function (* 命令列のレジスタ割り当て. c
 and g'_and_restore dest cont regenv exp = (* 使用される変数をスタックからレジスタへRestore *)
   try g' dest cont regenv exp
   with NoReg(x, t) ->
-    ((* Format.eprintf "restoring %s@." x; *)
-     g dest cont regenv (Let((x, t), Restore(x), Ans(exp))))
+     g dest cont regenv (Let((x, t), Restore(x), Ans(exp)))
 and g' dest cont regenv = function (* 各命令のレジスタ割り当て *)
   | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ as exp -> (Ans(exp), regenv)
   | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv)

@@ -200,6 +200,6 @@ let rec g env e = (* 型推論ルーチン *)
 let f e =
   extenv := M.empty;
   (try unify Type.Unit (g M.empty e)
-  with Unify _ -> (* failwith *) Printf.eprintf "Warning : top level does not have type unit\n");
+  with Unify _ -> Printf.eprintf "Warning : top level does not have type unit\n");
   extenv := M.map deref_typ !extenv;
   deref_term e
