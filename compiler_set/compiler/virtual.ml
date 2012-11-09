@@ -53,7 +53,7 @@ let expand_let_list (variables:Id.t list) typ root_list_var rest =
 
 
 (* 式の仮想マシンコード生成 *)
-let rec g env = function 
+let rec g env e = match e with
   | Closure.Unit   -> Ans(Nop)
   | Closure.Int(i) -> Ans(Int(i))
   | Closure.Float(d) -> Ans(Float(d))
@@ -72,7 +72,10 @@ let rec g env = function
       (match M.find x env with
       | Type.Bool | Type.Int -> Ans(IfEq(x, y, g env e1, g env e2))
       | Type.Float -> Ans(IfFEq(x, y, g env e1, g env e2))
-      | _ -> failwith "equality supported only for bool, int, and float")
+      | typ -> failwith (
+	Printf.sprintf"equality supported only for bool, int, and float, but is %s\n%s"
+	  (Type.show typ)
+	  (Show.show<Closure.t> e)))
   | Closure.IfLE(x, y, e1, e2) ->
       (match M.find x env with
       | Type.Bool | Type.Int -> Ans(IfLE(x, y, g env e1, g env e2))
@@ -181,8 +184,21 @@ let rec g env = function
     Let((reg_hp, Type.Int), AddI(reg_hp, 2),
     seq (typed_store x new_list 0, seq (StI(y, new_list, 1), Ans(AddI(new_list, 0))))))
   | Closure.LetList((matcher, typ), list_id, rest) ->
+    (* Here, a variable should not have Var type, but the content of it (s.t. Float) *)
+    let add_list_matcher_with_direct_type matcher typ env = 
+      let add_type_variables matcher typ =
+	match matcher with
+	  | Syntax.ListWithNil(variables) -> List.map (fun v -> (v, typ)) variables
+	  | Syntax.ListWithoutNil(variables) ->
+	    let reversed   = List.rev variables in
+	    let list_var   = List.hd reversed in
+	    let other_vars = List.tl reversed in
+	    (list_var, Type.List(ref (Some typ))) :: (List.map (fun v -> (v, typ)) other_vars)
+      in
+      M.add_list (add_type_variables matcher typ) env
+    in
     let expanded_rest =
-      g (M.add_list_matcher matcher (ref (Some typ)) env) rest
+      g (add_list_matcher_with_direct_type matcher typ env) rest
     in
     (
       match matcher with
