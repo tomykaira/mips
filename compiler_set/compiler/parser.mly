@@ -189,6 +189,8 @@ exp: /* 一般の式 */
 | exp actual_args
     %prec prec_app
     { match ($1, $2) with
+      | (Var("lsl"), [x;Int(y)]) -> Sll(x, y)
+      | (Var("lsr"), [x;Int(y)]) -> Sra(x, y)
       | (Var("create_array"), [x;y]) -> Array(x, y)
       | _ -> App($1, $2) }
 | elems

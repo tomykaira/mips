@@ -319,3 +319,8 @@ let rec print_int x =
 				(print_char (48 + tx); true) in
 		(* 1の位を表示 *)
 		print_char (48 + x) in
+
+let rec mod a b =
+	let d = div a b in
+	a - (b * d)
+in

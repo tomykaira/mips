@@ -387,3 +387,7 @@ LOG_LOOP_GT_E_END:
 	fadd $f0, $f0, $f1
 LOG_END:
 	return
+
+min_caml_land:
+	and $r3, $r3, $r4
+	return
