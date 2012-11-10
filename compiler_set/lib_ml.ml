@@ -168,7 +168,7 @@ let rec read_float _ =
 
 (* / 2, * 2はparser.mlyで左・右シフトに変換されるので使ってよい *)
 let rec mul_sub a b =
-  if b = 0 then 0
+  if a = 0 or b = 0 then 0
   else (
     let b_mod_2 = b - (b / 2) * 2 in
     if b_mod_2 = 0 then
