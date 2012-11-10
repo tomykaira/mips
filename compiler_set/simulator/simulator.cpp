@@ -500,13 +500,12 @@ int simulate(simulation_options * opt)
 				}
 				D_IO(log_fp, "IO: %c\n", (char)IRT);
 				break;
-			case HALT:
-				for (int i = 0; i < 32; i ++) {
+			case DEBUG:
+				for (int i = 3; i <= 5; i ++) {
 					printf("\t%02d: %08x\n", i, ireg[i]);
 				}
-				for (int i = 0; i < stack_pointer; i ++) {
-					printf("\t%2d %d\n", i, internal_stack[i]);
-				}
+				break;
+			case HALT:
 				break;
 			default:
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
