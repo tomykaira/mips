@@ -196,7 +196,7 @@ int simulate(simulation_options * opt)
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)];
 
-		D_INSTRUCTION(log_fp, "INST: %08x\n", inst);
+		D_INSTRUCTION(log_fp, "INST: %08x %08x\n", pc, inst);
 
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
