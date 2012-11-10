@@ -166,69 +166,56 @@ let rec read_float _ =
   else
     -. ans in
 
-(* / 2, * 2はparser.mlyで左・右シフトに変換されるので使ってよい *)
-let rec mul_sub a b =
-  if a = 0 or b = 0 then 0
-  else (
-    let b_mod_2 = b - (b / 2) * 2 in
-    if b_mod_2 = 0 then
-      (mul_sub (a * 2) (b / 2))
-    else
-      (mul_sub (a * 2) (b / 2)) + a
-  ) in
+let rec print_int_10000 x flg =
 
-let rec mul a b =
-  if b < 0 then 
-    mul_sub (-a) (-b)
-  else
-    mul_sub a b in
-
-let rec div_binary_search a b left right =
-  let mid = (left + right) / 2 in
-  let x = mid * b in
-  if right - left <= 1 then
-    left
-  else
-    if x < a then
-      div_binary_search a b mid right
-    else if x = a then
-      mid
-    else
-      div_binary_search a b left mid in
-
-let rec div_sub a b left =
-  if mul (b * 2) left  <= a then
-    div_sub a b (left * 2)
-  else
-    div_binary_search a b left (left * 2) in
-
-let rec div a b =
-  (* bは0ではない *)
-  let abs_a = if a >= 0 then a else -a in
-  let abs_b = if b >= 0 then b else -b in
-  if abs_a < abs_b then
-    0
-  else (
-    let ans = div_sub abs_a abs_b 1 in
-    if a >= 0 then (
-      if b >= 0 then
-        ans
+    (* 1000の位を表示 *)
+    let tx = div_binary_search x 1000 0 10 in
+    let dx = tx * 1000 in
+    let x = x - dx in
+    let flg = 
+      if tx <= 0 then
+        (if flg then
+          (print_char (48 + tx); true)
+        else
+          false)
       else
-        -ans
-    )
-    else (
-      if b >= 0 then
-        -ans
+        (print_char (48 + tx); true) in
+    (* 100の位を表示 *)
+    let tx = div_binary_search x 100 0 10 in
+    let dx = tx * 100 in
+    let x = x - dx in
+    let flg = 
+      if tx <= 0 then
+        (if flg then
+          (print_char (48 + tx); true)
+        else
+          false)
       else
-        ans
-    )
-  ) in
+        (print_char (48 + tx); true) in
+    (* 10の位を表示 *)
+    let tx = div_binary_search x 10 0 10 in
+    let dx = tx * 10 in
+    let x = x - dx in
+    let flg = 
+      if tx <= 0 then
+        (if flg then
+          (print_char (48 + tx); true)
+        else
+          false)
+      else
+        (print_char (48 + tx); true) in
+    (* 1の位を表示 *)
+    print_char (48 + x)
+in
 
 (* print_int div命令を使わない版 *)
 let rec print_int x =
   if x < 0 then
     (print_char 45; print_int (-x))
   else
+    if x < 10000 then
+      print_int_10000 x false
+    else
     (* 100000000の位を表示 *)
     let tx = div_binary_search x 100000000 0 3 in
     let dx = tx * 100000000 in
@@ -288,45 +275,8 @@ let rec print_int x =
           false)
       else
         (print_char (48 + tx); true) in
-
-    (* 1000の位を表示 *)
-    let tx = div_binary_search x 1000 0 10 in
-    let dx = tx * 1000 in
-    let x = x - dx in
-    let flg = 
-      if tx <= 0 then
-        (if flg then
-          (print_char (48 + tx); true)
-        else
-          false)
-      else
-        (print_char (48 + tx); true) in
-    (* 100の位を表示 *)
-    let tx = div_binary_search x 100 0 10 in
-    let dx = tx * 100 in
-    let x = x - dx in
-    let flg = 
-      if tx <= 0 then
-        (if flg then
-          (print_char (48 + tx); true)
-        else
-          false)
-      else
-        (print_char (48 + tx); true) in
-    (* 10の位を表示 *)
-    let tx = div_binary_search x 10 0 10 in
-    let dx = tx * 10 in
-    let x = x - dx in
-    let flg = 
-      if tx <= 0 then
-        (if flg then
-          (print_char (48 + tx); true)
-        else
-          false)
-      else
-        (print_char (48 + tx); true) in
-    (* 1の位を表示 *)
-    print_char (48 + x) in
+    print_int_10000 x flg
+in
 
 let rec mod a b =
   let d = div a b in
