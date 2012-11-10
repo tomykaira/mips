@@ -112,7 +112,7 @@ funcomp gcd join-reg join-reg2 join-stack join-stack2 \
 join-stack3 let-array let-fun list list2 list-float matmul \
 matmul-flat multest nest-tuple non-tail-if2 pattern \
 print-char print ref ref2 shuffle spill spill2 spill3 \
-sum-tail tuple-fv tuple2 tuple3
+sum-tail tuple-fv tuple2 tuple3 tuple-return
 
 # tests whose result can be different because of FPU, or
 # ocaml cannot process
