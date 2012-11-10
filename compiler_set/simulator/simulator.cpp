@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
+#include <errno.h>
 #include "fpu.h"
 
 // 命令の各要素にアクセスする関数を定義
@@ -121,6 +123,26 @@ typedef struct _options {
 
 #define toggle_endian(data) ((data << 24) | ((data << 8) & 0x00ff0000) | ((data >> 8) & 0x0000ff00) | ((data >> 24) & 0x000000ff))
 
+volatile bool step = false;
+
+void disable_blocking() {
+	int flags = fcntl(0, F_GETFL);
+	flags |= O_NONBLOCK;
+	if (fcntl(0, F_SETFL, flags) != 0){
+		perror("fcntl");
+		exit(1);
+	}
+}
+
+void enable_blocking() {
+	int flags = fcntl(0, F_GETFL);
+	flags ^= O_NONBLOCK;
+	if (fcntl(0, F_SETFL, flags) != 0){
+		perror("fcntl");
+		exit(1);
+	}
+}
+
 //-----------------------------------------------------------------------------
 //
 // シミュレート
@@ -129,11 +151,12 @@ typedef struct _options {
 int simulate(simulation_options * opt)
 {
 	uint32_t inst;
-
+	int print_count=-1;
 	uint8_t opcode, funct;
 	
 	int internal_stack[CALL_STACK_SIZE];
 	int stack_pointer = 0;
+	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
 
 	// バイナリを読み込む
@@ -197,6 +220,55 @@ int simulate(simulation_options * opt)
 		inst = ROM[rom_addr(pc)];
 
 		D_INSTRUCTION(log_fp, "INST: %08x %08x\n", pc, inst);
+
+		if (!step && !(cnt % (1000000))) {
+			if (read(0, command, 1) != -1) {
+				step = true;
+				enable_blocking();
+			} else {
+				if (errno != EAGAIN && errno != EWOULDBLOCK) {
+					perror("read");
+					exit(1);
+				}
+			}
+		}
+		if (print_count > 0) {
+			printf("%08x: %08x\n", pc, inst);
+		  print_count --;
+		} else if (print_count = 0) {
+			print_count = -1;
+			step = true;
+			enable_blocking();
+		}
+		if (step) {
+			printf("%08x: %08x\n", pc, inst);
+			printf("> ");
+			scanf("%s", command);
+			switch (command[0]) {
+			case 's':
+				step = true;
+				break;
+			case '1':
+				print_count = 100;
+				disable_blocking();
+				step = false;
+				break;
+			case 'r':
+				for (int i = 0; i < 32; i ++) {
+					printf("\t%02d: %08x\n", i, ireg[i]);
+				}
+				break;
+			case 'f':
+				for (int i = 0; i < 32; i ++) {
+					printf("\t%02d: %08x\n", i, freg[i]);
+				}
+				break;
+			case 'c':
+				disable_blocking();
+				step = false;
+				break;
+			}
+		}
 
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
@@ -504,6 +576,8 @@ int main(int argc, char** argv)
 		cerr << "usage: ./simulator [OPTIONS] binaryfile" << endl;
 		return 1;
 	}
+
+	disable_blocking();
 
 	load_tables(); // FPU
 	
