@@ -219,7 +219,7 @@ int simulate(simulation_options * opt)
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)];
 
-		D_INSTRUCTION(log_fp, "INST: %08x %08x\n", pc, inst);
+		D_INSTRUCTION(log_fp, "INST: %8d %08x\n", pc, inst);
 
 		if (!step && !(cnt % (1000000))) {
 			if (read(0, command, 1) != -1) {
@@ -233,7 +233,7 @@ int simulate(simulation_options * opt)
 			}
 		}
 		if (print_count > 0) {
-			printf("%08x: %08x\n", pc, inst);
+			printf("%8d: %08x\n", pc, inst);
 		  print_count --;
 		} else if (print_count = 0) {
 			print_count = -1;
@@ -241,7 +241,7 @@ int simulate(simulation_options * opt)
 			enable_blocking();
 		}
 		if (step) {
-			printf("%08x: %08x\n", pc, inst);
+			printf("%8d: %08x\n", pc, inst);
 			printf("> ");
 			scanf("%s", command);
 			switch (command[0]) {
