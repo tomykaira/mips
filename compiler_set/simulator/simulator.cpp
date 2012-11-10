@@ -457,31 +457,37 @@ int simulate(simulation_options * opt)
 			case LDR:
 				D_REGISTER(log_fp, "REG: LDR %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
+				assert(IRS + IRT < RAM_SIZE);
 				IRD = RAM[(IRS + IRT)];
 				break;
 			case FLDR:
 				D_REGISTER(log_fp, "REG: FLDR f%02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
+				assert(IRS + IRT < RAM_SIZE);
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
 				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
 				assert(IRS + IMM >= 0);
+				assert(IRS + IMM < RAM_SIZE);
 				RAM[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
 				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
+				assert(IRS + IMM < RAM_SIZE);
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
 				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
 				assert(IRS + IMM >= 0);
+				assert(IRS + IMM < RAM_SIZE);
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
 				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
+				assert(IRS + IMM < RAM_SIZE);
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
@@ -495,6 +501,12 @@ int simulate(simulation_options * opt)
 				D_IO(log_fp, "IO: %c\n", (char)IRT);
 				break;
 			case HALT:
+				for (int i = 0; i < 32; i ++) {
+					printf("\t%02d: %08x\n", i, ireg[i]);
+				}
+				for (int i = 0; i < stack_pointer; i ++) {
+					printf("\t%2d %d\n", i, internal_stack[i]);
+				}
 				break;
 			default:
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
