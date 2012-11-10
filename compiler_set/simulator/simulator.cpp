@@ -39,7 +39,7 @@ uint32_t freg[INTREG_NUM];
 uint32_t lreg;
 
 // いいかげんな call stack
-#define CALL_STACK_SIZE 65535
+#define CALL_STACK_SIZE (1 << 20)
 
 // 即値
 #define IMM get_imm(inst)
@@ -84,8 +84,10 @@ long long unsigned cnt;
 
 // ROM
 uint32_t ROM[ROM_NUM];
+
+#define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
 // RAM
-uint32_t RAM[(int)(RAM_NUM*1024*1024/4)];
+uint32_t RAM[RAM_SIZE];
 // プログラムカウンタ
 uint32_t pc;
 
@@ -188,6 +190,8 @@ int simulate(simulation_options * opt)
 			cerr << "error> Heap Register(reg[2]) has become less than 0." << endl;
 			break;
 		}
+		assert(FR < RAM_SIZE);
+		assert(HR < RAM_SIZE);
 
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)];

@@ -255,8 +255,8 @@ let f oc (Prog(fundefs, e)) =
   List.iter (fun fundef -> h oc fundef) fundefs;
   Printf.fprintf oc "min_caml_start:\n";
   Printf.fprintf oc "\taddi\t%s, %s, 1\n" reg_hp reg_0;
-  Printf.fprintf oc "\tmvlo\t%s, 65535\n" reg_fp;
-  Printf.fprintf oc "\tmvhi\t%s, 31\n" reg_fp;
+  Printf.fprintf oc "\tmvlo\t%s, 65535\n" reg_fp; (* 512MB *)
+  Printf.fprintf oc "\tmvhi\t%s, 2047\n" reg_fp;
   stackset := S.empty;
   stackmap := [];
   g oc (NonTail("$r0"), e);
