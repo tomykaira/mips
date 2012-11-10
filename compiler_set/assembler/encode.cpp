@@ -88,7 +88,6 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	uint32_t rt = 0;
 	uint32_t rd = 0;
 	uint32_t imm = 0;
-	double d = 0;
 	char label[MAX_LINE_SIZE];
 	char dummy[MAX_LINE_SIZE];
 
@@ -614,8 +613,6 @@ vector<bool> mnemonic(char* instName, char mnemonicBuffer[][MAX_LINE_SIZE], map<
 {
 	uint32_t rs = 0;
 	uint32_t rt = 0;
-	uint32_t rd = 0;
-	uint32_t imm = 0;
 	double d = 0;
 	char label[MAX_LINE_SIZE];
 	char dummy[MAX_LINE_SIZE];
@@ -643,7 +640,7 @@ vector<bool> mnemonic(char* instName, char mnemonicBuffer[][MAX_LINE_SIZE], map<
 	{
 		if (sscanf(mnemonicBuffer[0], formRR, dummy, &rt, &rs) == 3)
 		{
-			sprintf(mnemonicBuffer[0], "nor\t$r%d, $r%d, $r0", rt, rs, rs);
+			sprintf(mnemonicBuffer[0], "nor\t$r%d, $r%d, $r0", rt, rs);
 			useLabels.push_back(false);
 		}
 		return	useLabels;
