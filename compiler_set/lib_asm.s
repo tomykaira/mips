@@ -254,13 +254,13 @@ min_caml_exp:
 	fmvhi $f4, 16312
 	fmvlo $f4, 43579
 	fmul $f0, $f0, $f4
-	addi $r1, $r1, 2
+	subi $r1, $r1, 2
 	call min_caml_floor
-	subi $r1, $r1, 2
-	fsti $f0, $r1, 1
 	addi $r1, $r1, 2
-	call min_caml_int_of_float
+	fsti $f0, $r1, 1
 	subi $r1, $r1, 2
+	call min_caml_int_of_float
+	addi $r1, $r1, 2
 	# px = $f0, x = $f1, C1 = f3, C2 = f4
 	fldi $f1, $r1, 0
 	fldi $f0, $r1, 1
@@ -379,10 +379,10 @@ LOG_LOOP_GT_E_END:
 	fadd $f2, $f2, $f3
 
 	fsti $f2, $r1, 0
-	addi $r1, $r1, 1
+	subi $r1, $r1, 1
 	# y = $r3 to $f0
 	call min_caml_float_of_int
-	subi $r1, $r1, 1
+	addi $r1, $r1, 1
 	fldi $f1, $r1, 0
 	fadd $f0, $f0, $f1
 LOG_END:
