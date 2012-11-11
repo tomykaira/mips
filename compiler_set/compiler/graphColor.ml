@@ -5,7 +5,7 @@ open Asm
 (* ノードの状態を示すデータ型 *)
 type info =
   | Colored of Id.t
-  | Prefer of Id.t list
+  | Prefer of Id.t list * Id.t list
 
 (* デバッグ用関数 *)
 let print_env env =
@@ -17,7 +17,7 @@ let print_graph g =
 let print_colored_graph g =
   let q = function
     | Colored c -> c
-    | Prefer p -> "p("^String.concat "," p^")" in
+    | Prefer (p,s) -> "p("^String.concat "," p ^ " // "^ String.concat "," s ^")" in
   M.iter (fun x (y,_) -> Format.eprintf "%s:%s " x (q y)) g;
   Format.eprintf "@."
 
@@ -110,7 +110,7 @@ let color cs regenv prefer g s =
 	    let k =
 	      try List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
 	      with Not_found -> [] in
-	    Prefer k in
+	    Prefer (k, []) in
 	(y, l))
       g in
   let s1 =
@@ -123,49 +123,74 @@ let color cs regenv prefer g s =
 	    with Not_found -> try [M.find x regenv]
 	    with Not_found -> try (List.filter (fun x -> List.mem x allfregs) (M.find x prefer))
 	    with Not_found -> [] in
-	  Prefer k in
+	  Prefer (k,[]) in
 	(y, l))
       s in
+
+  (* 他の変数の塗りたい色に塗るのはなるべく避ける *)
+  let add_hate x l g =
+    try (match M.find x g with
+    | (Prefer(p,s),k) -> M.add x (Prefer(p, l@s),k) g
+    | _ -> g)
+    with Not_found -> g in
+  let add_hates x (y,l) g =
+    match y with
+	| Colored(c) -> List.fold_left (fun g z -> add_hate z [c] g) g l
+	| Prefer(p,_) -> List.fold_left (fun g z -> add_hate z p g) g l in
+  let g2 = M.fold add_hates s1 (M.fold add_hates g1 g1) in
+  let s2 = M.fold add_hates s1 s1 in
 
   (* ノードに対し彩色する補助関数 *)
   (* 1次版 *)
   let col1 x y g =
     match y with
-    | (Colored _, _) -> M.add x y g
-    | (Prefer p, l) ->
+    | (Prefer (p, s), l) ->
         let (p',q') = List.partition (fun x -> is_reg x) p in
+	let rec add x r = function
+	  | [] -> (1,x)::r
+	  | (n,y)::ys when x = y -> (n+1,y)::r@ys
+	  | y::ys -> add x (y::r) ys in
+	let rec count r = function
+	  | [] -> r
+	  | x::xs -> count (add x [] r) xs in
+	let p'' = List.map snd (List.sort (fun x y -> compare y x) (count [] p')) in
+	let (p2, p1) = List.partition (fun x -> List.mem x s) p'' in
 	let y =
-	  try Colored(List.find (fun c -> able c l g) p')
-	  with Not_found -> Prefer q' in
-        M.add x (y, l) g in
+	  try Colored(List.find (fun c -> able c l g) (p1@p2))
+	  with Not_found -> Prefer (q', s) in
+        M.add x (y, l) g
+    | _ -> M.add x y g in
+
   (* 2次版 *)
   let col2 x y g =
     match y with
-    | (Colored _, _) -> M.add x y g
-    | (Prefer p, l) ->
+    | (Prefer (p,s), l) ->
         let q' = List.fold_left
 	            (fun q' x -> match M.find x g with
 	                         | (Colored(c),_) -> c::q'
 		                 | _ -> q')
 	            []
   	            p in
-        M.add x (Colored(List.find (fun c -> able c l g) (q'@cs)), l) g in
+	let (q2, q1) = List.partition (fun x -> List.mem x s) q' in
+	let (cs2, cs1) = List.partition (fun x -> List.mem x s) cs in
+        M.add x (Colored(List.find (fun c -> able c l g) (q1@q2@cs1@cs2)), l) g
+    | (Colored _, _) -> M.add x y g in
 
   (* グラフをpreferにしたがって彩色 *)
-  let g2 = M.fold col1 g1 g1 in
-  let g3 = M.fold col2 g2 g2 in
+  let g3 = M.fold col1 g2 g2 in
+  let g4 = M.fold col2 g3 g3 in
 
   (* spillされた変数のうち,実は彩色できるものを彩色.残りは後で適当に塗る。 *)
   let el = function
-    | (Prefer p, l) -> (Prefer (List.filter is_reg p), l)
+    | (Prefer (p, s), l) -> (Prefer (List.filter is_reg p, s), l)
     | c -> c in
-  let g4 = M.fold col1 s1 g3 in
-  let g5 =
+  let g5 = M.fold col1 s2 g4 in
+  let g6 =
     M.fold
-      (fun x y g2' -> (try col2 x y g2' with Not_found -> M.add x (el y) g2'))
-      g4
-      g4 in
-  M.map fst g5
+      (fun x y g5 -> (try col2 x y g5 with Not_found -> M.add x (el y) g5))
+      g5
+      g5 in
+  M.map fst g6
 
 
 

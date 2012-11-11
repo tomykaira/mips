@@ -62,6 +62,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
+  | SAlloc of int
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 
@@ -96,7 +97,7 @@ let rec remove_and_uniq xs = function
 
 (* free variables in the order of use (for spilling) *)
 let rec fv_exp = function
-  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) -> []
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | SAlloc(_)-> []
 
   | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_) | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x)
@@ -123,7 +124,8 @@ let fv e = remove_and_uniq S.empty (fv e)
 let rec fv_int_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
-  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) -> []
+  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) | SAlloc(_)
+    -> []
   | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
   | FStI(_,x,_)   -> [x]
@@ -146,7 +148,7 @@ let rec fv_float_exp = function
   | Sub(_,_) | Mul(_,_) | And(_,_) | Or(_,_) | Nor(_,_) | Xor(_,_) | AddI(_,_)
   | SubI(_,_) | MulI(_,_) | AndI(_,_) | OrI(_,_) | NorI(_,_) | XorI(_,_)
   | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
-  | StI(_,_,_) | FLdR(_,_)| Save(_,_) -> []  
+  | StI(_,_,_) | FLdR(_,_)| Save(_,_) | SAlloc(_) -> []  
   | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) -> [x]
   | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y) ->
       [x;y]
@@ -241,9 +243,9 @@ let rec dbprint n exp =
   | CallDir (Id.L l, i, f) -> Printf.eprintf "CallDir %s  I(%s), F(%s)\n%!" l (String.concat "," i) (String.concat "," f)
   | Save (a, b) -> Printf.eprintf "Save %s %s\n%!" a b
   | Restore (a) -> Printf.eprintf "Restore %s\n%!" a
+  | SAlloc (a) -> Printf.eprintf "SAlloc %d\n%!" a
 
 
-(************************************************************************)
 (* デバッグ用関数. tを出力 *)
 and dbprint2 n t =
   ind n;

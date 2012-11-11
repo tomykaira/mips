@@ -39,6 +39,10 @@ let rec find env m r = function
       (try let t = List.assoc [x;y] m in
           find (addre s t env) m (x::r) (y::xs)
       with Not_found -> find env (([x;y],s)::m) (x::Label s::r) (y::xs))
+  | (Label s)::x::(Label u as y)::xs ->
+      (try let t = List.assoc [x;J u] m in
+          find (addre s t env) m (x::r) (y::xs)
+      with Not_found -> find env (([x;J u],s)::m) (x::Label s::r) (y::xs))
   | x::xs -> find env m (x::r) xs
   
 
@@ -59,6 +63,8 @@ and rename env r = function
       rename env r (FBLT(x, y, M.find l env)::xs)
   | FBLE(x, y, l)::xs when M.mem l env ->
       rename env r (FBLE(x, y, M.find l env)::xs)
+  | J l::xs when M.mem l env && M.find l env = !ret ->
+      rename env (Return::r) xs 
   | J l::xs when M.mem l env ->
       rename env r (J (M.find l env)::xs)
   | Call l::xs when M.mem l env ->

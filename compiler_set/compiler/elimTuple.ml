@@ -49,6 +49,8 @@ let rec g env1 env2= function
       else LetTuple(xts, y', g env1 env2 e)
   | Get(x, y) -> Get(find x env2, find y env2)
   | Put(x, y, z) -> Put(find x env2, find y env2, find z env2)
+  | GetTuple(x, y) ->
+      GetTuple(find x env2, find y env2)
   | PutTuple(x, y, zs) ->
       PutTuple(find x env2, find y env2, List.map (fun z -> find z env2) zs)
   | e -> e

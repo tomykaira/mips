@@ -1,34 +1,64 @@
-open KNormal
+open ANormal
 
-let rec effect = function (* 副作用の有無 *)
-  | Let(_, e1, e2) | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) -> effect e1 || effect e2
-  | LetRec(_, e) | LetTuple(_, _, e) -> effect e
+let before = ref (Ans(Unit))
+
+let rec effect env = function (* 副作用の有無 *)
+  | Let(_, exp, e) -> effect' env exp || effect env e
+  | LetRec(_, e) | LetTuple(_, _, e) -> effect env e
+  | Ans(exp) -> effect' env exp
+and effect' env = function
+  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) -> effect env e1 || effect env e2
   (* 副作用の無いライブラリ関数 *)
   | ExtFunApp (("create_array" | "create_float_array" | "create_tuple_array" | "floor" | "ceil" | "float_of_int" | "int_of_float" | "truncate" | "not" | "xor" | "sqrt"  | "atan" | "tan" | "sin" | "cos" ), _) -> false
+  | App (x, _) when S.mem x env -> false
   | App _ | Put _  | ExtFunApp _ -> true
   | _ -> false
 
-let rec f' = function (* 不要定義削除ルーチン本体 *)
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, f' e1, f' e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, f' e1, f' e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, f' e1, f' e2)
-  | Let((x, t), e1, e2) -> (* letの場合 *)
-      let e1' = f' e1 in
-      let e2' = f' e2 in
-      if effect e1' || S.mem x (fv e2') then Let((x, t), e1', e2')
-      else e2'
+let rec g env = function (* 不要定義削除ルーチン本体 *)
+  | Let((x, t), exp, e) -> (* letの場合 *)
+      let (exp', fvs') = g' env exp in
+      let (e', fvs) = g env e in
+      if effect' env exp' || S.mem x (fv e') then
+	if e' = Ans(Unit) then (Ans(exp'), fvs') else
+	(Let((x, t), exp', e'), S.union fvs' (S.remove x fvs))
+      else (e', fvs)
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* let recの場合 *)
-      let e2' = f' e2 in
-      if S.mem x (fv e2') then
-	LetRec({ name = (x, t); args = yts; body = f' e1 }, e2')
-      else e2'
+      let env' =
+	let env' = S.add x env in
+        if effect env' e1 then env else env' in
+      let (e2', fvs2) = g env' e2 in
+      if S.mem x fvs2 then
+	let (e1', fvs1) = g env' e1 in
+	(LetRec({ name = (x, t); args = yts; body = e1' }, e2'), S.remove x (S.union (S.diff fvs1 (S.of_list (List.map fst yts))) fvs2))
+      else (e2', fvs2)
   | LetTuple(xts, y, e) ->
       let xs = List.map fst xts in
-      let e' = f' e in
-      let live = fv e' in
-      if List.exists (fun x -> S.mem x live) xs then LetTuple(xts, y, e')
-      else e'
-  | e -> e
+      let (e', fvs) = g env e in
+      if List.exists (fun x -> S.mem x fvs) xs then
+	(LetTuple(xts, y, e'), S.add y (S.diff fvs (S.of_list (List.map fst xts))))
+      else (e', fvs)
+  | Ans(exp) ->
+      let (exp', fvs) = g' env exp in
+      (Ans(exp'), fvs)
+and g' env = function
+  | IfEq(x, y, e1, e2) ->
+      let (e1', fvs1) = g env e1 in
+      let (e2', fvs2) = g env e2 in
+      if e1' = Ans(Unit) && e2' = Ans(Unit) then (Unit, S.empty) else
+      (IfEq(x, y, e1', e2'), S.add x (S.add y (S.union fvs1 fvs2)))
+  | IfLE(x, y, e1, e2) -> 
+      let (e1', fvs1) = g env e1 in
+      let (e2', fvs2) = g env e2 in
+      if e1' = Ans(Unit) && e2' = Ans(Unit) then (Unit, S.empty) else
+      (IfLE(x, y, e1', e2'), S.add x (S.add y (S.union fvs1 fvs2)))
+  | IfLT(x, y, e1, e2) -> 
+      let (e1', fvs1) = g env e1 in
+      let (e2', fvs2) = g env e2 in
+      if e1' = Ans(Unit) && e2' = Ans(Unit) then (Unit, S.empty) else
+      (IfLT(x, y, e1', e2'), S.add x (S.add y (S.union fvs1 fvs2)))
+  | exp -> (exp, fv' exp)
 
 let f e = Format.eprintf "eliminating variables and functions...@.";
-          f' e
+          let e' = fst (g S.empty e) in
+	  (*before := e';*)
+	  e'

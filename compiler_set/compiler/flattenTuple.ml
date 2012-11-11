@@ -5,12 +5,12 @@ open Closure
 (* 型を受け取り,その中のネストしたタプルを平坦化する関数 *)
 let rec flat' = function
   | [] -> []
-  | (Type.Tuple ys)::xs -> flat' (ys@xs)
+  | (Type.Tuple (ys,_))::xs -> flat' (ys@xs)
   | x::xs -> flat x::flat' xs
 and flat = function
-  | Type.Tuple(ts) -> Type.Tuple(flat' ts)
-  | Type.Fun(xs, y) -> Type.Fun(List.map flat xs, flat y)
-  | Type.Array(t) -> Type.Array(flat t)
+  | Type.Tuple(ts,b) -> Type.Tuple(flat' ts, b)
+  | Type.Fun(xs, y,b) -> Type.Fun(List.map flat xs, flat y, b)
+  | Type.Array(t,b) -> Type.Array(flat t, b)
   | t -> t
 
 
@@ -18,9 +18,9 @@ and flat = function
    返り値の第2引数は,展開された変数の集合 *)
 let rec g' r tup = function
   | [] -> (List.rev r, tup)
-  | (x, Type.Tuple(y))::xs ->
+  | (x, Type.Tuple(y,b))::xs ->
       let yts = List.map (fun t -> (Id.genid x, t)) y in
-      g' r (((x, flat (Type.Tuple(y))), yts)::tup) (yts@xs)
+      g' r (((x, flat (Type.Tuple(y,b))), yts)::tup) (yts@xs)
   | (x, t)::xs -> g' ((x, flat t)::r) tup xs
 (* 本体 *)    
 let rec g env = function

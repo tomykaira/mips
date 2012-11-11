@@ -26,6 +26,8 @@ rule token = parse
     { BOOL(false) }
 | "not"
     { NOT }
+| "fun"
+    { FUN }
 | digit+ (* 整数を字句解析するルール *)
     { let i = int_of_string (Lexing.lexeme lexbuf) in
       let rec f x = if x = 0 then (0, 0)
@@ -85,6 +87,8 @@ rule token = parse
     { DOT }
 | "<-"
     { LESS_MINUS }
+| "->"
+    { MINUS_GREATER }
 | ';'
     { SEMICOLON }
 | eof

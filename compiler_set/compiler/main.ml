@@ -5,7 +5,9 @@ let dbpa = ref false
 let dbty = ref false
 let dbkn = ref false
 let dbal = ref false
+let dban = ref false
 let dbit = ref false
+let dblc = ref false
 let dbll = ref false
 let dbcl = ref false
 let dbft = ref false
@@ -21,6 +23,7 @@ let dbra = ref false
 
 let debsy f t = (if !f = true then Syntax.dbprint 0 t else ()); t
 let debkn f t = (if !f = true then KNormal.dbprint 0 t else ()); t
+let deban f t = (if !f = true then ANormal.dbprint 0 t else ()); t
 let debcl f = function
     Closure.Prog (x, y) as t ->
       (if !f then (Printf.eprintf "Functions:\n%!"; List.iter Closure.dbprint2 x; Printf.eprintf "\nMain Program:\n%!"; Closure.dbprint 1 y));
@@ -34,9 +37,10 @@ let debas f = function
 (* 特定の最適化処理をしないフラグとそれ用の関数 *)
 let offcs = ref false
 let offbe = ref false
-let offas = ref false
 let offin = ref false
 let offcf = ref false
+let offlc = ref false
+let offte = ref false
 let offel = ref false
 let offll = ref false
 let offut = ref true
@@ -55,9 +59,9 @@ let off flag f x = if !flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' = off offcs Elim.f (off offcf ConstFold.f (off offin Inline.f (off offas Assoc.f (off offbe Beta.f (off offcs Cse.f e))))) in
+  let e' = off offcs Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
   Format.eprintf "@.";
-  if e = e' then e else
+  if Beta.same M.empty e e' then e else
   iter (n - 1) e'
 
 
@@ -79,12 +83,14 @@ let lexbuf outchan l =
 	      (debcl dbut (off offut UnfoldTuple.f
 	       (debcl dbft (off (ref (!offet && !offut)) FlattenTuple.f
 	        (debcl dbcl (Closure.f
-	         (debkn dbll (off offll LambdaLift.f
-	          (debkn dbit (iter !limit
-	           (debkn dbal (Alpha.f
-	            (debkn dbkn (KNormal.f
-	             (debsy dbty (Typing.f
-	              (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))))))))))))))))))))
+	         (deban dbll (off offll LambdaLift.f
+	          (deban dbit (iter !limit
+		   (deban dblc (off offlc LCM.f
+		    (deban dban (ANormal.f 
+	             (debkn dbal (Alpha.f
+	              (debkn dbkn (KNormal.f
+	               (debsy dbty (Typing.f
+	                (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))))))))))))))))))))))))
 
 
 (* 文字列をコンパイルして標準出力に表示する *)
@@ -104,16 +110,19 @@ let file f =
 let () = 
   let files = ref [] in
   Arg.parse
-    [("--inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
+    [("-inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
+     ("-ifthenelse", Arg.Int(fun i -> IfThenElse.len := i), "maximum size of program absorbed by if sentence");
    ("-b", Arg.Set Global.bin, "use binary file as input");
 
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
    ("-dbTyping", Arg.Set dbty, "debug: print Syntax.t after typing");
    ("-dbKNormal", Arg.Set dbkn, "debug: print KNormal.t after K normalization");
    ("-dbAlpha", Arg.Set dbal, "debug: print KNormal.t after alpha");
-   ("-dbIter", Arg.Set dbit, "debug: print KNormal.t after iter");
-   ("-dbLambdaLift", Arg.Set dbll, "debug: print KNormal.t after LambdaLift");
+   ("-dbANormal", Arg.Set dban, "debug: print ANormal.t after A normalizetion");
+   ("-dbIter", Arg.Set dbit, "debug: print ANormal.t after iter");
+   ("-dbLCM", Arg.Set dblc, "debug: print ANormal.t after LCM");
+   ("-dbLambdaLift", Arg.Set dbll, "debug: print ANormal.t after LambdaLift");
    ("-dbClosure", Arg.Set dbcl, "debug: print Closure.t after closure");
    ("-dbFlattenTuple", Arg.Set dbft, "debug: print Closure.t after FT");
    ("-dbUnfoldTuple", Arg.Set dbut, "debug: print Closure.t after UT");
@@ -128,9 +137,10 @@ let () =
 
    ("-offCSE", Arg.Set offcs, "off: NO CSE");
    ("-offBeta", Arg.Set offbe, "off: NO beta");
-   ("-offAssoc", Arg.Set offas, "off: NO Assoc");
    ("-offInline", Arg.Set offin, "off: NO Inline");
    ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
+   ("-offLCM", Arg.Set offlc, "off: NO LCM");
+   ("-offIfThenElse", Arg.Set offel, "off: NO if then else");
    ("-offElim", Arg.Set offel, "off: NO Elim");
    ("-offLambdaLift", Arg.Set offll, "off: NO LambdaLift");
    ("-offUnfoldTuple", Arg.Set offut, "off: NO Unfold Tuple");

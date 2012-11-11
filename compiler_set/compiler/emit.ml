@@ -9,14 +9,13 @@ let save x =
   stackset := S.add x !stackset;
   if not (List.mem x !stackmap) then
     stackmap := !stackmap @ [x]
-let locate x = (* xがスタックのどこにあるか *)
-  let rec loc = function
-    | [] -> []
-    | y :: zs when x = y -> 0 :: List.map succ (loc zs)
-    | y :: zs -> List.map succ (loc zs) in
-  loc !stackmap
-let offset x = List.hd (locate x)
-let stacksize () = List.length !stackmap
+let offset x = (* xがスタックのどこにあるか *)
+  let rec loc n = function
+    | [] -> raise Not_found
+    | y :: zs when x = y -> n
+    | y :: zs -> loc (n+1) zs in
+  loc 0 !stackmap 
+let stacksize () = List.length !stackmap 
 
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) *)
@@ -115,11 +114,20 @@ and g'  = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), Restore(y) ->
       assert (List.mem x allfregs);
       Out.print buf (Out.FLdI(x, reg_fp, -offset y))
+	(* スタック領域の確保の仮想命令の実装 *)
+  | NonTail(x), SAlloc(i) ->
+      let x' = Id.genid "salloc" in
+      let rec s n =
+	if n <= 0 then []
+	else (x' ^ "."^ string_of_int n)::s (n-1) in
+      stackmap := !stackmap@s i;
+      Out.print buf (Out.SubI(x, reg_fp, stacksize ()))
+
 	(* 末尾だったら計算結果を第一レジスタにセットしてret *)
   | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ as exp) ->
       g'  (NonTail(Id.gentmp Type.Unit), exp);
       Out.print buf Out.Return
-  | Tail, (Add _ | Sub _ | Mul _ | And _ | Or _ | Nor _ | Xor _ | AddI _ | SubI _ | MulI _ | AndI _ | OrI _ | NorI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ as exp) ->
+  | Tail, (Add _ | Sub _ | Mul _ | And _ | Or _ | Nor _ | Xor _ | AddI _ | SubI _ | MulI _ | AndI _ | OrI _ | NorI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _  | SAlloc _ as exp) ->
       g'  (NonTail(regs.(0)), exp);
       Out.print buf Out.Return
   | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FMulN _ | FDiv _ | FDivN _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _  as exp) ->
@@ -127,9 +135,7 @@ and g'  = function (* 各命令のアセンブリ生成 *)
       Out.print buf Out.Return
   | Tail, (Restore(x) as exp) ->
       let d = if x.[1] = 'r' then regs.(0) else fregs.(0) in
-      (match locate x with
-      | [i] -> g'  (NonTail(d), exp)
-      | _ -> assert false);
+      g'  (NonTail(d), exp);
       Out.print buf Out.Return
 	
   | Tail, IfEq(x, y, e1, e2) ->
@@ -137,10 +143,14 @@ and g'  = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.BEq(x, y, b_taken)); 
       g'_tail_if  e1 e2 "beq" b_taken
   | Tail, IfLT(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (Tail, IfLE(y,x,e2,e1)) else
       let b_taken = Id.genid "blt_taken" in   
       Out.print buf (Out.BLT(x, y, b_taken));    
       g'_tail_if  e1 e2 "blt" b_taken
   | Tail, IfLE(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (Tail, IfLT(y,x,e2,e1)) else
       let b_taken = Id.genid "ble_taken" in
       Out.print buf (Out.BLE(x, y, b_taken));       
       g'_tail_if  e1 e2 "ble" b_taken
@@ -149,23 +159,31 @@ and g'  = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.FBEq(x, y, b_taken));      
       g'_tail_if  e1 e2 "fbeq" b_taken
   | Tail, IfFLT(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (Tail, IfFLE(y,x,e2,e1)) else
       let b_taken = Id.genid "fblt_taken" in 
       Out.print buf (Out.FBLT(x, y, b_taken));      
       g'_tail_if  e1 e2 "fblt" b_taken
   | Tail, IfFLE(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (Tail, IfFLT(y,x,e2,e1)) else
       let b_taken = Id.genid "fble_taken" in
       Out.print buf (Out.FBLE(x, y, b_taken)); 
       g'_tail_if  e1 e2 "fble" b_taken
 
   | NonTail(z), IfEq(x, y, e1, e2) ->
-      let b_taken = Id.genid "beq_taken" in   
+      let b_taken = Id.genid "beq_taken" in
       Out.print buf (Out.BEq(x, y, b_taken));    
       g'_non_tail_if  (NonTail(z)) e1 e2 "beq" b_taken
   | NonTail(z), IfLT(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (NonTail(z), IfLE(y,x,e2,e1)) else
       let b_taken = Id.genid "blt_taken" in
-      Out.print buf (Out.BLT(x, y, b_taken)); 
+      Out.print buf (Out.BLT(x, y, b_taken));
       g'_non_tail_if  (NonTail(z)) e1 e2 "blt" b_taken
   | NonTail(z), IfLE(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (NonTail(z), IfLT(y,x,e2,e1)) else
       let b_taken = Id.genid "ble_taken" in
       Out.print buf (Out.BLE(x, y, b_taken)); 
       g'_non_tail_if  (NonTail(z)) e1 e2 "ble" b_taken
@@ -174,10 +192,14 @@ and g'  = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.FBEq(x, y, b_taken)); 
       g'_non_tail_if  (NonTail(z)) e1 e2 "fbeq" b_taken
   | NonTail(z), IfFLT(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (NonTail(z), IfFLE(y,x,e2,e1)) else
       let b_taken = Id.genid "fblt_taken" in
       Out.print buf (Out.FBLT(x, y, b_taken)); 
       g'_non_tail_if  (NonTail(z)) e1 e2 "fblt" b_taken
   | NonTail(z), IfFLE(x, y, e1, e2) ->
+      if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
+      if e2 = Ans(Nop) then g' (NonTail(z), IfFLT(y,x,e2,e1)) else
       let b_taken = Id.genid "fble_taken" in
       Out.print buf (Out.FBLE(x, y, b_taken)); 
       g'_non_tail_if  (NonTail(z)) e1 e2 "fble" b_taken

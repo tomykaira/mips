@@ -3,9 +3,9 @@ type t = (* MinCamlの型を表現するデータ型 *)
   | Bool
   | Int
   | Float
-  | Fun of t list * t (* arguments are uncurried *)
-  | Tuple of t list
-  | Array of t
+  | Fun of t list * t * bool (* arguments are uncurried *)
+  | Tuple of t list * bool
+  | Array of t * bool
   | Var of t option ref
 
 let rec show x =
@@ -14,9 +14,9 @@ let rec show x =
   | Bool -> "Bool"
   | Int -> "Int"
   | Float -> "Float"
-  | Fun (l,t) -> "Fun((" ^ String.concat "," (List.map show l) ^ ")->" ^ show t ^ ")"
-  | Tuple l -> "(" ^ String.concat " * " (List.map show l) ^")"
-  | Array t -> "(Array " ^ show t ^ ")"
+  | Fun (l,t, b) -> "Fun((" ^ String.concat "," (List.map show l) ^ ")->" ^ show t ^ ")" ^ string_of_bool b
+  | Tuple (l, b) -> "(" ^ String.concat " * " (List.map show l) ^")"^ string_of_bool b
+  | Array (t, b) -> "(Array " ^ show t ^ ")" ^ string_of_bool b
   | Var a ->
       (match !a with
        | Some t -> "Var " ^ show t

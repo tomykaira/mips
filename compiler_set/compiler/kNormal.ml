@@ -1,8 +1,5 @@
 (* give names to intermediate values (K-normalization) *)
 
-(* デバッグ用。trueならKnormal.tを出力 *)
-let debug = ref false
-
 type t = (* K正規化後の式 *)
   | Unit
   | Int of int
@@ -58,7 +55,7 @@ let insert_let (e, t) k = (* letを挿入する補助関数 *)
 
 let rec g env = function (* K正規化ルーチン本体 *)
   | Syntax.Unit -> Unit, Type.Unit
-  (* falseは0,trueは1 *)
+	(* falseは0,trueは1 *)
   | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int 
   | Syntax.Int(i) -> Int(i), Type.Int
   | Syntax.Float(d) -> Float(d), Type.Float
@@ -145,7 +142,7 @@ let rec g env = function (* K正規化ルーチン本体 *)
       LetRec({ name = (x, t); args = yts; body = e1' }, e2'), t2
   | Syntax.App(Syntax.Var(f), e2s) when not (M.mem f env) -> (* 外部関数の呼び出し *)
       (match M.find f !Typing.extenv with
-      | Type.Fun(_, t) ->
+      | Type.Fun(_, t, _) ->
 	  let rec bind xs = function (* "xs" are identifiers for the arguments *)
 	    | [] -> ExtFunApp(f, xs), t
 	    | e2 :: e2s ->
@@ -155,53 +152,66 @@ let rec g env = function (* K正規化ルーチン本体 *)
       | _ -> assert false)
   | Syntax.App(e1, e2s) ->
       (match g env e1 with
-      | _, Type.Fun(_, t) as g_e1 ->
+      | _, Type.Fun(ts, t, b) as g_e1 ->
 	  insert_let g_e1
 	    (fun f ->
 	      let rec bind xs = function (* "xs" are identifiers for the arguments *)
-		| [] -> App(f, xs), t
+		| [] ->
+		    (* 関数の部分適用の変換 *)
+		    let appfxs =
+		      if List.length e2s < List.length ts then
+			let rec p q r = match (q, r) with
+			| [], b -> b
+			| a::b, c::d -> p b d
+			| _ -> assert false in
+			let ts' = p e2s ts in
+			let xs' = List.map (fun _ -> Id.genid "X") ts' in
+			let f' = Id.genid f in
+			LetRec({name = (f', Type.Fun(ts', t, false)); args = List.combine xs' ts'; body = App(f, xs@xs')}, Var(f'))
+		      else App(f, xs) in
+		    appfxs, t
 		| e2 :: e2s ->
 		    insert_let (g env e2)
 		      (fun x -> bind (xs @ [x]) e2s) in
-	      bind [] e2s) (* left-to-right evaluation *)
-      | _ -> assert false)
-  | Syntax.Tuple(es) ->
-      let rec bind xs ts = function (* "xs" and "ts" are identifiers and types for the elements *)
-	| [] -> Tuple(xs), Type.Tuple(ts)
-	| e :: es ->
-	    let _, t as g_e = g env e in
-	    insert_let g_e
-	      (fun x -> bind (xs @ [x]) (ts @ [t]) es) in
-      bind [] [] es
-  | Syntax.LetTuple(xts, e1, e2) ->
-      insert_let (g env e1)
-	(fun y ->
-	  let e2', t2 = g (M.add_list xts env) e2 in
-	  LetTuple(xts, y, e2'), t2)
-  | Syntax.Array(e1, e2) ->
-      insert_let (g env e1)
-	(fun x ->
-	  let _, t2 as g_e2 = g env e2 in
-	  insert_let g_e2
-	    (fun y ->
-	      let l =
-		match t2 with
-		| Type.Float -> "create_float_array"
-		| Type.Tuple(_) when not !Global.offet -> "create_tuple_array"
-		| _ -> "create_array" in
-	      ExtFunApp(l, [x; y]), Type.Array(t2)))
-  | Syntax.Get(e1, e2) ->
-      (match g env e1 with
-      |	_, Type.Array(t) as g_e1 ->
-	  insert_let g_e1
-	    (fun x -> insert_let (g env e2)
-		(fun y -> Get(x, y), t))
-      | _ -> assert false)
-  | Syntax.Put(e1, e2, e3) ->
-      insert_let (g env e1)
-	(fun x -> insert_let (g env e2)
-	    (fun y -> insert_let (g env e3)
-		(fun z -> Put(x, y, z), Type.Unit)))
+		    bind [] e2s) (* left-to-right evaluation *)
+		| _ -> assert false)
+		| Syntax.Tuple(es) ->
+		    let rec bind xs ts = function (* "xs" and "ts" are identifiers and types for the elements *)
+		      | [] -> Tuple(xs), Type.Tuple(ts, false)
+		      | e :: es ->
+			  let _, t as g_e = g env e in
+			  insert_let g_e
+			    (fun x -> bind (xs @ [x]) (ts @ [t]) es) in
+		    bind [] [] es
+		| Syntax.LetTuple(xts, e1, e2) ->
+		    insert_let (g env e1)
+		      (fun y ->
+			let e2', t2 = g (M.add_list xts env) e2 in
+			LetTuple(xts, y, e2'), t2)
+		| Syntax.Array(e1, e2) ->
+		    insert_let (g env e1)
+		      (fun x ->
+			let _, t2 as g_e2 = g env e2 in
+			insert_let g_e2
+			  (fun y ->
+			    let l =
+			      match t2 with
+			      | Type.Float -> "create_float_array"
+			      | Type.Tuple(_) when not !Global.offet -> "create_tuple_array"
+			      | _ -> "create_array" in
+			    ExtFunApp(l, [x; y]), Type.Array(t2, false)))
+		| Syntax.Get(e1, e2) ->
+		    (match g env e1 with
+		    |	_, Type.Array(t,_) as g_e1 ->
+			insert_let g_e1
+			  (fun x -> insert_let (g env e2)
+			      (fun y -> Get(x, y), t))
+		    | _ -> assert false)
+		| Syntax.Put(e1, e2, e3) ->
+		    insert_let (g env e1)
+		      (fun x -> insert_let (g env e2)
+			  (fun y -> insert_let (g env e3)
+			      (fun z -> Put(x, y, z), Type.Unit)))
 
 let f e = fst (g M.empty e)
 

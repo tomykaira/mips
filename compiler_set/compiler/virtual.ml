@@ -110,12 +110,21 @@ let rec g env = function
 	  (1, e2')
 	  (fun y offset store_fv ->  seq(FStI(y, x, offset), store_fv))
 	  (fun y _ offset store_fv -> seq(StI(y, x, offset), store_fv)) in
-      Let((x, t), AddI(reg_hp, 0),
-	  Let((reg_hp, Type.Int), AddI(reg_hp, offset),
-	      let z = Id.genid "l" in
+      let z = Id.genid "l" in
+      (match t with
+      | Type.Fun(_,_,b) ->
+	  if b then
+	    Let((x, t), SAlloc(offset),
 	      Let((z, Type.Int), SetL(l),
 		  seq(StI(z, x, 0),
-		      store_fv))))
+		      store_fv)))
+	  else
+	    Let((x, t), AddI(reg_hp, 0),
+		Let((reg_hp, Type.Int), AddI(reg_hp, offset),
+		    Let((z, Type.Int), SetL(l),
+			seq(StI(z, x, 0),
+			    store_fv))))
+      | _ -> assert false)
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
       Ans(CallCls(x, int, float))
@@ -146,7 +155,7 @@ let rec g env = function
 		let off = Id.genid "Off" in
 		Let((off, Type.Int), AddI(r, offset),
 		    seq(CallDir(Id.L("min_caml_int_tuple_array"), [y; off; n], []), store))) in
-	  Let((r, Type.Array(Type.Tuple(List.map snd yts))), AddI(reg_hp, 0),
+	  Let((r, Type.Array(Type.Tuple(List.map snd yts,false),false)), AddI(reg_hp, 0),
 	      Let((n, Type.Int), Int(l),
 		  Let((t, Type.Int), Mul(n, z),
 		      Let((reg_hp, Type.Int), Add(reg_hp, t),
@@ -160,7 +169,7 @@ let rec g env = function
 	  (0, Ans(AddI(y, 0)))
 	  (fun x offset store ->  seq(FStI(x, y, offset), store))
 	  (fun x _ offset store -> seq(StI(x, y, offset), store)) in
-      Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
+      Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs, false)), AddI(reg_hp, 0),
 	  Let((reg_hp, Type.Int), AddI(reg_hp, offset),
 	      store))
   | Closure.LetTuple(xts, y, e2) ->
@@ -175,37 +184,43 @@ let rec g env = function
       load
   | Closure.Get(x, y) -> (* 配列の読み出し *)
       (match M.find x env with
-      | Type.Array(Type.Unit) -> Ans(Nop)
-      | Type.Array(Type.Float) -> Ans(FLdR(x, y))
-      | Type.Array(_) -> Ans(LdR(x, y))
+      | Type.Array(Type.Unit,_) -> Ans(Nop)
+      | Type.Array(Type.Float,_) -> Ans(FLdR(x, y))
+      | Type.Array _ -> Ans(LdR(x, y))
       | _ -> assert false)
   | Closure.Put(x, y, z) ->
       let offset = Id.genid "o" in
       (match M.find x env with
-      | Type.Array(Type.Unit) -> Ans(Nop)
-      | Type.Array(Type.Float) ->
+      | Type.Array(Type.Unit,_) -> Ans(Nop)
+      | Type.Array(Type.Float,_) ->
 	  Let((offset, Type.Int), Add(x, y),
 	      Ans(FStI(z, offset, 0)))
-      | Type.Array(_) ->
+      | Type.Array _ ->
 	  Let((offset, Type.Int), Add(x, y),
 	      Ans(StI(z, offset, 0)))
+      | _ -> assert false)
+  (* タプルを配列から読み出す時に使う命令 *)
+  | Closure.GetTuple(x, y) ->
+      (match M.find x env with
+      | Type.Array(Type.Tuple(ts,b),_) ->
+          let ind = Id.genid "Index" in
+	  Let((ind, Type.Tuple(ts,b)), MulI(y, List.length ts),
+	      Ans(Add(x, ind)))
       | _ -> assert false)
   (* タプルを配列に埋め込む時に使う命令 *)
   | Closure.PutTuple(x, y, zs) ->
       (match M.find x env with
-      | Type.Array(Type.Tuple(ts))->
-	  let len = Id.genid "Len" in
-          let ind = Id.genid "Ind" in
-          let addr = Id.genid "Add" in
+      | Type.Array(Type.Tuple(ts,b),_) ->
+          let ind = Id.genid "Index" in
+          let addr = Id.genid "Addr" in
           let (_, store) =
 	    expand
 	      (List.map (fun x -> (x, M.find x env)) zs)
 	      (0, Ans(Nop))
 	      (fun w offset store ->  seq(FStI(w, addr, offset), store))
 	      (fun w _ offset store -> seq(StI(w, addr, offset), store)) in
-	  Let((len, Type.Int), Int(List.length ts),
-	      Let((ind, Type.Int), Mul(len, y),
-		  Let((addr, Type.Int), Add(x, ind), store)))
+	  Let((ind, Type.Int), MulI(y, List.length ts),
+	      Let((addr, Type.Tuple(ts,b)), Add(x, ind), store))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
 
@@ -221,7 +236,7 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
       (fun z t offset load ->
 	insert_load z (fun a -> Let((z, t), LdI(x, offset), a)) load) in
   match t with
-  | Type.Fun(_, t2) ->
+  | Type.Fun(_, t2, _) ->
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
   | _ -> assert false
 

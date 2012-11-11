@@ -7,11 +7,13 @@ let co env x = if M.mem x env && M.find x env = 0 then reg_0
 let rec g env = function (* 命令列の16bit即値最適化 *)
   | Ans(exp) -> Ans(g' env exp)
   | Let((x, t), Int(i), e) when -0x8000 <= i && i < 0x7FFF ->
-      (* Format.eprintf "found simm16 %s = %d@." x i; *)
       let e' = g (M.add x i env) e in
       if List.mem x (fv e') then Let((x, t), Int(i), e') else
-      ((* Format.eprintf "erased redundant Set to %s@." x; *)
-       e')
+      e'
+  | Let((x, t), Float(0.0), e) ->
+      let e' = g (M.add x 0 env) e in
+      if List.mem x (fv e') then Let((x, t), Float(0.0), e') else
+      e'      
   | Let(xt, exp, e) -> Let(xt, g' env exp, g env e)
 and g' env = function (* 各命令の16bit即値最適化 *)
   | Add(x, y) when M.mem y env -> AddI(x, M.find y env)
@@ -32,6 +34,9 @@ and g' env = function (* 各命令の16bit即値最適化 *)
   | LdR (x, y) when M.mem x env -> LdI (y, M.find x env)
   | FLdR(x, y) when M.mem y env -> FLdI(x, M.find y env)
   | FLdR(x, y) when M.mem x env -> FLdI(y, M.find x env)
+
+  | StI(x, y, z) -> StI(co env x, y, z)
+  | FStI(x, y, z) when M.mem x env && M.find x env = 0 -> StI(reg_0, y, z)
 
   | IfEq (x, y, e1, e2) -> IfEq(co env x, co env y, g env e1, g env e2)
   | IfLE (x, y, e1, e2) -> IfLE(co env x, co env y, g env e1, g env e2)

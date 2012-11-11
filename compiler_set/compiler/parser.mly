@@ -11,6 +11,7 @@ let addtyp x = (x, Type.gentyp ())
 %token <int> BIN
 %token <float> FLOAT
 %token NOT
+%token FUN
 %token MINUS
 %token PLUS
 %token MINUS_DOT
@@ -36,6 +37,7 @@ let addtyp x = (x, Type.gentyp ())
 %token ARRAY_CREATE
 %token DOT
 %token LESS_MINUS
+%token MINUS_GREATER
 %token SEMICOLON
 %token LPAREN
 %token RPAREN
@@ -46,7 +48,7 @@ let addtyp x = (x, Type.gentyp ())
 %right prec_semicolon
 %right SEMICOLON
 %right prec_if
-%right LESS_MINUS
+%right LESS_MINUS MINUS_GREATER
 %left COMMA
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
@@ -132,6 +134,9 @@ exp: /* °ìÈÌ¤Î¼° */
     { match fst ($3).name with
       | "read_int" | "read_float" when !Global.bin -> $5
       | _ -> LetRec($3, $5) }
+| FUN formal_args MINUS_GREATER exp
+    {  let x = Id.genid "fun" in
+       LetRec( { name = addtyp x; args = $2; body = $4 }, Var(x)) }
 | exp actual_args
     %prec prec_app
     { match ($1, $2) with

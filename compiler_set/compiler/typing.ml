@@ -9,9 +9,9 @@ let extenv = ref M.empty
 
 (* for pretty printing (and type normalization) *)
 let rec deref_typ = function (* 型変数を中身でおきかえる関数 *)
-  | Type.Fun(t1s, t2) -> Type.Fun(List.map deref_typ t1s, deref_typ t2)
-  | Type.Tuple(ts) -> Type.Tuple(List.map deref_typ ts)
-  | Type.Array(t) -> Type.Array(deref_typ t)
+  | Type.Fun(t1s, t2, b) -> Type.Fun(List.map deref_typ t1s, deref_typ t2, b)
+  | Type.Tuple(ts, b) -> Type.Tuple(List.map deref_typ ts, b)
+  | Type.Array(t, b) -> Type.Array(deref_typ t, b)
   | Type.Var({ contents = None } as r) ->
       Format.eprintf "uninstantiated type variable detected; assuming int@.";
       r := Some(Type.Int);
@@ -54,25 +54,37 @@ let rec deref_term = function
   | e -> e
 
 let rec occur r1 = function (* occur check *)
-  | Type.Fun(t2s, t2) -> List.exists (occur r1) t2s || occur r1 t2
-  | Type.Tuple(t2s) -> List.exists (occur r1) t2s
-  | Type.Array(t2) -> occur r1 t2
+  | Type.Fun(t2s, t2,_) -> List.exists (occur r1) t2s || occur r1 t2
+  | Type.Tuple(t2s,_) -> List.exists (occur r1) t2s
+  | Type.Array(t2,_) -> occur r1 t2
   | Type.Var(r2) when r1 == r2 -> true
   | Type.Var({ contents = None }) -> false
   | Type.Var({ contents = Some(t2) }) -> occur r1 t2
   | _ -> false
 
+
+let rec part k l ret = match (k, l) with
+| [], ys -> (ret, ys)
+| _::xs, y::ys -> part xs ys (ret@[y])
+| _ -> raise (Invalid_argument "part")
 let rec unify t1 t2 = (* 型が合うように、型変数への代入をする *)
   match t1, t2 with
   | Type.Unit, Type.Unit | Type.Bool, Type.Bool | Type.Int, Type.Int | Type.Float, Type.Float -> ()
-  | Type.Fun(t1s, t1'), Type.Fun(t2s, t2') ->
+  (* 関数の引数の数が違ったら,長い方をカリー化して比較 *)
+  | Type.Fun(t1s, t1', b1), Type.Fun(t2s, t2', b2) when List.length t1s < List.length t2s ->
+      let t2s1, t2s2 = part t1s t2s [] in
+      unify (Type.Fun(t1s, t1', b1)) (Type.Fun(t2s1, Type.Fun(t2s2, t2', b2), b2))
+  | Type.Fun(t1s, t1', b1), Type.Fun(t2s, t2', b2) when List.length t1s > List.length t2s ->
+      let t1s1, t1s2 = part t2s t1s [] in
+      unify (Type.Fun(t1s1, Type.Fun(t1s2, t1', b1), b1)) (Type.Fun(t2s, t2', b2))
+  | Type.Fun(t1s, t1',_), Type.Fun(t2s, t2',_) ->
       (try List.iter2 unify t1s t2s
       with Invalid_argument("List.iter2") -> raise (Unify(t1, t2)));
       unify t1' t2' 
-  | Type.Tuple(t1s), Type.Tuple(t2s) ->
+  | Type.Tuple(t1s,_), Type.Tuple(t2s,_) ->
       (try List.iter2 unify t1s t2s
       with Invalid_argument("List.iter2") -> raise (Unify(t1, t2)))
-  | Type.Array(t1), Type.Array(t2) -> unify t1 t2
+  | Type.Array(t1,_), Type.Array(t2,_) -> unify t1 t2
   | Type.Var(r1), Type.Var(r2) when r1 == r2 -> ()
   | Type.Var({ contents = Some(t1') }), _ -> unify t1' t2
   | _, Type.Var({ contents = Some(t2') }) -> unify t1 t2'
@@ -130,27 +142,27 @@ let rec g env e = (* 型推論ルーチン *)
 	t
     | LetRec({name = (x,t); args = yts; body = e1},e2) -> (* let recの型推論 *)
 	let env = M.add x t env in
-	unify t (Type.Fun(List.map snd yts, g (M.add_list yts env) e1));
+	unify t (Type.Fun(List.map snd yts, g (M.add_list yts env) e1, false));
 	g env e2
     | App(e, es) -> (* 関数適用の型推論 *)
 	let t = Type.gentyp () in
-        unify (g env e) (Type.Fun(List.map (g env) es, t));
+        unify (g env e) (Type.Fun(List.map (g env) es, t, false));
 	t
-    | Tuple(es) -> Type.Tuple(List.map (g env) es)
+    | Tuple(es) -> Type.Tuple(List.map (g env) es, false)
     | LetTuple(xts, e1, e2) ->
-	unify (Type.Tuple(List.map snd xts)) (g env e1);
+	unify (Type.Tuple(List.map snd xts, false)) (g env e1);
 	g (M.add_list xts env) e2
     | Array(e1, e2) -> (* must be a primitive for "polymorphic" typing *)
 	unify (g env e1) Type.Int;
-	Type.Array(g env e2)
+	Type.Array(g env e2, false)
     | Get(e1, e2) ->
 	let t = Type.gentyp () in
-	unify (Type.Array(t)) (g env e1);
+	unify (Type.Array(t, false)) (g env e1);
 	unify Type.Int (g env e2);
 	t
     | Put(e1, e2, e3) ->
 	let t = g env e3 in
-	unify (Type.Array(t)) (g env e1);
+	unify (Type.Array(t, false)) (g env e1);
 	unify Type.Int (g env e2);
 	Type.Unit
   with Unify(t1, t2) ->

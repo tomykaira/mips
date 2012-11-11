@@ -1,6 +1,6 @@
-(* 関数の自由変数をできるだけ引数渡しにし,クロージャを減らすモジュール *)
+(* lambda liftingを行うモジュール *)
 
-open KNormal
+open ANormal
 
 (* スコアと変数のペアの順序付き集合 *)
 module S' =
@@ -18,22 +18,24 @@ let fn = 31
 
 (* 変数にスコアづけする関数。後に出てくるほど高得点 *)
 let rec score en n fvs = function
+  | Let((_, _), exp, e) ->
+      S'.union (score' en (n+1) fvs exp) (score en (n+1+Inline.size e) fvs e) 
+  | LetRec({ name = (x, _); args = _; body = e1 }, e2) ->
+      score (M.add x (S.inter (fv e1) fvs) en) (n+1) fvs e2 
+  | LetTuple(_, x, e) ->
+      let r = score en (n+1) fvs e in
+      if S.mem x fvs then S'.add (n,x) r else r
+  | Ans(exp) -> score' en n fvs exp
+and score' en n fvs = function
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2)  | IfLT(x, y, e1, e2) -> 
       let r = S'.union (score en (n+1) fvs e1) (score en (n+1) fvs e2) in
       let r = if S.mem x fvs then S'.add (n,x) r else r in
       if S.mem y fvs then S'.add (n,y) r else r  
-  | Let((_, _), e1, e2) ->
-      S'.union (score en (n+1) fvs e1) (score en (n+1+Inline.size e1) fvs e2) 
-  | LetRec({ name = (x, _); args = _; body = e1 }, e2) ->
-      score (M.add x (S.inter (fv e1) fvs) en) (n+1) fvs e2 
   | App(x, t) ->
       let r = List.fold_left (fun y x -> if S.mem x fvs then S'.add (n,x) y else y) S'.empty t in
       if M.mem x en then S.fold (fun x y-> S'.add (n, x) y) (M.find x en) r
       else r
-  | LetTuple(_, x, e) ->
-      let r = score en (n+1) fvs e in
-      if S.mem x fvs then S'.add (n,x) r else r
-  | e -> S.fold (fun x y -> S'.add (n, x) y) (S.inter (fv e) fvs) S'.empty
+  | e -> S.fold (fun x y -> S'.add (n, x) y) (S.inter (fv' e) fvs) S'.empty
 
 
 (* スコアづけされた変数の集合から上位rn,fn個をとってリストにして返す関数 *)
@@ -43,8 +45,9 @@ let rec take l known env rn fn fvs =
        let fvs' = S'.remove (n, x) fvs in
        match M.find x env with
        | Type.Unit -> take l known env rn fn fvs'
-       | Type.Fun(_,_) -> if S.mem x known then failwith "function"
-                          else take l known env rn fn fvs'
+       | Type.Fun(_,_,_) ->
+	   if S.mem x known then failwith "function"
+           else take l known env rn fn fvs'
        | Type.Float -> if List.mem_assoc x l then
 	                 take l known env rn fn fvs'
 	               else if fn <= 0 then failwith "float"
@@ -56,34 +59,37 @@ let rec take l known env rn fn fvs =
 
 (* 関数に引数を追加する関数 *)
 let rec h s add = function
+  | Let((x, t), exp, e) -> Let((x, t), h' s add exp, h s add e)
+  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) ->
+      LetRec({ name = (x, t); args = yts; body = h s add e1 }, h s add e2)
+  | LetTuple (l, y, e) -> LetTuple(l, y, h s add e)
+  | Ans(exp) -> Ans(h' s add exp)
+and h' s add = function
   | IfEq(x, y, e1, e2) -> IfEq(x, y, h s add e1, h s add e2)
   | IfLE(x, y, e1, e2) -> IfLE(x, y, h s add e1, h s add e2)
   | IfLT(x, y, e1, e2) -> IfLT(x, y, h s add e1, h s add e2)
-  | Let((x, t), e1, e2) -> Let((x, t), h s add e1, h s add e2)
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) ->
-      LetRec({ name = (x, t); args = yts; body = h s add e1 }, h s add e2)
   | App(y, l) when y = s -> App(y, l@add)
-  | LetTuple (l, y, e) -> LetTuple(l, y, h s add e)
-  | e -> e
+  | exp -> exp
 
 (* 式の中に関数が関数適用以外の形で現れてないか調べる関数 *)
 let rec app_only x = function
-  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2)
-  | Let((_, _), e1, e2) | LetRec({ name = (_, _); args = _; body = e1 }, e2) ->
+  | Let((_, _), exp, e) -> app_only' x exp && app_only x e
+  | LetRec({ body = e1 }, e2) ->
+      app_only x e1 && app_only x e2
+  | LetTuple (_, _, e) ->  app_only x e
+  | Ans(exp) -> app_only' x exp
+and app_only' x = function
+  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) ->
       app_only x e1 && app_only x e2
   | App(_, l) | ExtFunApp(_, l) | Tuple(l) -> not (List.mem x l)
-  | LetTuple (_, y, e) ->  x <> y && app_only x e
   | Var(y) | Put(_,_,y) -> x <> y 
   | _ -> true
 
 (* 本体 *)
 let rec g env known = function
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env known e1, g env known e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
-  | Let((x, t), e1, e2) ->
-      Let((x, t), g env known e1, g (M.add x t env) known e2)
-  | LetRec({ name = (x, (Type.Fun(p,q) as t)); args = yts; body = e1 }, e2) ->
+  | Let((x, t), exp, e) ->
+      Let((x, t), g' env known exp, g (M.add x t env) known e)
+  | LetRec({ name = (x, (Type.Fun(p,q,b) as t)); args = yts; body = e1 }, e2) ->
       let env' = M.add x t env in
       let env'' = M.add_list yts env' in
       if not (app_only x e1 && app_only x e2) then
@@ -105,11 +111,17 @@ let rec g env known = function
           let yts'' = List.map (fun (y, t) -> (Id.genid y, t)) yts' in
           let benv = List.fold_left2 (fun x y z -> M.add y z x)
 	               M.empty (List.map fst yts') (List.map fst yts'') in
-	  let t' = Type.Fun(p@(List.map snd yts'), q) in
+	  let t' = Type.Fun(p@(List.map snd yts'), q, b) in
 	  let env3 = M.add x t' env in
           LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') env3) (S.add x known) (h x (List.map fst yts'') (Beta.g benv e1)); },
 	         g env3 (S.add x known) (h x (List.map fst yts') e2))
   | LetTuple (l, y, e) -> LetTuple(l, y, g (M.add_list l env) known e)
+  | Ans(exp) -> Ans(g' env known exp)
+  | _ -> assert false
+and g' env known = function
+  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env known e1, g env known e2)
+  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
+  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
   | e -> e
 
 
