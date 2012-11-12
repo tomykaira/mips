@@ -24,6 +24,7 @@ let locate x = (* xがスタックのどこにあるか *)
 let offset x = List.hd (locate x)
 let stacksize () = List.length !stackmap + 1
 
+let rettuple = ref M.empty
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) *)
 let rec shuffle sw xys =
@@ -90,7 +91,7 @@ and g' oc = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), FSub(y, z) -> Printf.fprintf oc "\tfsub\t%s, %s, %s\n" x y z
   | NonTail(x), FMul(y, z) -> Printf.fprintf oc "\tfmul\t%s, %s, %s\n" x y z
   | NonTail(x), FMulN(y, z) -> Printf.fprintf oc "\tfmuln\t%s, %s, %s\n" x y z
-  | NonTail(x), FDiv(y, z) -> Printf.fprintf oc "\tfinv\t%s, %s\n\tfmul %s, %s, %s\n" z z x y z
+  | NonTail(x), FDiv(y, z) -> Printf.fprintf oc "\tfinv\t%s, %s\n\tfmul %s, %s, %s\n" reg_fsw z x y reg_fsw
   | NonTail(x), FInv(y) -> Printf.fprintf oc "\tfinv\t%s, %s\n" x y
   | NonTail(x), FSqrt(y) -> Printf.fprintf oc "\tfsqrt\t%s, %s\n" x y
 
@@ -183,6 +184,13 @@ and g' oc = function (* 各命令のアセンブリ生成 *)
 
   | NonTail(a), CallCls(x, ys, zs) ->
       g'_args oc [(x, reg_cl)] ys zs;
+
+      let inc = if M.mem x !rettuple && not (List.mem x !Closure.danger) then M.find x !rettuple else 0 in
+      let x' = Id.genid "salloc" in
+      let rec s n =
+	if n <= 0 then []
+	else (x' ^ "."^ string_of_int n)::s (n-1) in
+      stackmap := !stackmap@s inc;
       let ss = stacksize () in
       Printf.fprintf oc "\tsubi\t%s, %s, %d\n" reg_fp reg_fp ss;
       Printf.fprintf oc "\tldi\t%s, %s, 0\n" reg_sw reg_cl;
@@ -194,6 +202,12 @@ and g' oc = function (* 各命令のアセンブリ生成 *)
 	Printf.fprintf oc "\tfmov\t%s, %s\n" a fregs.(0)
   | NonTail(a), CallDir(Id.L(x), ys, zs) ->
       g'_args oc [] ys zs;
+      let inc = if M.mem x !rettuple then M.find x !rettuple else 0 in
+      let x' = Id.genid "salloc" in
+      let rec s n =
+	if n <= 0 then []
+	else (x' ^ "."^ string_of_int n)::s (n-1) in
+      stackmap := !stackmap@s inc;
       let ss = stacksize () in
       Printf.fprintf oc "\tsubi\t%s, %s, %d\n" reg_fp reg_fp ss;
       Printf.fprintf oc "\tcall\t%s\n" x;
@@ -243,10 +257,13 @@ and g'_args oc x_reg_cl ys zs =
     (fun (z, fr) -> Printf.fprintf oc "\tfmov\t%s, %s\n" fr z)
     (shuffle reg_fsw zfrs)
 
-let h oc { name = Id.L(x); args = _; fargs = _; body = e; ret = _ } =
+let h oc { name = Id.L(x); args = _; fargs = _; body = e; ret = t } =
   Printf.fprintf oc "%s:\n" x;
   stackset := S.empty;
   stackmap := [];
+  (match t with
+  | Type.Tuple(ts) -> (rettuple := M.add x (List.length ts) !rettuple)
+  | _ -> ());
   g oc (Tail, e)
 
 let f oc (Prog(fundefs, e)) =

@@ -1,5 +1,7 @@
 (*pp deriving *)
 
+let danger = ref []
+
 type closure = { entry : Id.l; actual_fv : Id.t list }
     deriving (Show)
 type t = (* クロージャ変換後の式 *)
@@ -59,6 +61,23 @@ let rec fv = function
   | LetList((matcher, _), y, e) ->
     S.add y (S.diff (fv e) (S.of_list (Syntax.matcher_variables matcher)))
 
+let rec read_only x = function
+  | Unit | Nil | Int(_) | Float(_) | ExtArray(_) | Neg(_) | FNeg(_) | Sll(_, _) | Sra(_, _) | Add(_, _) | Sub(_, _) | Mul(_, _) | FAdd(_, _) | FSub(_, _) | FMul(_, _) | FDiv(_, _) | Get(_, _) -> true
+  | Var(y) | Put(_,y,_) -> y <> x
+  | Cons(y,z) -> x <> y && x <> z
+  | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2) | Let(_, e1, e2) ->
+      read_only x e1 && read_only x e2
+  | MakeCls(_, { actual_fv = ys }, e) -> List.for_all (fun y -> x <> y) ys && read_only x e
+  | AppCls(_, ys) | AppDir(_, ys) | Tuple(ys) -> List.for_all (fun y -> x <> y) ys
+  | LetTuple(_,_,e) | LetList(_,_,e) -> read_only x e
+let rec call_leaf = function
+  | AppCls(x,_) | AppDir(Id.L(x),_) -> danger := x::!danger
+    | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2)  ->
+      call_leaf e1; call_leaf e2
+  | LetTuple(_,_,e) | LetList(_,_,e) | MakeCls(_,_,e) | Let(_, _, e) -> call_leaf e
+  | _ -> ()
+
+
 let toplevel : fundef list ref = ref []
 
 let rec g env known = function (* クロージャ変換ルーチン本体 *)
@@ -80,7 +99,13 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
   | KNormal.IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
   | KNormal.IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
   | KNormal.IfNil(x, e1, e2) -> IfNil(x, g env known e1, g env known e2)
-  | KNormal.Let((x, t), e1, e2) -> Let((x, t), g env known e1, g (M.add x t env) known e2)
+  | KNormal.Let((x, t), e1, e2) ->
+      let e1' = g env known e1 in
+      let e2' = g (M.add x t env) known e2 in
+      (match t with
+      | Type.Tuple(_) when not (read_only x e2') -> call_leaf e1'
+      | _ -> ());
+      Let((x, t), e1', e2')
   | KNormal.Var(x) -> Var(x)
   | KNormal.LetRec({ KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* 関数定義の場合 *)
       (* 関数定義let rec x y1 ... yn = e1 in e2の場合は、
@@ -99,6 +124,9 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
 	(toplevel := toplevel_backup;
 	 let e1' = g (M.add_list yts env') known e1 in
 	 known, e1') in
+      (match t with
+      | Type.Fun(_,Type.Tuple(_)) -> call_leaf e1'
+      | _ -> ());
       let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
       let zts = List.map (fun z -> (z, M.find z env')) zs in (* ここで自由変数zの型を引くために引数envが必要 *)
       toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* トップレベル関数を追加 *)

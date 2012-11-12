@@ -1,5 +1,7 @@
 (*pp deriving *)
 
+val danger : Id.t list ref
+
 type closure = { entry : Id.l; actual_fv : Id.t list }
     deriving (Show)
 type t =

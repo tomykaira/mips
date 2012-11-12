@@ -3,7 +3,7 @@
 # ack.mlなどのテストプログラムをtest/に用意してmake do_testを実行すると、
 # min-camlとocamlでコンパイル・実行した結果を自動で比較します。
 
-AUXLIB_DIRS = +site-lib/deriving
+AUXLIB_DIRS = +deriving +/usr/local/lib/ocaml/3.12.1/bisect
 OCAMLFLAGS = -w Aef
 
 RESULT = min-caml

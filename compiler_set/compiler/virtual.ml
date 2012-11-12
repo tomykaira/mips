@@ -4,6 +4,7 @@
 
 open Asm
 
+
 (* 変数と型の組をintとfloatに分類する関数 *)
 let classify xts ini addf addi =
   List.fold_left
@@ -53,7 +54,7 @@ let expand_let_list (variables:Id.t list) typ root_list_var rest =
 
 
 (* 式の仮想マシンコード生成 *)
-let rec g env e = match e with
+let rec g tail env  e = match e with
   | Closure.Unit   -> Ans(Nop)
   | Closure.Int(i) -> Ans(Int(i))
   | Closure.Float(d) -> Ans(Float(d))
@@ -70,32 +71,32 @@ let rec g env e = match e with
   | Closure.FDiv(x, y) -> Ans(FDiv(x, y))
   | Closure.IfEq(x, y, e1, e2) ->
       (match M.find x env with
-      | Type.Bool | Type.Int -> Ans(IfEq(x, y, g env e1, g env e2))
-      | Type.Float -> Ans(IfFEq(x, y, g env e1, g env e2))
+      | Type.Bool | Type.Int -> Ans(IfEq(x, y, g tail env  e1, g tail env  e2))
+      | Type.Float -> Ans(IfFEq(x, y, g tail env  e1, g tail env  e2))
       | typ -> failwith (
 	Printf.sprintf"equality supported only for bool, int, and float, but is %s\n%s"
 	  (Type.show typ)
 	  (Show.show<Closure.t> e)))
   | Closure.IfLE(x, y, e1, e2) ->
       (match M.find x env with
-      | Type.Bool | Type.Int -> Ans(IfLE(x, y, g env e1, g env e2))
-      | Type.Float -> Ans(IfFLE(x, y, g env e1, g env e2))
+      | Type.Bool | Type.Int -> Ans(IfLE(x, y, g tail env  e1, g tail env  e2))
+      | Type.Float -> Ans(IfFLE(x, y, g tail env  e1, g tail env  e2))
       | _ -> failwith "inequality supported only for bool, int, and float")
  | Closure.IfLT(x, y, e1, e2) ->
       (match M.find x env with
-      | Type.Bool | Type.Int -> Ans(IfLT(x, y, g env e1, g env e2))
-      | Type.Float -> Ans(IfFLT(x, y, g env e1, g env e2))
+      | Type.Bool | Type.Int -> Ans(IfLT(x, y, g tail env  e1, g tail env  e2))
+      | Type.Float -> Ans(IfFLT(x, y, g tail env  e1, g tail env  e2))
       | _ -> failwith "inequality supported only for bool, int, and float")
  | Closure.IfNil(x, e1, e2) ->
       (match M.find x env with
       | Type.List(_) ->
 	(* take the cdr and check that is 0 *)
 	let cdr = Id.genid "i" in
-	Let((cdr, Type.Int), LdI(x, 1), Ans(IfEq(cdr, reg_0, g env e1, g env e2)))
+	Let((cdr, Type.Int), LdI(x, 1), Ans(IfEq(cdr, reg_0, g tail env  e1, g tail env  e2)))
       | _ -> failwith "the argument of IfNil is not a list")
   | Closure.Let((x, t1), e1, e2) ->
-      let e1' = g env e1 in
-      let e2' = g (M.add x t1 env) e2 in
+      let e1' = g false env e1 in
+      let e2' = g tail (M.add x t1 env) e2 in
       concat e1' (x, t1) e2'
   | Closure.Var(x) ->
       (match M.find x env with
@@ -104,7 +105,7 @@ let rec g env e = match e with
       | _ -> Ans(AddI(x, 0)))
   | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* クロージャの生成 *)
       (* Closureのアドレスをセットしてから、自由変数の値をストア *)
-      let e2' = g (M.add x t env) e2 in
+      let e2' = g tail (M.add x t env) e2 in
       let offset, store_fv =
 	expand
 	  (List.map (fun y -> (y, M.find y env)) ys)
@@ -131,15 +132,19 @@ let rec g env e = match e with
 	  (1, Ans(AddI(y, 0)))
 	  (fun x offset store ->  seq(FStI(x, y, offset), store))
 	  (fun x _ offset store -> seq(StI(x, y, offset), store)) in
-      Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
-	  Let((reg_hp, Type.Int), AddI(reg_hp, offset),
-	      store))
+      if tail then
+	Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_fp, 0),
+	    store)
+      else
+        Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
+	    Let((reg_hp, Type.Int), AddI(reg_hp, offset),
+	        store))
   | Closure.LetTuple(xts, y, e2) ->
       let s = Closure.fv e2 in
-      let (offset, load) =
+      let (_, load) =
 	expand
 	  xts
-	  (1, g (M.add_list xts env) e2)
+	  (1, g tail (M.add_list xts env) e2)
 	  (fun x offset load ->
 	    if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
 	    fletd(x, FLdI(y, offset), load))
@@ -148,7 +153,6 @@ let rec g env e = match e with
 	    Let((x, t), LdI(y, offset), load)) in
       load
   | Closure.Get(x, y) -> (* 配列の読み出し *)
-      let offset = Id.genid "o" in
       (match M.find x env with
       | Type.Array(Type.Unit) -> Ans(Nop)
       | Type.Array(Type.Float) ->
@@ -198,7 +202,7 @@ let rec g env e = match e with
       M.add_list (add_type_variables matcher typ) env
     in
     let expanded_rest =
-      g (add_list_matcher_with_direct_type matcher typ env) rest
+      g tail (add_list_matcher_with_direct_type matcher typ env) rest
     in
     (
       match matcher with
@@ -209,21 +213,23 @@ let rec g env e = match e with
     )
 
 (* トップレベルの関数の仮想マシンコード生成 *)
-let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
+let h  { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
   let (int, float) = separate yts in
+  let b = if List.mem x !Closure.danger then false else true in
   let (_, load) =
     expand
       zts
-      (1, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
+      (1, g b (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load -> fletd(z, FLdI(reg_cl, offset), load))
       (fun z t offset load -> Let((z, t), LdI(reg_cl, offset), load)) in
   match t with
-  | Type.Fun(_, t2) ->
+  | Type.Fun(_, t2) ->      
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
   | _ -> assert false
 
 (* プログラム全体の仮想マシンコード生成 *)
 let f (Closure.Prog(fundefs, e)) =
+  Closure.danger := [];
   let fundefs = List.map h fundefs in
-  let e = g M.empty e in
+  let e = g false M.empty e in
   Prog (fundefs, e)
