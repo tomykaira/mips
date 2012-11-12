@@ -1,4 +1,5 @@
 #include "../include/common.h"
+#include "../include/binary.h"
 #include <cmath>
 #include <cassert>
 #include <fcntl.h>
@@ -85,7 +86,7 @@ uint32_t lreg;
 long long unsigned cnt;
 
 // ROM
-uint32_t ROM[ROM_NUM];
+vector<Binary> ROM;
 
 #define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
 // RAM
@@ -166,8 +167,18 @@ int simulate(simulation_options * opt)
 		cerr << "couldn't open " << opt->target_binary << endl;
 		return 1;
 	}
-	int i = 0;
-	while (fscanf(srcFile, "%x", &ROM[i]) != EOF) { i++; }
+
+	char *buf;
+	size_t size;
+	buf = (char *)calloc(1024, sizeof(char));
+	while (getline(&buf, &size, srcFile) > 0) {
+		uint32_t code;
+		char * inst;
+		sscanf(buf, "%x", &code);
+		inst = strchr(buf, '\t') + 1; // skip tab
+		Binary b(inst, code, false);
+		ROM.push_back(b);
+	}
 	fclose(srcFile);
 
 	// create output files
@@ -217,7 +228,7 @@ int simulate(simulation_options * opt)
 		assert(HR < RAM_SIZE);
 
 		assert(rom_addr(pc) >= 0);
-		inst = ROM[rom_addr(pc)];
+		inst = ROM[rom_addr(pc)].getCode();
 
 		D_INSTRUCTION(log_fp, "INST: %8d %08x\n", pc, inst);
 
@@ -235,7 +246,7 @@ int simulate(simulation_options * opt)
 		if (print_count > 0) {
 			printf("%8d: %08x\n", pc, inst);
 		  print_count --;
-		} else if (print_count = 0) {
+		} else if (print_count == 0) {
 			print_count = -1;
 			step = true;
 			enable_blocking();
@@ -501,16 +512,13 @@ int simulate(simulation_options * opt)
 				D_IO(log_fp, "IO: %c\n", (char)IRT);
 				break;
 			case DEBUG:
-				for (int i = 0; i <= 3; i ++) {
-					printf("%d\t%02d: %08x\n", pc, i, freg[i]);
-				}
 				break;
 			case HALT:
 				for (int i = 0; i <= 0; i ++) {
 					printf("\t%02d: %08x\n", i, freg[i]);
 				}
-				for (int i = 0; i < stack_pointer; i ++) {
-					printf("\ts%2d: %5d\n", i, internal_stack[i]);
+				for (int i = 1; i < stack_pointer; i ++) {
+					printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());
 				}
 				break;
 			default:
