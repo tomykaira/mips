@@ -598,14 +598,6 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	      code = _debug(rs, rt, imm);
 	      return true;
 	    }
-	  /*
-	  int n = sscanf(buffer, form, dummy);
-	  if (n == 1)
-	    {
-	      code = _debug(rs, rt, rd);
-	      return true;
-	    }
-	  */
 	}
 	
 	return false;
