@@ -343,13 +343,6 @@ int simulate(simulation_options * opt)
 
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
-		//無限ループの可能性
-		if (isLoop(history, opcode, ireg, freg)) {
-			step = true;
-			enable_step();
-		}
-		//履歴を更新する
-		updateH(history, opcode, ireg, freg);
 
 		if (ireg[0] != 0)
 		{
