@@ -592,10 +592,10 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	}
 	if (eq(instName, "debug"))
 	{
-		int n = sscanf(buffer, form, dummy);
-		if (n == 1)
+	  int n = sscanf(buffer, formR, dummy, &imm);
+		if (n == 2)
 		{
-			code = _debug(rs, rt, rd);
+		  code = _debug(rs, rt, imm);
 			return true;
 		}
 	}
