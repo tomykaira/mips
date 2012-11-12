@@ -1,12 +1,12 @@
 open Asm
 
-let ze env x = if M.mem x env && M.find x env = 0 then "$r0" else x 
+let ze env x = if M.mem x env && M.find x env = 0 then "$r0" else x
 
 let rec g env = function (* 命令列の16bit即値最適化 *)
   | Ans(exp) -> Ans(g' env exp)
   | Let((x, t), Int(i), e) when -0x8000 <= i && i < 0x7FFF ->
-      let e' = g (M.add x i env) e in
-      if List.mem x (fv e') then Let((x, t), Int(i), e') else e'
+    let e' = g (M.add x i env) e in
+    if List.mem x (fv e') then Let((x, t), Int(i), e') else e'
   | Let(xt, exp, e) -> Let(xt, g' env exp, g env e)
 and g' env = function (* 各命令の16bit即値最適化 *)
   | Add(x, y) when M.mem y env -> AddI(x, M.find y env)

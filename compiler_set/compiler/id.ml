@@ -1,8 +1,8 @@
 (*pp deriving *)
 type t = string (* 変数の名前 *)
-      deriving (Show)
+    deriving (Show)
 type l = L of string (* トップレベル関数やグローバル配列のラベル *)
-      deriving (Show)
+    deriving (Show)
 
 let rec pp_list = function
   | [] -> ""

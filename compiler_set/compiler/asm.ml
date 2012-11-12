@@ -36,8 +36,8 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FNeg  of Id.t
   | FAdd  of Id.t * Id.t
   | FSub  of Id.t * Id.t
-  | FMul  of Id.t * Id.t 
-  | FMulN of Id.t * Id.t 
+  | FMul  of Id.t * Id.t
+  | FMulN of Id.t * Id.t
   | FDiv  of Id.t * Id.t (* virtual instruction *)
   | FInv  of Id.t
   | FSqrt of Id.t
@@ -50,11 +50,11 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FLdR of Id.t * Id.t
 
   | Comment of string
-	
+
   (* virtual instructions *)
   | IfEq  of Id.t * Id.t * t * t
   | IfLT  of Id.t * Id.t * t * t
-  | IfLE  of Id.t * Id.t * t * t 
+  | IfLE  of Id.t * Id.t * t * t
   | IfFEq of Id.t * Id.t * t * t
   | IfFLT of Id.t * Id.t * t * t
   | IfFLE of Id.t * Id.t * t * t
@@ -66,16 +66,16 @@ and exp = (* 一つ一つの命令に対応する式 *)
       deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
-      deriving (Show)
+    deriving (Show)
 
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
-      deriving (Show)
+    deriving (Show)
 
 let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
-let regs = Array.init 27 (fun i -> Printf.sprintf "$r%d" (i+3)) 
+let regs = Array.init 27 (fun i -> Printf.sprintf "$r%d" (i+3))
 let fregs = Array.init 32 (fun i -> Printf.sprintf "$f%d" i)
 
 let allregs = Array.to_list regs
@@ -110,7 +110,7 @@ let rec fv_exp = function
   | Add(x,y) | Sub(x,y) | Mul(x,y) | And(x,y) | Or(x,y) | Nor(x,y) | Xor(x,y)
   | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) -> [x;y]
- 		
+
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfFEq(x,y,e1,e2)
   | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
     -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
@@ -121,11 +121,11 @@ let rec fv_exp = function
 and fv = function
   | Ans(exp) -> fv_exp exp
   | Let((x, t), exp, e) ->
-      fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
+    fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
 
 let fv e = remove_and_uniq S.empty (fv e)
 
 let rec concat e1 xt e2 =
   match e1 with
-  | Ans(exp) -> Let(xt, exp, e2)
-  | Let(yt, exp, e1') -> Let(yt, exp, concat e1' xt e2)
+    | Ans(exp) -> Let(xt, exp, e2)
+    | Let(yt, exp, e1') -> Let(yt, exp, concat e1' xt e2)
