@@ -85,6 +85,8 @@ PROTO_I(_fldi);
 PROTO_R(_inputb);
 PROTO_R(_outputb);
 PROTO_R(_halt);
+PROTO_I(_debug);
+
 
 // 0オペランド命令の読み込みフォーマット
 #define form "%s"
