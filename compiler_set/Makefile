@@ -193,3 +193,9 @@ test-large: $(LARGE_TESTS:%=test/%.run_large)
 # アセンブリがソースファイルのとき。.sを削除したらまずい
 %.clean_s:
 	rm $*.bin
+
+.PHONY: cur
+
+cur: 
+	make tools
+	assembler/assembler test/Loreley/main.s test/Loreley/main.bin

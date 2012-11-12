@@ -122,6 +122,9 @@ let rec g tuple_env env e =
       (match M.find x env with
         | Type.Unit -> Ans(Nop)
         | Type.Float -> Ans(FMov(x))
+        | Type.Tuple(_) ->
+          let { tail = tail; _ } = tuple_env in
+          (if tail then failwith "tuple at the end of function" else Ans(AddI(x, 0)))
         | _ -> Ans(AddI(x, 0)))
     | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* クロージャの生成 *)
         (* Closureのアドレスをセットしてから、自由変数の値をストア *)

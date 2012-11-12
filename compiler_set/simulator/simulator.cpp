@@ -218,7 +218,7 @@ int simulate(simulation_options * opt)
 	history.pointer = 0;
 
 	int internal_stack[CALL_STACK_SIZE];
-	// vector<int> jump_logger;
+	vector<int> jump_logger;
 	int stack_pointer = 0;
 	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
@@ -267,8 +267,6 @@ int simulate(simulation_options * opt)
 			cerr << "input file is enabled, but failed to open: " << opt->input_file << endl;
 			return 1;
 		}
-	} else {
-		input_fp = stdin;
 	}
 
 	bool debug_flag = false;
@@ -338,11 +336,20 @@ int simulate(simulation_options * opt)
 			case 'c':
 				disable_step();
 				break;
+			case 'b':
+				DUMP_STACK
+				break;
 			}
 		}
 
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
+    //無限ループの可能性
+    // if (isLoop(history, opcode, ireg, freg)) {
+    // 	enable_step();
+    // }
+    //履歴を更新する
+    // updateH(history, opcode, ireg, freg);
 
 		if (ireg[0] != 0)
 		{
@@ -400,10 +407,18 @@ int simulate(simulation_options * opt)
 			case ADDI:
 				D_REGISTER(log_fp, "REG: ADDI %02X %08X\n", get_rt(inst), IRS + IMM);
 				IRT = IRS + IMM;
+				// if (get_rt(inst) == 2) {
+				// 	DUMP_PC
+				// 	printf("add\t%d\n", IRT);
+				// }
 				break;
 			case SUBI:
 				D_REGISTER(log_fp, "REG: SUBI %02X %08X\n", get_rt(inst), IRS - IMM);
 				IRT = IRS - IMM;
+				// if (get_rt(inst) == 2) {
+				// 	DUMP_PC
+				// 	printf("sub\t%d\n", IRT);
+				// }
 				break;
 			case MULI:
 				D_REGISTER(log_fp, "REG: MULI %02X %08X\n", get_rt(inst), IRS * IMM);
@@ -490,7 +505,7 @@ int simulate(simulation_options * opt)
 				FRT = ((uint32_t)IMM << 16) | (FRT & 0xffff);
 				break;
 			case J:
-				// jump_logger.push_back(pc);
+				jump_logger.push_back(pc);
 				pc = get_address(inst);
 				break;
 			case BEQ:
@@ -518,15 +533,17 @@ int simulate(simulation_options * opt)
 				if (asF(FRS) != asF(FRT)) pc += IMM + (-1);
 				break;
 			case JR:
-				// jump_logger.push_back(pc);
+				jump_logger.push_back(pc);
 				pc = IRS;
 				break;
 			case CALL:
+				jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
 				break;
 			case CALLR:
+				jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = IRS;
@@ -550,7 +567,11 @@ int simulate(simulation_options * opt)
 			case STI:
 				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
 				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
+				if (IRS + IMM >= RAM_SIZE) {
+					DUMP_PC
+					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
+					return 1;
+				}
 				RAM[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
@@ -572,6 +593,10 @@ int simulate(simulation_options * opt)
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
+				if (!input_fp) {
+					fprintf(stderr, "Specify input file with -f");
+					return 1;
+				}
 				IRT = fgetc(input_fp) & 0xff;
 				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
 				break;
@@ -588,15 +613,33 @@ int simulate(simulation_options * opt)
 				}
 				switch(IMM) {
 				case 1:
-					printf("before");
-					printf("\tfn: %d\n", ireg[3]);
-					printf("\tx: %08x %f\n", freg[0], asF(freg[0]));
-					printf("\ty: %08x %f\n", freg[1], asF(freg[1]));
+					enable_step();
 					break;
 				case 2:
-					printf("after");
-					printf("\tx: %08x %f\n", freg[1], asF(freg[1]));
-					printf("\ty: %08x %f\n", freg[0], asF(freg[0]));
+					printf("calls: %d\n", ireg[28]);
+					break;
+				case 4:
+					DUMP_PC
+					printf("\tr3: %d\n", ireg[3]);
+					rep(i, 10) {
+						printf("%d: %d\n", FR - i, RAM[FR - i]);
+					}
+					break;
+				case 5:
+					DUMP_PC
+					printf("\tHR: %d\n", ireg[2]);
+					printf("\tr3: %d\n", ireg[3]);
+					for (int i = jump_logger.size()-10; i < jump_logger.size(); i++) {
+						int counter = jump_logger[i];
+						printf("%d\t%d\t%s\n", i, counter-1, ROM[counter - 1].getInst().c_str());
+					}
+					
+					break;
+				case 6:
+					DUMP_PC
+					rep(j, 8) {
+						printf("%d: %08x\n", j, ireg[j]);
+					}
 					break;
 				default:
 					break;
