@@ -15,32 +15,11 @@ map<string, uint32_t> labels;
 // 現在何行目を読み込んでいるか
 uint32_t cur = 1;
 // アセンブルして得られたバイナリ列. 第二要素はラベルを使うか。setLを分解したときのaddiの処理などに使う
-vector<pair<uint32_t, bool> > binaries;
+vector<Binary> binaries;
 
 // 入力・出力ファイル
 FILE* srcFile;
 FILE* dstFile;
-
-//-----------------------------------------------------------------------------
-//
-// エンディアンの変換
-//
-//-----------------------------------------------------------------------------
-uint32_t endian(uint32_t data, bool isBig)
-{
-	// デフォルトではリトルエンディアンなので、
-	// ビッグエンディアンが選択されたときに切り替える
-	if (isBig)
-	{
-		return (data << 24) | ((data << 8) & 0x00ff0000) | ((data >> 8) & 0x0000ff00) | ((data >> 24) & 0x000000ff);
-	}
-	return data;
-}
-
-void push(vector<pair<uint32_t, bool> >& vec, uint32_t data, bool useLabel = false)
-{
-	vec.push_back(make_pair(data, useLabel));
-}
 
 //-----------------------------------------------------------------------------
 //
@@ -91,8 +70,6 @@ bool readInstructions()
 			}
 			else
 			{
-				// 命令コマンド
-
 				// ニーモニックを解決
 				vector<bool> useLabels = mnemonic(instName, mnemonicBuffer, labelNames, binaries.size());
 
@@ -110,7 +87,8 @@ bool readInstructions()
 					}
 					else
 					{
-						push(binaries, enc, useLabel | useLabels[i]);
+						Binary b(mnemonicBuffer[i], enc, useLabel | useLabels[i]);
+						binaries.push_back(b);
 					}
 				}
 			}
@@ -131,15 +109,14 @@ void resolveLabels()
 	for (int i = 0; i < binaries.size(); i++)
 	{
 		// ラベルを使わない命令なら飛ばす
-		if (binaries[i].second == false)
+		if (! binaries[i].useLabel())
 		{
 			continue;
 		}
 		
 		// 命令の種類を取得
-		uint32_t instType = (binaries[i].first & 0xfc000000) >> 26;
 		string name;
-		switch (instType)
+		switch (binaries[i].instType())
 		{ 
 			// I形式
 			case BEQ:
@@ -156,7 +133,7 @@ void resolveLabels()
 					exit(-1);
 				} 
 				name = labelNames[i];
-				binaries[i].first = (binaries[i].first & 0xffFF0000) | (getAddr(name, i + 0) & 0xffFF);
+				binaries[i].setImm(getAddr(name, i + 0));
 				break;
 			case ADDI:
 			case SUBI:
@@ -181,7 +158,7 @@ void resolveLabels()
 					exit(-1);
 				} 
 				name = labelNames[i];
-				binaries[i].first = (binaries[i].first & 0xffFF0000) | (getAddr(name) & 0xffFF);
+				binaries[i].setImm(getAddr(name));
 				break;
 			case J:
 			case CALL:
@@ -192,25 +169,11 @@ void resolveLabels()
 					exit(-1);
 				} 
 				name = labelNames[i];
-				binaries[i].first = (binaries[i].first & 0xfc000000) | (getAddr(name) & 0x3FFffFF);
+				binaries[i].setJumpImm(getAddr(name));
 				break;
 			default:
 				break;
 		}
-	}
-}
-
-//-----------------------------------------------------------------------------
-//
-// 出力
-//
-//-----------------------------------------------------------------------------
-void output()
-{
-	rep(i, binaries.size())
-	{
-		binaries[i].first = endian(binaries[i].first, false);
-		fprintf(dstFile, "%08x\n", (uint32_t)binaries[i].first);
 	}
 }
 
@@ -262,8 +225,10 @@ bool assemble(const char* srcPath, const char* dstPath)
 		return false;
 	}
 
-	// 出力
-	output();
+	rep(i, binaries.size())
+	{
+		binaries[i].print(dstFile);
+	}
 
 	// 出力ファイルを閉じる
 	fclose(dstFile);

@@ -10,8 +10,8 @@
 #include <sys/types.h>
 #include <vector>
 #include <map>
-#define rep(i, n) for (int i = 0; i < n; i++)
-#define repi(i, n) for (int i = 1; i < n; i++)
+#define rep(i, n) for (int i = 0; i < (int)n; i++)
+#define repi(i, n) for (int i = 1; i < (int)n; i++)
 #define eq(a, b) (strcmp(a, b) == 0)
 
 #define ROM_NUM (64 * 1024) // 64KByte

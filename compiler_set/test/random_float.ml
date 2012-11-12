@@ -27,8 +27,12 @@ in
 
 let iter n =
   if n > 0 then
-    (print_int (int_of_float random_gen);
-     iter (n-1))
+    let random = random_gen () in
+    (if random > 1.0 or random < -1.0 then
+      (print_int (int_of_float (random *. 10000.)); print_char '\n')
+    else
+      ()); 
+    iter (n-1)
   else ()
 in
-iter 100
+iter 10000000

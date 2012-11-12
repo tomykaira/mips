@@ -502,7 +502,7 @@ int simulate(simulation_options * opt)
 				break;
 			case DEBUG:
 				for (int i = 0; i <= 3; i ++) {
-					printf("\t%02d: %08x\n", i, freg[i]);
+					printf("%d\t%02d: %08x\n", pc, i, freg[i]);
 				}
 				break;
 			case HALT:
