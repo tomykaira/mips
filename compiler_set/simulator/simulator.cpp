@@ -35,10 +35,19 @@ int32_t get_imm(uint32_t inst)
 
 // 整数レジスタ
 int32_t ireg[INTREG_NUM];
+int32_t backup_ireg[INTREG_NUM];
 // 浮動小数レジスタ
 uint32_t freg[INTREG_NUM];
+uint32_t backup_freg[INTREG_NUM];
 // リンクレジスタ
 uint32_t lreg;
+
+void backup_registers() {
+	rep(i, INTREG_NUM) {
+		backup_ireg[i] = ireg[i];
+		backup_freg[i] = freg[i];
+	}
+}
 
 // いいかげんな call stack
 #define CALL_STACK_SIZE (1 << 20)
@@ -119,6 +128,7 @@ typedef struct _options {
 	bool enable_record_mem;
 	bool enable_record_register;
 	bool enable_record_io;
+	bool lib_test_mode;
 	char * input_file;
 	char * target_binary;
 } simulation_options;
@@ -127,6 +137,9 @@ typedef struct _options {
 #define D_REGISTER if (log_fp && opt->enable_record_register) fprintf
 #define D_MEMORY if (log_fp && opt->enable_record_mem) fprintf
 #define D_IO if (log_fp && opt->enable_record_io) fprintf
+
+#define DUMP_PC { printf("\tcurrent_pc: %d %s\n", pc, ROM[pc-1].getInst().c_str()); }
+#define DUMP_STACK { for (int i = 1; i < stack_pointer; i ++) {printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());} }
 
 //-----------------------------------------------------------------------------
 //
@@ -138,22 +151,24 @@ typedef struct _options {
 
 volatile bool step = false;
 
-void disable_blocking() {
+void disable_step() {
 	int flags = fcntl(0, F_GETFL);
 	flags |= O_NONBLOCK;
 	if (fcntl(0, F_SETFL, flags) != 0){
 		perror("fcntl");
 		exit(1);
 	}
+	step = false;
 }
 
-void enable_blocking() {
+void enable_step() {
 	int flags = fcntl(0, F_GETFL);
 	flags ^= O_NONBLOCK;
 	if (fcntl(0, F_SETFL, flags) != 0){
 		perror("fcntl");
 		exit(1);
 	}
+	step = true;
 }
 
 //無限ループのチェック
@@ -198,12 +213,12 @@ int simulate(simulation_options * opt)
 	int print_count=-1;
 	uint8_t opcode, funct;
 
-
 	//記録用
 	RH history;
 	history.pointer = 0;
 
 	int internal_stack[CALL_STACK_SIZE];
+	// vector<int> jump_logger;
 	int stack_pointer = 0;
 	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
@@ -256,6 +271,8 @@ int simulate(simulation_options * opt)
 		input_fp = stdin;
 	}
 
+	bool debug_flag = false;
+
 	// メインループ
 	do
 	{
@@ -280,10 +297,9 @@ int simulate(simulation_options * opt)
 
 		D_INSTRUCTION(log_fp, "INST: %8d %08x\n", pc, inst);
 
-		if (!step && !(cnt % (1000000))) {
+		if (!step && !(cnt % (1000000)) && !(opt->lib_test_mode)) {
 			if (read(0, command, 1) != -1) {
-				step = true;
-				enable_blocking();
+				enable_step();
 			} else {
 				if (errno != EAGAIN && errno != EWOULDBLOCK) {
 					perror("read");
@@ -296,8 +312,7 @@ int simulate(simulation_options * opt)
 		  print_count --;
 		} else if (print_count == 0) {
 			print_count = -1;
-			step = true;
-			enable_blocking();
+			enable_step();
 		}
 		if (step) {
 			printf("%8d: %08x\n", pc, inst);
@@ -305,26 +320,23 @@ int simulate(simulation_options * opt)
 			scanf("%s", command);
 			switch (command[0]) {
 			case 's':
-				step = true;
 				break;
 			case '1':
 				print_count = 100;
-				disable_blocking();
-				step = false;
+				disable_step();
 				break;
 			case 'r':
-				for (int i = 0; i < 32; i ++) {
+				for (int i = 0; i < INTREG_NUM; i ++) {
 					printf("\t%02d: %08x\n", i, ireg[i]);
 				}
 				break;
 			case 'f':
-				for (int i = 0; i < 32; i ++) {
-					printf("\t%02d: %08x\n", i, freg[i]);
+				for (int i = 0; i < INTREG_NUM; i ++) {
+					printf("\t%02d: %08x %f\n", i, freg[i], asF(freg[i]));
 				}
 				break;
 			case 'c':
-				disable_blocking();
-				step = false;
+				disable_step();
 				break;
 			}
 		}
@@ -334,7 +346,7 @@ int simulate(simulation_options * opt)
 		//無限ループの可能性
 		if (isLoop(history, opcode, ireg, freg)) {
 			step = true;
-			enable_blocking();
+			enable_step();
 		}
 		//履歴を更新する
 		updateH(history, opcode, ireg, freg);
@@ -347,6 +359,13 @@ int simulate(simulation_options * opt)
 
 		cnt++;
 		pc += ROM_ADDRESSING_UNIT;
+
+		if (debug_flag) {
+			DUMP_PC
+			for (int i = 0; i <= 1; i ++) {
+				printf("\t%02d: %08x %f\n", i, freg[i], asF(freg[i]));
+			}
+		}
 
 		// 1億命令発行されるごとにピリオドを一個ずつ出力する（どれだけ命令が発行されたか視覚的にわかりやすくなる）
 		if (!(cnt % (100000000)))
@@ -434,8 +453,8 @@ int simulate(simulation_options * opt)
 				FRD = myfmul(FRS, FRT);
 				break;
 			case FMULN:
-				D_REGISTER(log_fp, "REG: FMULN f%02X %08X\n", get_rd(inst), myfmul(FRS, -FRT));
-				FRD = myfmul(FRS, -FRT);
+				D_REGISTER(log_fp, "REG: FMULN f%02X %08X\n", get_rd(inst), myfmul(FRS, FRT));
+				FRD = myfneg(myfmul(FRS, FRT));
 				break;
 			case FINV:
 				D_REGISTER(log_fp, "REG: FINV f%02X %08X\n", get_rd(inst), myfinv(FRS));
@@ -478,6 +497,7 @@ int simulate(simulation_options * opt)
 				FRT = ((uint32_t)IMM << 16) | (FRT & 0xffff);
 				break;
 			case J:
+				// jump_logger.push_back(pc);
 				pc = get_address(inst);
 				break;
 			case BEQ:
@@ -505,6 +525,7 @@ int simulate(simulation_options * opt)
 				if (asF(FRS) != asF(FRT)) pc += IMM + (-1);
 				break;
 			case JR:
+				// jump_logger.push_back(pc);
 				pc = IRS;
 				break;
 			case CALL:
@@ -568,14 +589,28 @@ int simulate(simulation_options * opt)
 				D_IO(log_fp, "IO: %c\n", (char)IRT);
 				break;
 			case DEBUG:
+				if (opt->lib_test_mode) {
+					printf("%f\n", asF(freg[0]));
+					break;
+				}
+				switch(IMM) {
+				case 1:
+					printf("before");
+					printf("\tfn: %d\n", ireg[3]);
+					printf("\tx: %08x %f\n", freg[0], asF(freg[0]));
+					printf("\ty: %08x %f\n", freg[1], asF(freg[1]));
+					break;
+				case 2:
+					printf("after");
+					printf("\tx: %08x %f\n", freg[1], asF(freg[1]));
+					printf("\ty: %08x %f\n", freg[0], asF(freg[0]));
+					break;
+				default:
+					break;
+				}
+
 				break;
 			case HALT:
-				for (int i = 0; i <= 0; i ++) {
-					printf("\t%02d: %08x\n", i, freg[i]);
-				}
-				for (int i = 1; i < stack_pointer; i ++) {
-					printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());
-				}
 				break;
 			default:
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
@@ -598,6 +633,7 @@ int main(int argc, char** argv)
 	opt.enable_record_mem         = false;
 	opt.enable_record_register    = false;
 	opt.enable_record_io          = false;
+	opt.lib_test_mode             = false;
 	opt.input_file                = NULL;
 	opt.target_binary             = NULL;
 
@@ -610,10 +646,11 @@ int main(int argc, char** argv)
 			{"io",         no_argument,       0,  'o' },
 			{"no-stdout",  no_argument,       0,  'S' },
 			{"input",      required_argument, 0,  'f' },
+			{"libtest",    no_argument,       0,  't' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:t", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -638,6 +675,10 @@ int main(int argc, char** argv)
 			opt.enable_stdout = false;
 			break;
 
+		case 't':
+			opt.lib_test_mode = true;
+			break;
+
 		case 'f':
 			length = strlen(optarg);
 			opt.input_file = (char*)calloc(length + 1, sizeof(char));
@@ -658,7 +699,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	disable_blocking();
+	disable_step();
 
 	load_tables(); // FPU
 
