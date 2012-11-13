@@ -8,6 +8,41 @@
 3 5 0.0804772 0.0112989 0.866422
 1 6 0.273309
  *)
+(*  let buf = Buffer.create 16 *)
+(*  in *)
+
+(*  let rec read_token in_token = *)
+(*    try *)
+(*      let c = input_char stdin in *)
+(*      match c with *)
+(*        ' ' | '\t' | '\r' | '\n' -> *)
+(*  	if in_token then () *)
+(*  	else read_token false *)
+(*      | _ -> *)
+(*  	Buffer.add_char buf c; *)
+(*  	read_token true *)
+(*    with *)
+(*      End_of_file -> *)
+(*        if in_token then () else raise End_of_file *)
+(*  in *)
+
+(*  let read_float () = *)
+(*    Buffer.clear buf; *)
+(*    read_token false; *)
+(*    try *)
+(*      float_of_string (Buffer.contents buf) *)
+(*    with *)
+(*      Failure _ -> failwith ((Buffer.contents buf) ^ ": float conversion failed.") *)
+(* in *)
+(*  let read_int () = *)
+(*    Buffer.clear buf; *)
+(*    read_token false; *)
+(*    try *)
+(*      int_of_string (Buffer.contents buf) *)
+(*    with *)
+(*      Failure _ -> failwith ((Buffer.contents buf) ^ ": int conversion failed.") *)
+(*  in *)
+
 let rec gene_gen res=
   if res==0 then []
   else 
@@ -55,7 +90,8 @@ let read_gene ()=
   dnaArray:=Array.init genes read_dnas;
 in
 read_gene ();
-let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),data,(d1,d2,d3,d4,d5,d6)) = !dnaArray.(3) in
+let print_nth n = 
+let (cIndex,cBlendRate,cWeight,(c1,c2,c3,c4,c5,c6),data,(d1,d2,d3,d4,d5,d6)) = !dnaArray.(n) in
 print_float5 cIndex;
 print_float5 cBlendRate; 
 print_float5 cWeight;
@@ -71,3 +107,6 @@ print_float5 d3;
 print_float5 d4;
 print_float5 d5;
 print_float5 d6
+in
+let rec itete n = if n < 21 then (print_nth n; itete (n + 1)) else () in
+itete 0
