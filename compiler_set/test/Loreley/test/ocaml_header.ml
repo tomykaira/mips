@@ -2,6 +2,8 @@
 let buf = Buffer.create 16
 in
 
+let xor = (lxor) in
+
 let rec read_token in_token =
   try
     let c = input_char stdin in

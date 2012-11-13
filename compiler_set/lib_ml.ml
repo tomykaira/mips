@@ -282,3 +282,7 @@ let rec mod a b =
   let d = div a b in
   a - (b * d)
 in
+
+let abs x =
+  if x < 0 then 0-x else x
+in
