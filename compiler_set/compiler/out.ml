@@ -1,7 +1,7 @@
 (* 実際の出力を行うモジュール *)
 
 
-let print buf t = buf := t::!buf
+
 
 (* アセンブリコードの型 *)
 type exp = (* 一つ一つの命令に対応する式 *)
@@ -69,6 +69,9 @@ type exp = (* 一つ一つの命令に対応する式 *)
   | Halt
 type t = exp list
 
+let print buf = function
+  | AddI(x,y,i) | SubI(x,y,i) when x = y && i = 0 -> ()
+  | t -> buf := t::!buf
 
 let o oc = function
   | Label l -> Printf.fprintf oc "%s:\n" l

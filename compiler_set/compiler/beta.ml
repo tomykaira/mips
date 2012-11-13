@@ -1,19 +1,21 @@
 open ANormal
 
-let find x env = try M.find x env with Not_found -> x (* ÃÖ´¹¤Î¤¿¤á¤Î´Ø¿ô *)
+let find x env = try M.find x env with Not_found -> x (* ç½®æ›ã®ãŸã‚ã®é–¢æ•° *)
 
-(* ¦Â´ÊÌó¥ë¡¼¥Á¥óËÜÂÎ *)
-let rec g env = function 
-  | Let((x, t), exp, e) -> (* let¤Î¦Â´ÊÌó *)
-      (match g' env exp with
-      | Var(y) -> g (M.add x y env) e
-      | exp' -> let e' = g env e in
-	Let((x, t), exp', e'))
-  | LetTuple(xts, y, e) -> LetTuple(xts, find y env, g env e)
+let rec g env = function (* Î²ç°¡ç´„ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
+  | Let((x, t), exp, e) -> (* letã®Î²ç°¡ç´„ *)
+    (match g' env exp with
+      | Var(y) ->
+        g (M.add x y env) e
+      | exp' ->
+        let e' = g env e in
+        Let((x, t), exp', e'))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
-      LetRec({ name = xt; args = yts; body = g env e1 }, g env e2)
+    LetRec({ name = xt; args = yts; body = g env e1 }, g env e2)
+  | LetTuple(xts, y, e) -> LetTuple(xts, find y env, g env e)
+  | LetList(xts, y, e) -> LetList(xts, find y env, g env e)
   | Ans(exp) -> Ans(g' env exp)
-and g' env = function 
+and g' env = function
   | Unit -> Unit
   | Int(i) -> Int(i)
   | Float(d) -> Float(d)
@@ -34,22 +36,26 @@ and g' env = function
       IfEq(x', y', g (M.add x' y' env) e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
-  | Var(x) -> Var(find x env) (* ÊÑ¿ô¤òÃÖ´¹ *)
+  | IfNil(x, e1, e2) -> IfNil(find x env, g env e1, g env e2)
+  | Var(x) -> Var(find x env) (* å¤‰æ•°ã‚’ç½®æ› *)
   | Tuple(xs) -> Tuple(List.map (fun x -> find x env) xs)
   | Get(x, y) -> Get(find x env, find y env)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
   | App(g, xs) -> App(find g env, List.map (fun x -> find x env) xs)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Nil -> Nil
+  | Cons(x, y) -> Cons(find x env, find y env)
 
-let f e = Format.eprintf "beta-reducing...@.";
-          g M.empty e
+
+let f = g M.empty
+
+
+
 
 let add x y env = if x = y then env else M.add x y env
 let add_list l env = List.fold_left (fun env (x,y) -> add x y env) env l 
-
-
-(* 2¤Ä¤Î¥×¥í¥°¥é¥à¤¬ÊÑ¿ôÌ¾¤Î°ã¤¤¤ò½ü¤¤¤ÆÆ±¤¸¤«È½Äê¤¹¤ë´Ø¿ô *)
+(* 2ã¤ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ãŒå¤‰æ•°åã®é•ã„ã‚’é™¤ã„ã¦åŒã˜ã‹åˆ¤å®šã™ã‚‹é–¢æ•° *)
 let rec same env e1 e2 =
   match (e1, e2) with
   | Let((x1,t1),exp1,e1'), Let((x2,t2),exp2,e2') when same' env exp1 exp2 && t1 = t2 ->
@@ -59,12 +65,16 @@ let rec same env e1 e2 =
       same (add_list (List.fold_left2 (fun l (a,_) (b,_) -> (a,b)::l) [] yts1 yts2) env') e1' e2' && same env' e1'' e2''
   | LetTuple(xts1, y1, e1'), LetTuple(xts2, y2, e2') when List.map snd xts1 = List.map snd xts2 && find y1 env = y2 ->
       same (List.fold_left2 (fun env (a,_) (b,_) -> add a b env) env xts1 xts2) e1' e2'
+  | LetList((x1,t1), y1, e1'), LetList((x2,t2), y2, e2') when t1 = t2 && find y1 env = y2 ->
+      same (List.fold_left2 (fun env a b -> add a b env) env (Syntax.matcher_variables x1) (Syntax.matcher_variables x2)) e1' e2'
   | Ans(exp1), Ans(exp2) -> same' env exp1 exp2
   | _ -> false
 and same' env exp1 exp2 =
   match (exp1, exp2) with
   | IfEq(x1,y1,e1,e1'), IfEq(x2,y2,e2,e2') | IfLE(x1,y1,e1,e1'), IfLE(x2,y2,e2,e2') | IfLT(x1,y1,e1,e1'), IfLT(x2,y2,e2,e2') ->
       find x1 env = x2 && find y1 env = y2 && same env e1 e2 && same env e1' e2'
+  | IfNil(x1,e1,e1'), IfNil(x2,e2,e2') ->
+      find x1 env = x2 && same env e1 e2 && same env e1' e2'
   | Float i, Float j ->
       (match classify_float i, classify_float j with
       | FP_infinite, FP_infinite | FP_nan, FP_nan -> true

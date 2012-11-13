@@ -1,3 +1,5 @@
+(*pp deriving *)
+
 type t =
   | Unit
   | Int of int
@@ -16,6 +18,7 @@ type t =
   | IfEq of Id.t * Id.t * t * t
   | IfLE of Id.t * Id.t * t * t
   | IfLT of Id.t * Id.t * t * t
+  | IfNil of Id.t * t * t (* 比較 + 分岐 *)
   | Let of (Id.t * Type.t) * t * t
   | Var of Id.t
   | LetRec of fundef * t
@@ -26,9 +29,11 @@ type t =
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
+  | Nil
+  | Cons of Id.t * Id.t
+  | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
+    deriving (Show)
 
 val fv : t -> S.t
 val f : Syntax.t -> t
-
-val dbprint : int -> t -> unit

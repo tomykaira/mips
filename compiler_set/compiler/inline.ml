@@ -1,21 +1,21 @@
 open ANormal
 
-(* ¥¤¥ó¥é¥¤¥óÅ¸³«¤¹¤ë´Ø¿ô¤ÎºÇÂç¥µ¥¤¥º. Main¤Ç-inline¥ª¥×¥·¥ç¥ó¤Ë¤è¤ê¥»¥Ã¥È¤µ¤ì¤ë *)
-let threshold = ref 0 
+(* ã‚¤ãƒ³ãƒ©ã‚¤ãƒ³å±•é–‹ã™ã‚‹é–¢æ•°ã®æœ€å¤§ã‚µã‚¤ã‚º. Mainã§-inlineã‚ªãƒ—ã‚·ãƒ§ãƒ³ã«ã‚ˆã‚Šã‚»ãƒƒãƒˆã•ã‚Œã‚‹ *)
+let threshold = ref 0
 
 let rec size = function
   | Let(_, exp, e) -> 1 + size' exp + size e
   | LetRec({ body = e1 }, e2) -> 1 + size e1 + size e2
-  | LetTuple(_, _, e) -> 1 + size e
+  | LetTuple(_, _, e) | LetList(_, _, e) -> 1 + size e
   | Ans(exp) -> size' exp
 and size' = function
-  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2)
+  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
     -> 1 + size e1 + size e2
   | _ -> 1
 
 
 let find x env = try M.find x env with Not_found -> x
-(* ¦ÁÊÑ´¹¥ë¡¼¥Á¥ó *)
+(* Î±å¤‰æ›ãƒ«ãƒ¼ãƒãƒ³ *)
 let rec ag env = function 
   | Let((x, t), exp, e) -> 
       let x' = Id.genid x in
@@ -34,6 +34,16 @@ let rec ag env = function
       LetTuple(List.map (fun (x, t) -> (find x env', t)) xts,
 	       find y env,
 	       ag env' e)
+  | LetList((matcher, typ), y, e) ->
+    let replace_in_matcher env = function
+      | Syntax.ListWithNil(vars)    -> Syntax.ListWithNil(List.map (fun v -> find v env) vars)
+      | Syntax.ListWithoutNil(vars) -> Syntax.ListWithoutNil(List.map (fun v -> find v env) vars)
+    in
+    let xs = Syntax.matcher_variables matcher in
+    let env' = M.add_list2 xs (List.map Id.genid xs) env in
+    LetList((replace_in_matcher env' matcher, typ),
+            find y env,
+            ag env' e)
   | Ans(exp) -> Ans(ag' env exp)
 and ag' env = function
   | Unit -> Unit
@@ -53,6 +63,7 @@ and ag' env = function
   | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, ag env e1, ag env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, ag env e1, ag env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, ag env e1, ag env e2)
+  | IfNil(x, e1, e2) -> IfNil(find x env, ag env e1, ag env e2)
   | Var(x) -> Var(find x env)
   | App(x, ys) -> App(find x env, List.map (fun y -> find y env) ys)
   | Tuple(xs) -> Tuple(List.map (fun x -> find x env) xs)
@@ -60,30 +71,35 @@ and ag' env = function
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Nil -> Nil
+  | Cons(x, y) -> Cons(find x env, find y env)
 
 
-(* ¥¤¥ó¥é¥¤¥óÅ¸³«¥ë¡¼¥Á¥óËÜÂÎ *)
-let rec g env = function 
+let rec g env = function (* ã‚¤ãƒ³ãƒ©ã‚¤ãƒ³å±•é–‹ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
   | Let(xt, exp, e) -> concat (g' env exp) xt (g env e)
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç *)
-      let env = if size e1 > !threshold then env else M.add x (yts, e1) env in
-      LetRec({ name = (x, t); args = yts; body = g env e1}, g env e2)
+  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* é–¢æ•°å®šç¾©ã®å ´åˆ *)
+    let env = if size e1 > !threshold then env else M.add x (yts, e1) env in
+    LetRec({ name = (x, t); args = yts; body = g env e1}, g env e2)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
+  | LetList(xts, y, e)  -> LetList(xts, y, g env e)
   | Ans(exp) -> g' env exp
 and g' env = function
   | IfEq(x, y, e1, e2) -> Ans(IfEq(x, y, g env e1, g env e2))
   | IfLE(x, y, e1, e2) -> Ans(IfLE(x, y, g env e1, g env e2))
   | IfLT(x, y, e1, e2) -> Ans(IfLT(x, y, g env e1, g env e2))
-  | App(x, ys) when M.mem x env -> (* ´Ø¿ôÅ¬ÍÑ¤Î¾ì¹ç *)
-      let (zs, e) = M.find x env in
-      let env' =
-	List.fold_left2
-	  (fun env' (z, t) y -> M.add z y env')
-	  M.empty
-	  zs
-	  ys in
-      ag env' e
+  | IfNil(x, e1, e2) -> Ans(IfNil(x, g env e1, g env e2))
+  | App(x, ys) when M.mem x env -> (* é–¢æ•°é©ç”¨ã®å ´åˆ *)
+    let (zs, e) = M.find x env in
+    let env' =
+      List.fold_left2
+        (fun env' (z, t) y -> M.add z y env')
+        M.empty
+        zs
+        ys in
+    ag env' e
   | e -> Ans(e)
 
-let f e = Format.eprintf "inlining functions...@.";
-          g M.empty e
+
+let f e =
+  Format.eprintf "inlining functions...@.";
+  g M.empty e

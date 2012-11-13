@@ -1,3 +1,4 @@
+(*pp deriving *)
 (* mimic assembly with a few virtual instructions *)
 
 type t = (* 命令の列 *)
@@ -63,11 +64,14 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
   | SAlloc of int
+      deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
+      deriving (Show)
 
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
+      deriving (Show)
 
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
@@ -113,11 +117,49 @@ let rec fv_exp = function
 
   | CallCls(x, ys, zs) -> x :: ys @ zs
   | CallDir(_, ys, zs) -> ys @ zs
-
 and fv = function
   | Ans(exp) -> fv_exp exp
   | Let((x, t), exp, e) ->
       fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
+
+
+let is_var x = not (is_reg x || x.[0] = '%')
+let rec fv_var_exp = function
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | SAlloc(_)-> []
+
+  | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
+  | XorI(x,_) | SllI(x,_) | SraI(x,_) | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x)
+  | IMovF(x) | FMovI(x) | LdI(x,_) | FLdI(x,_) | Restore(x) ->
+      if is_var x then [] else [x]
+
+  | Add(x,y) | Sub(x,y) | Mul(x,y) | And(x,y) | Or(x,y) | Nor(x,y) | Xor(x,y)
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y)
+  | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) ->
+      List.filter is_var [x;y]
+ 		
+  | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfFEq(x,y,e1,e2)
+  | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
+    -> (List.filter is_var [x;y]) @ remove_and_uniq S.empty (fv_var e1 @ fv_var e2)
+  | CallCls(x, ys, zs) -> List.filter is_var (x :: ys @ zs)
+  | CallDir(_, ys, zs) -> List.filter is_var (ys @ zs)
+and fv_var = function
+  | Ans(exp) -> fv_var_exp exp
+  | Let((x, t), exp, e) ->
+      fv_var_exp exp @ remove_and_uniq (S.singleton x) (fv_var e)
+
+(* そのプログラムの使うスタックの大きさを求める *)
+let rec st = function
+  | Ans(exp) -> st' exp
+  | Let(_,exp,e) -> st' exp + st e
+and st' = function
+  | SAlloc(i) -> i
+  | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfFEq(_,_,e1,e2)
+  | IfFLT(_,_,e1,e2) | IfFLE(_,_,e1,e2) -> st e1 + st e2
+  | _ -> 0
+let stack_max e =
+  List.length (fv_var e) + st e
+
+
 
 let fv e = remove_and_uniq S.empty (fv e)
 

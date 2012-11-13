@@ -1043,11 +1043,11 @@ endif
 				$(OCAMLFLAGS) $(INCFLAGS) $<; \
 			else \
 			    $(ECHO) $(REAL_OCAMLFIND) $(INTF_OCAMLC) $(OCAML_FIND_PACKAGES) \
-				-c -pp \"$$pp $(PPFLAGS)\" $(THREAD_FLAG) $(ANNOT_FLAG) \
-				$(OCAMLFLAGS) $(INCFLAGS) $<; \
+				-c $(THREAD_FLAG) $(ANNOT_FLAG) \
+				$(OCAMLFLAGS) -pp \"$$pp $(PPFLAGS)\" $(INCFLAGS) $<; \
 			    $(REAL_OCAMLFIND) $(INTF_OCAMLC) $(OCAML_FIND_PACKAGES) \
-				-c -pp "$$pp $(PPFLAGS)" $(THREAD_FLAG) $(ANNOT_FLAG) \
-				$(OCAMLFLAGS) $(INCFLAGS) $<; \
+				-c $(THREAD_FLAG) $(ANNOT_FLAG) \
+				$(OCAMLFLAGS) -pp "$$pp $(PPFLAGS)" $(INCFLAGS) $<; \
 			fi
 
 .ml.cmi .ml.$(EXT_OBJ) .ml.cmx .ml.cmo: $(EXTRADEPS)
@@ -1059,9 +1059,9 @@ endif
 				-c $(ALL_OCAMLCFLAGS) $<; \
 			else \
 			  $(ECHO) $(REAL_OCAMLFIND) $(REAL_OCAMLC) $(OCAML_FIND_PACKAGES) \
-				-c -pp \"$$pp $(PPFLAGS)\" $(ALL_OCAMLCFLAGS) $<; \
+				-c $(ALL_OCAMLCFLAGS) -pp \"$$pp $(PPFLAGS)\" $<; \
 			  $(REAL_OCAMLFIND) $(REAL_OCAMLC) $(OCAML_FIND_PACKAGES) \
-				-c -pp "$$pp $(PPFLAGS)" $(ALL_OCAMLCFLAGS) $<; \
+				-c $(ALL_OCAMLCFLAGS) -pp "$$pp $(PPFLAGS)" $<; \
 			fi
 
 .PRECIOUS:		%.ml

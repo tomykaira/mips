@@ -1,9 +1,12 @@
+(*pp deriving *)
+
 (* A正規化を行うモジュール *)
 
 type t = (* let列 *)
   | Let of (Id.t * Type.t) * exp * t
   | LetRec of fundef * t
   | LetTuple of (Id.t * Type.t) list * Id.t * t
+  | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
   | Ans of exp
 and exp = (* 式 *)
   | Unit
@@ -23,6 +26,7 @@ and exp = (* 式 *)
   | IfEq of Id.t * Id.t * t * t (* 比較 + 分岐 *)
   | IfLE of Id.t * Id.t * t * t (* 比較 + 分岐 *)
   | IfLT of Id.t * Id.t * t * t (* 比較 + 分岐 *)
+  | IfNil of Id.t * t * t (* 比較 + 分岐 *)
   | Var of Id.t
   | App of Id.t * Id.t list
   | Tuple of Id.t list
@@ -30,32 +34,39 @@ and exp = (* 式 *)
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
+  | Nil
+  | Cons of Id.t * Id.t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
+    deriving (Show)
 
 let rec concat e1 xt e2 =
   match e1 with
   | Let(yt, e3, e4) -> Let(yt, e3, concat e4 xt e2)
   | LetRec(fundefs, e) -> LetRec(fundefs, concat e xt e2)
   | LetTuple(yts, z, e) -> LetTuple(yts, z, concat e xt e2)
+  | LetList(yt, z, e) -> LetList(yt, z, concat e xt e2)
   | Ans(exp) -> Let(xt, exp, e2)
 
+
 let rec fv = function (* 式に出現する（自由な）変数 *)
-  | Let((x, t), exp, e) -> S.union (fv' exp) (S.remove x (fv e))
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) ->
+  | Let((x, _), exp, e) -> S.union (fv' exp) (S.remove x (fv e))
+  | LetRec({ name = (x, _); args = yts; body = e1 }, e2) ->
       let zs = S.diff (fv e1) (S.of_list (List.map fst yts)) in
       S.diff (S.union zs (fv e2)) (S.singleton x)
   | LetTuple(xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
+  | LetList((matcher, _), y, e) ->
+    S.add y (S.diff (fv e) (S.of_list (Syntax.matcher_variables matcher)))
   | Ans(exp) -> fv' exp
 and fv' = function
-  | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
+  | Unit | Nil | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) | Sll(x, _) | Sra(x, _) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Add(x, y) | Sub(x, y) | Mul(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Cons(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) | IfLT(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | IfNil(x, e1, e2) -> S.add x (S.union (fv e1) (fv e2))
   | Var(x) -> S.singleton x
   | App(x, ys) -> S.of_list (x :: ys)
   | Tuple(xs) | ExtFunApp(_, xs) -> S.of_list xs
   | Put(x, y, z) -> S.of_list [x; y; z]
-
 
 
 (* ネストしたletの簡約 *)
@@ -64,6 +75,7 @@ let rec f = function
   | KNormal.LetRec({ KNormal.name = xt; KNormal.args = yts; KNormal.body = e1 }, e2) ->
       LetRec({ name = xt; args = yts; body = f e1 }, f e2)
   | KNormal.LetTuple(xts, y, e) -> LetTuple(xts, y, f e)
+  | KNormal.LetList(xt, y, e) -> LetList(xt, y, f e)
   | e -> Ans(f' e)
 and f' = function
   | KNormal.Unit -> Unit
@@ -83,6 +95,7 @@ and f' = function
   | KNormal.IfEq(x, y, e1, e2) -> IfEq(x, y, f e1, f e2)
   | KNormal.IfLE(x, y, e1, e2) -> IfLE(x, y, f e1, f e2)
   | KNormal.IfLT(x, y, e1, e2) -> IfLT(x, y, f e1, f e2)
+  | KNormal.IfNil(x, e1, e2) -> IfNil(x, f e1, f e2)
   | KNormal.Var(x) -> Var(x)
   | KNormal.App(x, ys) -> App(x, ys)
   | KNormal.Tuple(xs) -> Tuple(xs)
@@ -90,61 +103,6 @@ and f' = function
   | KNormal.Put(x, y, z) -> Put(x, y, z)
   | KNormal.ExtArray(x) -> ExtArray(x)
   | KNormal.ExtFunApp(x, ys) -> ExtFunApp(x, ys)
+  | KNormal.Nil -> Nil
+  | KNormal.Cons(x,y) -> Cons(x,y)
   | _ -> assert false
-
-
-(******************************************************************)
-(* デバッグ用関数. tを出力. nは深さ. *)
-let rec ind m = if m <= 0 then ()
-                else (Format.eprintf "  "; ind (m-1))
-let rec dbprint n t =
-  ind n;
-  match t with
-  | Let ((a, t), b, c) ->
-      Format.eprintf "let (%s:%s) =%!" a (Type.show t);
-      dbprint' (n+1) b; Format.eprintf " in@."; dbprint n c
-  | LetRec (f, a) ->
-     Format.eprintf "let rec (%s:%s) %s =%!" (fst f.name) (Type.show (snd f.name)) (String.concat " " (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")" ) f.args));
-     dbprint (n+1) f.body; ind n; Format.eprintf "in\n%!" ; dbprint (n+1) a
-  | LetTuple (l, a, b) ->
-   Format.eprintf "let (%s) = %s in\n%!" (String.concat "," (List.map (fun (x,y) -> "(" ^ x ^ ":" ^ Type.show y ^ ")") l)) a;
-   dbprint (n+1) b
-  | Ans(exp) -> dbprint' n exp; Format.eprintf "@."
-and dbprint' n = function
-  | Unit -> Format.eprintf "Unit%!"
-  | Int a -> Format.eprintf "Int %d%!" a
-  | Float a-> Format.eprintf "Float %f%!" a
-  | Neg a -> Format.eprintf "Neg %s%!" a
-  | Add (a, b) -> Format.eprintf "Add %s %s%!" a b
-  | Sub (a, b) -> Format.eprintf "Sub %s %s%!" a b
-  | Mul (a, b) -> Format.eprintf "Mul %s %s%!" a b
-  | Sll (a, b) -> Format.eprintf "Sll %s %d%!" a b
-  | Sra (a, b) -> Format.eprintf "Sra %s %d%!" a b
-  | FNeg a -> Format.eprintf "FNeg %s%!" a
-  | FAdd (a, b) -> Format.eprintf "FAdd %s %s%!" a b
-  | FSub (a, b) -> Format.eprintf "FSub %s %s%!" a b
-  | FMul (a, b) -> Format.eprintf "FMul %s %s%!" a b
-  | FDiv (a, b) -> Format.eprintf "FDiv %s %s%!" a b
-  | IfEq (a, b, p, q) ->
-      Format.eprintf "@."; ind n;
-      Format.eprintf "If %s = %s Then@." a b;
-      dbprint (n+1) p; ind n; Format.eprintf "Else\n%!"; dbprint (n+1) q;
-      ind (n-1)
-  | IfLE (a, b, p, q) -> 
-      Format.eprintf "@."; ind n;
-      Format.eprintf "If %s <= %s Then@." a b;
-      dbprint (n+1) p; ind n; Format.eprintf "Else\n%!"; dbprint (n+1) q;
-      ind (n-1)
-  | IfLT (a, b, p, q) ->
-      Format.eprintf "@."; ind n;
-      Format.eprintf "If %s < %s Then@." a b;
-      dbprint (n+1) p; ind n; Format.eprintf "Else\n%!"; dbprint (n+1) q;
-      ind (n-1)
-  | Var a -> Format.eprintf "Var %s%!" a
-  | App (a, l) -> Format.eprintf "App %s to %s%!" a (String.concat " " l)
-  | Tuple l -> Format.eprintf "Tuple (%s)%!" (String.concat " , " l)
-  | Get (a, b) -> Format.eprintf "Get %s %s \n%!" a b
-  | Put (a, b, c) -> Format.eprintf "Put %s %s %s\n%!" a b c 
-  | ExtArray a -> Format.eprintf "ExtArray %s\n%!" a
-  | ExtFunApp (a, l) -> Format.eprintf "ExtFunApp %s to %s\n%!" a (String.concat " " l)
-

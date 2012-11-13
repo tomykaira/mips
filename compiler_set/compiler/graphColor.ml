@@ -105,12 +105,11 @@ let color cs regenv prefer g s =
       (fun x l ->
 	let y =
 	  if is_reg x then Colored(x) else
-	  try Colored (M.find x regenv)
-	  with Not_found ->
-	    let k =
-	      try List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
-	      with Not_found -> [] in
-	    Prefer (k, []) in
+	  let k1 = try [M.find x regenv] with Not_found -> [] in
+	  let k2 =
+	    try List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
+	    with Not_found -> [] in
+	  Prefer (k1@k2, []) in
 	(y, l))
       g in
   let s1 =
