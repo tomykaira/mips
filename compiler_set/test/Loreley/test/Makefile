@@ -1,6 +1,7 @@
 SIMULATOR=../../../simulator/simulator
 
 %.test: %.ocaml %.sim
+	cat $*.sim
 	diff $*.ocaml $*.sim
 
 %.input: %.ml
