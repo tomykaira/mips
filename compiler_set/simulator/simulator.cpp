@@ -568,6 +568,10 @@ int simulate(simulation_options * opt)
 			case STI:
 				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
 				assert(IRS + IMM >= 0);
+				if (IRS + IMM >= 0x000fb57c + 0xa && IRS + IMM < 0x000fb57c + 0xa + 6) {
+					DUMP_PC
+					printf("\twrite: %08x\n", IRS + IMM);
+				}
 				if (IRS + IMM >= RAM_SIZE) {
 					DUMP_PC
 					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
@@ -578,19 +582,38 @@ int simulate(simulation_options * opt)
 			case LDI:
 				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
+				if (IRS + IMM >= RAM_SIZE) {
+					DUMP_PC
+					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
+					return 1;
+				}
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
 				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
 				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
+				if (IRS + IMM >= 0x000fb57c + 0xa && IRS + IMM < 0x000fb57c + 0xa + 6) {
+					DUMP_PC
+					printf("\twrite: %08x\n", IRS + IMM);
+				}
+				if (IRS + IMM >= RAM_SIZE) {
+					DUMP_PC
+					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
+					return 1;
+				}
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
 				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
+				if (IRS + IMM >= RAM_SIZE) {
+					DUMP_PC
+					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
+					rep(i, 10) {
+						printf("%d: %d\n", i, ireg[i]);
+					}
+					return 1;
+				}
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
