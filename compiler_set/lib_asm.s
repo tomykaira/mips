@@ -263,7 +263,17 @@ min_caml_exp:
 	addi $r1, $r1, 2
 	# px = $f0, x = $f1, C1 = f3, C2 = f4
 	fldi $f1, $r1, 0
-	fldi $f0, $r1, 1
+	fldi $f0, $r1, -1
+
+	fmvhi $f5, 0
+	fmvlo $f5, 0
+	fblt $f5, $f1, exp_skip
+	# a - 1 if a < 0
+	fmvhi $f5, 16256
+	fmvlo $f5, 0
+	fsub $f0, $f0, $f5
+	subi $r3, $r3, 1
+exp_skip:
 	fmvhi $f3, 16177
 	fmvlo $f3, 29184
 	fmvhi $f4, 13759

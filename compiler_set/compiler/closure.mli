@@ -1,5 +1,7 @@
 (*pp deriving *)
 
+val danger : Id.t list ref
+
 type closure = { entry : Id.l; actual_fv : Id.t list }
     deriving (Show)
 type t =
@@ -36,9 +38,9 @@ type t =
   | LetList of (Syntax.list_matcher * Type.t) * Id.t * t
       deriving (Show)
 type fundef = { name : Id.l * Type.t;
-		args : (Id.t * Type.t) list;
-		formal_fv : (Id.t * Type.t) list;
-		body : t }
+                args : (Id.t * Type.t) list;
+                formal_fv : (Id.t * Type.t) list;
+                body : t }
     deriving (Show)
 type prog = Prog of fundef list * t
     deriving (Show)

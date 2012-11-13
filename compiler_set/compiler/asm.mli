@@ -23,7 +23,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
 
   | Int of int
   | Float of float
-  | SetL of Id.l 
+  | SetL of Id.l
   | SllI of Id.t * int
   | SraI of Id.t * int
   | IMovF of Id.t
@@ -45,13 +45,13 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FLdI of Id.t * int
   | FStI of Id.t * Id.t * int
   | FLdR of Id.t * Id.t
-	
+
   | Comment of string
-	
+
   (* virtual instructions *)
   | IfEq  of Id.t * Id.t * t * t
   | IfLT  of Id.t * Id.t * t * t
-  | IfLE  of Id.t * Id.t * t * t 
+  | IfLE  of Id.t * Id.t * t * t
   | IfFEq of Id.t * Id.t * t * t
   | IfFLT of Id.t * Id.t * t * t
   | IfFLE of Id.t * Id.t * t * t
@@ -59,7 +59,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t 
+  | Save of Id.t * Id.t
   | Restore of Id.t
       deriving (Show)
 
