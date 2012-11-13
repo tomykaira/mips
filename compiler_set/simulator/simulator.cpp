@@ -85,7 +85,7 @@ uint32_t lreg;
 
 //濱中書き換え部分
 //いくつ分レジスタを監視するか
-//ゼロレジスタを抜いてr1,f1から数える
+//ゼロレジスタを抜いてr1,f0から数える(訂正)
 #define CHECKWIDTH 8
 //過去何回のレジスタデータを持つか
 #define HISTORY 100
@@ -167,8 +167,8 @@ bool isLoop(RH h, uint8_t opcode, int32_t ireg[], uint32_t freg[]) {
   int i,j;
   for (i=0; i<HISTORY; i++) {
     if (h.op[i] == opcode) {
-      for (j=1; j<CHECKWIDTH; j++) {
-	if (h.ir[i][j] != ireg[j] || h.fr[i][j] != freg[j])
+      for (j=0; j<CHECKWIDTH; j++) {
+	if (h.ir[i][j] != ireg[j+1] || h.fr[i][j] != freg[j])
 	  break;
       }
       if (j == CHECKWIDTH) {
@@ -187,8 +187,10 @@ void updateH(RH& h, uint8_t opcode, int32_t ireg[], uint32_t freg[]) {
   if (j >= HISTORY)
     j -= HISTORY;
   h.op[j] = opcode;
-  for (i=1; i<CHECKWIDTH; i++) {
-    h.ir[j][i] = ireg[i];
+  //整数レジスタ→1番から8番
+  //浮動小数レジスタ→0番から7番
+  for (i=0; i<CHECKWIDTH; i++) {
+    h.ir[j][i] = ireg[i+1];
     h.fr[j][i] = freg[i];
   }
 }
