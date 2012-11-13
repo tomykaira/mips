@@ -246,7 +246,7 @@ let h  { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zt
       (1, g { tail = b; top_tuple = None } (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load -> fletd(z, FLdI(reg_cl, offset), load))
       (fun z t offset load -> Let((z, t), LdI(reg_cl, offset), load)) in
-  match t with
+  match t with3
     | Type.Fun(_, t2) ->
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
     | _ -> assert false
