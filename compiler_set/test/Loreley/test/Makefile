@@ -1,8 +1,28 @@
 SIMULATOR=../../../simulator/simulator
 
+# order from easy (simple) to hard (complicated)
+TEST_WITH_OCAML=read_environment read_glConf read_deConf read_cMap read_dnas \
+decode_init
+# read_gene: printer bug
+# output_ppm: infinite loop
+TEST_WITH_ANSWER=apply_gene_no_random shooting_sub
+
+.PHONY: test test-with-ocaml test-with-answer
+test: test-with-ocaml test-with-answer clean
+test-with-ocaml: $(TEST_WITH_OCAML:%=%.test)
+test-with-answer: $(TEST_WITH_ANSWER:%=%.cmp)
+
 %.test: %.ocaml %.sim
+	diff $*.ocaml $*.sim
+
+%.cmp: %.sim
+	diff $*.ans $*.sim
+
+# don't use with ease, commit to git if you add or update an answer
+%.ans: %.sim %.ocaml
 	cat $*.sim
 	diff $*.ocaml $*.sim
+	cp $*.sim $*.ans
 
 %.input: %.ml
 	ruby -e '(m = STDIN.read.match(/\(\*INPUT(.*)\*\)/m)) && puts(m[1].lstrip)' < $*.ml > $*.input
