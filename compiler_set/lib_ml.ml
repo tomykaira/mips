@@ -139,16 +139,13 @@ let rec read_float_token1 in_token prev =
     read_float_token1 true c) in
 let rec read_float_token2 in_token =
   let c = input_char () in
-  let flg =
-    if c < 48 then true
-    else if c > 57 then true
-    else false in
-  if flg then
-    (if in_token then () else read_float_token2 false)
+  if c < 48 or c > 57 then
+    ()
   else
     (read_float_f.(0) <- mul10 read_float_f.(0) + (c - 48);
-    read_float_exp.(0) <- mul10 read_float_exp.(0);
-    read_float_token2 true) in
+     read_float_exp.(0) <- mul10 read_float_exp.(0);
+     read_float_token2 true)
+in
 let rec read_float _ = 
   read_float_i.(0) <- 0;
   read_float_f.(0) <- 0;
