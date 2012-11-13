@@ -212,6 +212,7 @@ int simulate(simulation_options * opt)
 	uint32_t inst;
 	int print_count=-1;
 	uint8_t opcode, funct;
+	int read_value;
 
 	//記録用
 	RH history;
@@ -597,7 +598,12 @@ int simulate(simulation_options * opt)
 					fprintf(stderr, "Specify input file with -f");
 					return 1;
 				}
-				IRT = fgetc(input_fp) & 0xff;
+				read_value = fgetc(input_fp);
+				if (read_value == EOF) {
+					fprintf(stderr, "EOF reached");
+					return 1;
+				}
+				IRT = read_value & 0xff;
 				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
