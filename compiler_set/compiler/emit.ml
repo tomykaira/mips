@@ -12,9 +12,7 @@ let save x =
 let savef x =
   stackset := S.add x !stackset;
   if not (List.mem x !stackmap) then
-    (let pad =
-       if List.length !stackmap mod 2 = 0 then [] else [Id.gentmp Type.Int] in
-     stackmap := !stackmap @ pad @ [x; x])
+    stackmap := !stackmap @ [x]
 let locate x = (* xがスタックのどこにあるか *)
   let rec loc = function
     | [] -> []
@@ -22,7 +20,7 @@ let locate x = (* xがスタックのどこにあるか *)
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
 let offset x = List.hd (locate x)
-let stacksize () = List.length !stackmap + 1
+let stacksize () = List.length !stackmap
 
 let rettuple = ref M.empty
 
@@ -185,7 +183,7 @@ and g' oc = function (* 各命令のアセンブリ生成 *)
   | NonTail(a), CallCls(x, ys, zs) ->
     g'_args oc [(x, reg_cl)] ys zs;
 
-    let inc = if M.mem x !rettuple && not (List.mem x !Closure.danger) then M.find x !rettuple else 0 in
+    let inc = if M.mem x !rettuple then M.find x !rettuple else 0 in
     let x' = Id.genid "salloc" in
     let rec s n =
       if n <= 0 then []

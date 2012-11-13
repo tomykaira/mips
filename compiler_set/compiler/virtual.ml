@@ -60,7 +60,7 @@ let generate_tuple_tree env xs =
   let (offset, store) =
     expand
       (List.map (fun x -> (x, M.find x env)) xs)
-      (1, Ans(AddI(y, 0)))
+      (0, Ans(AddI(y, 0)))
       (fun x offset store ->  seq(FStI(x, y, offset), store))
       (fun x _ offset store -> seq(StI(x, y, offset), store)) in
   { tuple_name = y; offset = offset; store = store; tuple_type = Type.Tuple(List.map (fun x -> M.find x env) xs) }
@@ -111,7 +111,7 @@ let rec g tuple_env env e =
     | Closure.Let((x, (Type.Tuple(types) as t1)), e1, e2) ->
       let { top_tuple = top_tuple; tail = tail } = tuple_env in
       let e1' = g { tail = false; top_tuple = top_tuple } env e1 in
-      let e2' = g { tail = tail; top_tuple = (Some(x, List.length types + 1)) } (M.add x t1 env) e2 in
+      let e2' = g { tail = tail; top_tuple = (Some(x, List.length types)) } (M.add x t1 env) e2 in
       concat e1' (x, t1) e2'
     | Closure.Let((x, t1), e1, e2) ->
       let { top_tuple = top_tuple; _ } = tuple_env in
@@ -160,10 +160,10 @@ let rec g tuple_env env e =
       let s = Closure.fv e2 in
       let inner_exp =
         match tuple_env with
-          | { top_tuple = Some((name, offset)); _} when name = y && not (S.mem name (Closure.fv e2)) ->
-            (1, Let((reg_hp, Type.Int), SubI(reg_hp, offset), g tuple_env (M.add_list xts env) e2))
+          | { top_tuple = Some((name, offset)); _} when name = y && not (S.mem name (Closure.fv e2)) && false ->
+            (0, Let((reg_hp, Type.Int), SubI(reg_hp, offset), g tuple_env (M.add_list xts env) e2))
           | _ ->
-            (1, g tuple_env (M.add_list xts env) e2)
+            (0, g tuple_env (M.add_list xts env) e2)
       in
       let (_, load) =
         expand
@@ -244,8 +244,8 @@ let h  { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zt
     expand
       zts
       (1, g { tail = b; top_tuple = None } (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
-      (fun z offset load -> fletd(z, FLdI(reg_cl, offset), load))
-      (fun z t offset load -> Let((z, t), LdI(reg_cl, offset), load)) in
+      (fun z offset load -> fletd(z, FLdI(x, offset), load))
+      (fun z t offset load -> Let((z, t), LdI(x, offset), load)) in
   match t with
     | Type.Fun(_, t2) ->
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
@@ -253,6 +253,6 @@ let h  { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zt
 
 (* プログラム全体の仮想マシンコード生成 *)
 let f (Closure.Prog(fundefs, e)) =
-  let fundefs = List.map h fundefs in
+  let fundefs = List.rev (List.map h (List.rev fundefs)) in
   let e = g { tail = false; top_tuple = None } M.empty e in
   Prog (fundefs, e)

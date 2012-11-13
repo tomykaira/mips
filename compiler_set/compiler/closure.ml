@@ -61,22 +61,16 @@ let rec fv = function
   | LetList((matcher, _), y, e) ->
     S.add y (S.diff (fv e) (S.of_list (Syntax.matcher_variables matcher)))
 
-let rec read_only x env = function
+let rec read_only x = function
   | Unit | Nil | Int(_) | Float(_) | ExtArray(_) | Neg(_) | FNeg(_) | Sll(_, _) | Sra(_, _) | Add(_, _) | Sub(_, _) | Mul(_, _) | FAdd(_, _) | FSub(_, _) | FMul(_, _) | FDiv(_, _) | Get(_, _) -> true
-  | Var(y) | Put(_,y,_) -> y <> x
+  | Var(y) | Put(_,_,y) -> y <> x
   | Cons(y,z) -> x <> y && x <> z
   | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2) | Let(_, e1, e2) ->
-         read_only x env e1 && read_only x env e2
+         read_only x e1 && read_only x e2
   | MakeCls((y,t), { actual_fv = ys }, e) ->
-      List.for_all (fun y -> x <> y) ys && read_only x (M.add y t env) e
-  | AppCls(z, ys) | AppDir(Id.L(z), ys) when M.mem z env -> 
-      (match M.find z env with
-      | Type.Fun(_,Type.Tuple(_))-> false
-      | _ -> List.for_all (fun y -> x <> y) ys)
-  | AppCls(z, ys) | AppDir(Id.L(z), ys) -> List.for_all (fun y -> x <> y) ys
-  | Tuple(ys) -> List.for_all (fun y -> x <> y) ys
-  | LetTuple(_,y,e) when x = y && not (S.mem y (fv e)) -> true
-  | LetTuple(_,_,e) | LetList(_,_,e) -> read_only x env e
+      List.for_all (fun y -> x <> y) ys && read_only x e
+  | AppCls(_, ys) | AppDir(_, ys) | Tuple(ys) -> List.for_all (fun y -> x <> y) ys
+  | LetTuple(_,_,e) | LetList(_,_,e) -> read_only x e
 let rec call_leaf = function
   | AppCls(x,_) | AppDir(Id.L(x),_) -> danger := x::!danger
   | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2)  ->
@@ -110,7 +104,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 *)
     let e1' = g env known e1 in
     let e2' = g (M.add x t env) known e2 in
     (match t with
-      | Type.Tuple(_) when not (read_only x env e2') -> call_leaf e1'
+      | Type.Tuple(_) when not (read_only x e2') -> call_leaf e1'
       | _ -> ());
     Let((x, t), e1', e2')
   | KNormal.Var(x) -> Var(x)
