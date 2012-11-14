@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "fpu.h"
 
 #define swap(a,b) { int temp = a; a = b; b = temp; }
@@ -26,12 +27,17 @@ ull fsqrt_table[MAX_KEY];
 
 static int initialized = 0;
 
-void load_tables()
+void load_tables(const char * dirpath)
 {
+	char finv_path[255], fsqrt_path[255];
+	strcpy(finv_path, dirpath);
+	strcat(finv_path, "/finv.dat");
+	strcpy(fsqrt_path, dirpath);
+	strcat(fsqrt_path, "/fsqrt.dat");
 	if (initialized) return;
 	initialized = 1;
   // not easy to use relative path in C
-  FILE * fp = fopen("/home/urabenatsuki/kadai/jikken/mips/compiler_set/simulator/finv.dat", "r");
+  FILE * fp = fopen(finv_path, "r");
   if (fp) {
     for (int i = 0; i<MAX_KEY; i++) {
       if (fscanf(fp, "%llx\n", &finv_table[i]) == EOF) {
@@ -47,7 +53,7 @@ void load_tables()
     exit(1);
   }
 
-  fp = fopen("/home/urabenatsuki/kadai/jikken/mips/compiler_set/simulator/fsqrt.dat", "r");
+  fp = fopen(fsqrt_path, "r");
   if (fp) {
     for (int i = 0; i<MAX_KEY; i++) {
       if (fscanf(fp, "%llx\n", &fsqrt_table[i]) == EOF) {
@@ -195,7 +201,7 @@ uint32_t myfmul(uint32_t rs, uint32_t rt)
 
 uint32_t myfinv(uint32_t rs)
 {
-	load_tables();
+	assert(initialized);
   conv c, s;
   c.i = rs;
   s.f = 1 / c.f;
@@ -235,8 +241,7 @@ uint32_t myfdiv(uint32_t rs, uint32_t rt)
 
 uint32_t myfsqrt(uint32_t rs)
 {
-	load_tables();
-
+	assert(initialized);
   conv c, s;
   c.i = rs;
   s.f = sqrt(c.f);

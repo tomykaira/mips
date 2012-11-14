@@ -11,7 +11,7 @@ typedef union{	uint32_t i; float f;} conv;
 #ifdef __cplusplus
 extern "C" {
 #endif
-void load_tables();
+void load_tables(const char * dirpath);
 uint32_t myfadd(uint32_t rs, uint32_t rt);
 uint32_t myfsub(uint32_t rs, uint32_t rt);
 uint32_t myfmul(uint32_t rs, uint32_t rt);

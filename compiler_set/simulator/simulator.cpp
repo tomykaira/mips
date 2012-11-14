@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <signal.h>
 #include <errno.h>
+#include <libgen.h>
 #include "fpu.h"
 
 // 命令の各要素にアクセスする関数を定義
@@ -680,6 +681,7 @@ int main(int argc, char** argv)
 	int c;
 	int ret;
 	int length = 0;
+	char dirpath[255];
 
 	simulation_options opt;
 	opt.enable_stdout             = true;
@@ -690,6 +692,9 @@ int main(int argc, char** argv)
 	opt.lib_test_mode             = false;
 	opt.input_file                = NULL;
 	opt.target_binary             = NULL;
+
+	strcpy(dirpath, argv[0]);
+	dirname(dirpath);
 
 	while (1) {
 		int option_index = 0;
@@ -755,7 +760,7 @@ int main(int argc, char** argv)
 
 	disable_step();
 
-	load_tables(); // FPU
+	load_tables(dirpath); // FPU
 
 	cerr << "<simulate> " << endl;
 
