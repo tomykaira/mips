@@ -35,15 +35,15 @@ architecture top of top is
 
   component mips
     port (
-      clk, reset    : in  STD_LOGIC;
-      mem_write     : out STD_LOGIC;
-      send_enable   : out STD_LOGIC;
-      mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);
-      write_data    : out std_logic_vector(31 downto 0);
-      data_from_bus : in  STD_LOGIC_VECTOR(31 downto 0);
-      rx_enable     : out STD_LOGIC;
-      rx_waiting    : in  STD_LOGIC;
-      rx_pop        : out STD_LOGIC);
+      clk, reset       : in  STD_LOGIC;
+      mem_write        : out STD_LOGIC;
+      send_enable      : out STD_LOGIC;
+      mem_addr         : out STD_LOGIC_VECTOR(31 downto 0);
+      write_data       : out std_logic_vector(31 downto 0);
+      memory_data      : in  STD_LOGIC_VECTOR(31 downto 0);
+      rx_received_data : in std_logic_vector(7 downto 0);
+      rx_waiting       : in  STD_LOGIC;
+      rx_pop           : out STD_LOGIC);
   end component;
 
   component sramc is
@@ -96,7 +96,7 @@ architecture top of top is
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_waiting, rx_pop, send_enable : STD_LOGIC;
+  signal rx_waiting, rx_pop, send_enable : STD_LOGIC;
 
 begin  -- test
 
@@ -120,16 +120,16 @@ begin  -- test
     write_enable => mem_write);
 
   mips1 : mips port map (
-    clk           => iclk,
-    reset         => not xrst,
-    mem_write     => mem_write,
-    send_enable   => send_enable,
-    mem_addr      => data_addr,
-    write_data    => write_data,
-    data_from_bus => data_from_bus,
-    rx_enable     => rx_enable,
-    rx_waiting    => rx_waiting,
-    rx_pop        => rx_pop);
+    clk              => iclk,
+    reset            => not xrst,
+    mem_write        => mem_write,
+    send_enable      => send_enable,
+    mem_addr         => data_addr,
+    write_data       => write_data,
+    memory_data      => memory_data,
+    rx_received_data => rx_data,
+    rx_waiting       => rx_waiting,
+    rx_pop           => rx_pop);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk => iclk,
@@ -137,8 +137,7 @@ begin  -- test
     rx => RS_RX,
     do_pop => rx_pop,
     waiting => rx_waiting,
-    pop_data => rx_data
-    );
+    pop_data => rx_data);
 
   sender : rs232c_buffer port map (
     clk       => iclk,
@@ -160,9 +159,5 @@ begin  -- test
   XLBO <= '1';
   ZZA <= '0';
   ZDP <=  (others => 'Z');
-
-  -- is this good design to judge here?
-  -- ok for reading twice?
-  data_from_bus <= x"000000" & rx_data when rx_enable = '1' else memory_data;
 
 end top;

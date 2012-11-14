@@ -32,6 +32,10 @@ module testbench_endtoend();
    // in post-map simulation, other modules are not available.
    i232c #(.wtime(16'h008F)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
 
+   // set by instruction loader
+   parameter MEM_SIZE=1194;
+   reg [31:0] RAM[MEM_SIZE-1:0];
+
    integer i;
    task send;
       input [7:0] data;
@@ -50,6 +54,19 @@ module testbench_endtoend();
       end
    endtask
 
+   task send_word;
+      input [31:0] data;
+      begin
+
+         send(data[31:24]);
+         send(data[23:16]);
+         send(data[15:8]);
+         send(data[7:0]);
+
+      end
+   endtask
+
+   integer j;
    // initialize test by xresetting
    initial begin
       xreset <= 0;
@@ -57,6 +74,15 @@ module testbench_endtoend();
       #22;
       xreset <= 1;
       #100;
+
+      #300;
+
+      $readmemh ("instruction.dat", RAM);
+      for (j = 0; j < MEM_SIZE; j = j + 1) begin
+         send_word(RAM[j]);
+      end
+
+      send_word(32'hffffffff); // end marker
 
       #300;
 
