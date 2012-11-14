@@ -26,16 +26,23 @@ and g' env env' = function
   | IfNil(x, e1, e2) -> Ans(IfNil(x, g env env' e1, g env env' e2))
   | AppDir((Id.L("min_caml_create_tuple_array") as l), [x;y]) ->
       (match M.find y env' with
-      | Type.Tuple(ts) -> let xts = List.map (fun t -> (Id.genid y, t)) ts in
-	                  LetTuple(xts, y, Ans(AppDir(l, x::(List.map fst xts))))
+      | Type.Tuple(ts) ->
+	  let xts = List.map (fun t -> (Id.genid y, t)) ts in
+	  LetTuple(xts, y, Ans(AppDir(l, x::(List.map fst xts))))
       | _ -> assert false)
-  | Get(x,y) when M.mem x env -> Ans(GetTuple(x,y))
+  | Get(x,y) when M.mem x env -> 
+      let z = Id.genid x in
+      let ts = M.find x env in
+      let xts = List.map (fun t -> (Id.genid x, t)) ts in
+      Let((z,Type.Tuple(ts)), GetTuple(x,y),
+	  LetTuple(xts, z,
+		   Ans(Tuple(List.map fst xts))))
   | Put(x,y,z) when M.mem x env ->
       let ts = M.find x env in
       let yts = List.map (fun t -> (Id.genid x,t)) ts in
       LetTuple(yts, z,
 	       Ans(PutTuple(x, y, List.map fst yts)))
-  | e -> Ans(e)
+  | exp -> Ans(exp)
 
 
 (* 関数の中のタプルの配列を展開する関数 *)
@@ -55,6 +62,7 @@ let rec at = function
       | Some t' -> at t'
       | _ -> false)
   | _ -> false
+
 
 (* 本体 *)
 let f (Prog(toplevel, e)) =

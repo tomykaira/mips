@@ -181,13 +181,12 @@ and g' tail env = function
       (match M.find x env with
       | Type.Unit -> Ans(Nop)
       | Type.Float -> Ans(FMov(x))
-      | Type.Tuple _ when tail -> failwith "tuple at the end of 'safe' function"
       | _ -> Ans(AddI(x, 0)))
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
       Ans(CallCls(x, int, float))
-  | Closure.AppDir(Id.L(x), ys) ->
-      let ayts = List.map (fun y -> (y, M.find y env)) ys in
+  | Closure.AppDir(Id.L(x), ays) ->
+      let ayts = List.map (fun y -> (y, M.find y env)) ays in
       let (int, float) = separate ayts in
       (* xor等を変換 *)
       (match x with
@@ -198,7 +197,6 @@ and g' tail env = function
 	  let z = fst (List.hd ayts) in
 	  let yts = List.tl ayts in
 	  let r = Id.genid "t" in
-	  let n = Id.genid "n" in
 	  let t = Id.genid "T" in
 	  let l = List.length yts in
 	  let (_, store) =
@@ -207,17 +205,20 @@ and g' tail env = function
 	      (0, Ans(AddI(r, 0)))
 	      (fun y offset store ->
 		let off = Id.genid "Off" in
+		let n = Id.genid "n" in
 	      	Let((off, Type.Int), AddI(r, offset),
-		    seq(CallDir(Id.L("min_caml_float_tuple_array"), [off; n], [y]), store)))
+		    Let((n, Type.Int), Int(l),
+			seq(CallDir(Id.L("min_caml_float_tuple_array"), [off; n], [y]), store))))
 	      (fun y _ offset store ->
 		let off = Id.genid "Off" in
+		let n = Id.genid "n" in
 		Let((off, Type.Int), AddI(r, offset),
-		    seq(CallDir(Id.L("min_caml_int_tuple_array"), [y; off; n], []), store))) in
+		    Let((n, Type.Int), Int(l),
+			seq(CallDir(Id.L("min_caml_int_tuple_array"), [y; off; n], []), store)))) in
 	  Let((r, Type.Array(Type.Tuple(List.map snd yts))), AddI(reg_hp, 0),
-	      Let((n, Type.Int), Int(l),
 		  Let((t, Type.Int), MulI(z, l),
 		      Let((reg_hp, Type.Int), Add(reg_hp, t),
-			  store))))
+			  store)))
       | _ -> Ans(CallDir(Id.L(x), int, float)))
   | Closure.Tuple(xs) -> (* 組の生成 *)
       let y = Id.genid "t" in
@@ -228,7 +229,7 @@ and g' tail env = function
 	  (fun x offset store ->  seq(FStI(x, y, offset), store))
 	  (fun x _ offset store -> seq(StI(x, y, offset), store)) in
       if tail then
-	Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_fp, 0), store)
+	Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_fp, 1), store)
       else
 	Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
 	    Let((reg_hp, Type.Int), AddI(reg_hp, offset),

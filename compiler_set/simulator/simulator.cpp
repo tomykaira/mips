@@ -509,6 +509,7 @@ int simulate(simulation_options * opt)
 			case J:
 				jump_logger.push_back(pc);
 				pc = get_address(inst);
+
 				break;
 			case BEQ:
 				if (IRS == IRT) pc += IMM + (-1);
@@ -556,7 +557,6 @@ int simulate(simulation_options * opt)
 				break;
 			case LDR:
 				D_REGISTER(log_fp, "REG: LDR %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
-				if (IRS+IRT>=RAM_SIZE) {print_count = 0;break;}
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
 				IRD = RAM[(IRS + IRT)];
@@ -579,6 +579,7 @@ int simulate(simulation_options * opt)
 				break;
 			case LDI:
 				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				IRT = RAM[(IRS + IMM)];
@@ -655,6 +656,7 @@ int simulate(simulation_options * opt)
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
 				break;
 		}
+		fflush(stdout);
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
