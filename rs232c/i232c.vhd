@@ -32,6 +32,7 @@ architecture blackbox of i232c is
   signal state   : std_logic_vector(5 downto 0) := "000000";
   signal rxdfd   : std_logic := '1';      -- inner RXD
   signal fd      : std_logic_vector(7 downto 0) := (others=>'1');
+  signal i_changed : STD_LOGIC;
 begin
   get_input: process(clk)
   begin
@@ -45,17 +46,21 @@ begin
     if rising_edge(clk) then
       if state(5)='1' and state(4)='0' and cnt(14 downto 0) = wtime(15 downto 1) then
         data <= fd;
-        changed <= '1';
+        i_changed <= '1';
       else
-        changed <= '0';
+        i_changed <= '0';
       end if;
     end if;
   end process;
 
+  changed <= i_changed;
+
   statemachine: process(clk)
   begin
     if rising_edge(clk) then
-      if state(5) = '0' and rxdfd = '0' then
+      if i_changed = '1' then
+        state <= "000000";
+      elsif state(5) = '0' and rxdfd = '0' then
         state(0) <= '1';
       elsif state(5) = '1' then
         state(0) <= '0';
