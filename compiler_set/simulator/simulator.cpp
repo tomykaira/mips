@@ -577,7 +577,7 @@ int simulate(simulation_options * opt)
 				break;
 			case STI:
 				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
-								if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
+				//	if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
 				assert(IRS + IMM >= 0);
 				if (IRS + IMM >= RAM_SIZE) {
 					DUMP_PC
@@ -596,14 +596,14 @@ int simulate(simulation_options * opt)
 				break;
 			case FSTI:
 				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
-				if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
+				//if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
 				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
-				if (IRS+IMM>=RAM_SIZE){step=true; enable_step(); break;}
+				//				if (IRS+IMM>=RAM_SIZE){step=true; enable_step(); break;}
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				FRT = RAM[(IRS + IMM)];

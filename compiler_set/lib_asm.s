@@ -159,7 +159,7 @@ min_caml_int_of_float:
 	fmvlo $f1, 0
 	fblt $f0, $f1, FTOI_NEGATIVE_MAIN			# if (0.0 <= $f0) goto FTOI_MAIN
 FTOI_POSITIVE_MAIN:
-	# call min_caml_floor # is it needed??
+	call min_caml_floor # is it needed??
 	# $f2 <- 8388608.0(0x4b000000)
 	fmvhi $f2, 19200
 	fmvlo $f2, 0

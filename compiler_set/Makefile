@@ -105,12 +105,12 @@ lor-run:
 	make lor
 	touch $(LOR_PPM_PATH)
 	eog $(LOR_PPM_PATH) & 2> /dev/null
-	make -s ./test/Loreley/main.run | tail -c +2  > $(LOR_PPM_PATH)
+	make -s ./test/Loreley/main.run > $(LOR_PPM_PATH)
 
 lor-run_f:
 	touch $(LOR_PPM_PATH)
-#	eog $(LOR_PPM_PATH) & 2> /dev/null
-	make -s ./test/Loreley/main.run #| tail -c +2  > $(LOR_PPM_PATH)
+	eog $(LOR_PPM_PATH) & 2> /dev/null
+	make -s ./test/Loreley/main.run > $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
 lor-clean:
