@@ -218,9 +218,8 @@ min_caml_read_int:
 	return
 
 min_caml_read_float:
-	call min_caml_read_int
-	sti $r3, $r1, 0
-	fldi $f0, $r1, 0
+	call	min_caml_read_int
+	imovf 	$f0, $r3
 	return
 
 #----------------------------------------------------------------------
@@ -231,29 +230,29 @@ min_caml_read_float:
 
 
 min_caml_sqrt:
-fsqrt $f0, $f0
-return
+	fsqrt $f0, $f0
+	return
 
 min_caml_xor:
-xor $r3, $r3, $r4
-return
+	xor $r3, $r3, $r4
+	return
 
 min_caml_print_newline:
-addi $r3, $r0, 10
-outputb $r3
-return
+	addi $r3, $r0, 10
+	outputb $r3
+	return
 
 min_caml_print_char:
-outputb $r3
-return
+	outputb $r3
+	return
 
 min_caml_input_char:
-inputb $r3
-return
+	inputb $r3
+	return
 
 min_caml_read_char:
-inputb $r3
-return
+	inputb $r3
+	return
 
 
 

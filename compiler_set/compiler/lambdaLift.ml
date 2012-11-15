@@ -49,7 +49,7 @@ let rec take l known env rn fn fvs =
        match M.find x env with
        | Type.Unit -> take l known env rn fn fvs'
        | Type.Fun(_,_) ->
-	   if S.mem x known then failwith "function"
+	   if not (S.mem x known) then failwith "function"
            else take l known env rn fn fvs'
        | Type.Float -> if List.mem_assoc x l then
 	                 take l known env rn fn fvs'
@@ -121,8 +121,8 @@ let rec g env known = function
           LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') env3) (S.add x known) (h x (List.map fst yts'') (Beta.g benv e1)); },
 	         g env3 (S.add x known) (h x (List.map fst yts') e2))
   | LetTuple (xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known e)
-  | LetList ((x,t), y, e) ->
-      LetList((x,t), y, g (M.add_list (List.map (fun x -> (x,t)) (Syntax.matcher_variables x)) env) known e)
+  | LetList ((xs,t), y, e) ->
+      LetList((xs,t), y, g (M.add_list (List.map (fun z -> (z,t)) (Syntax.matcher_variables xs)) env) known e)
   | Ans(exp) -> Ans(g' env known exp)
   | _ -> assert false
 and g' env known = function

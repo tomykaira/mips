@@ -8,11 +8,11 @@ OPTION =
 # 入力ファイルをテキストとして扱う
 # min-rtで、test/min-rt/sld以下の.sldファイルを入力ファイルとしたいときは
 # 普通はこっちにしとけば大体間違いはない
-#BINARY =
+BINARY =
 
 # 入力ファイルをバイナリとして扱う
 # min-rtで、test/min-rt/sldbin以下の.slbinファイルを入力ファイルとしたいときはこっちを使う
-BINARY = -b
+#BINARY = -b
 
 # インライン展開をどの程度行うか
 # 値が大きいほどインライン展開がより深くなされる
@@ -28,10 +28,10 @@ MIN_RT_DIR = test/min-rt/
 LORELEY_DIR=test/Loreley
 
 # min-rtを実行するときの入力ファイル。上で"BINARY ="としたときはこっちを使う
-#SLD_PATH = test/min-rt/sld/contest.sld
+SLD_PATH = test/min-rt/sld/contest.sld
 
 # min-rtを実行するときの入力ファイル。上で"BINARY = -b"としたときはこっちを使う
-SLD_PATH = test/min-rt/sldbin/contest.sldbin
+#SLD_PATH = test/min-rt/sldbin/contest.sldbin
 
 # min-rtを実行するときの出力ファイル
 PPM_PATH = test/min-rt/contest.ppm
@@ -102,10 +102,10 @@ lor:
 
 # min-rt.binを実行
 lor-run:
-#	make min-rt
+#	make lor
 	touch $(LOR_PPM_PATH)
 	eog $(LOR_PPM_PATH) & 2> /dev/null
-	make -s ./test/min-rt/min-rt.run | tail -c +2  > $(LOR_PPM_PATH)
+	make -s ./test/Loreley/main.run | tail -c +2  > $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
 lor-clean:
