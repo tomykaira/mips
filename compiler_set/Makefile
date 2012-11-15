@@ -96,16 +96,21 @@ min-rt-clean:
 # globals.mlとmin-rt.mlをコンパイル。min-rt.sとmin-rt.binを作る
 lor:
 	cat $(LIB_ML) $(LORELEY_DIR)/main.ml > __tmp__.ml
-	$(MIN_CAML) $(BINARY) $(INLINE) __tmp__
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $(LORELEY_DIR)/main.s}
 	assembler/assembler $(LORELEY_DIR)/main.s $(LORELEY_DIR)/main.bin
 
 # min-rt.binを実行
 lor-run:
-#	make lor
+	make lor
 	touch $(LOR_PPM_PATH)
 	eog $(LOR_PPM_PATH) & 2> /dev/null
 	make -s ./test/Loreley/main.run | tail -c +2  > $(LOR_PPM_PATH)
+
+lor-run_f:
+	touch $(LOR_PPM_PATH)
+#	eog $(LOR_PPM_PATH) & 2> /dev/null
+	make -s ./test/Loreley/main.run #| tail -c +2  > $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
 lor-clean:

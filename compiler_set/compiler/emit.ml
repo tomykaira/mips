@@ -207,7 +207,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
       g'_non_tail_if (NonTail(z)) e1 e2 "fble" b_taken
 
 (* 関数呼び出しの仮想命令の実装 *)
-  | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し *)
+  | Tail, CallCls(_, x, ys, zs) -> (* 末尾呼び出し *)
       g'_args [(x, reg_cl)] ys zs;
       Out.print buf (Out.LdI(reg_sw, reg_cl, 0));
       Out.print buf (Out.Jr(reg_sw))
@@ -223,17 +223,19 @@ and g' = function (* 各命令のアセンブリ生成 *)
       | _ -> g'_args [] ys zs;
           Out.print buf (Out.J x))
 
-  | NonTail(a), CallCls(x, ys, zs) ->
+  | NonTail(a), CallCls(Id.L(l),x, ys, zs) ->
       g'_args [(x, reg_cl)] ys zs;
-      let ss = stacksize () in
-      let inc = if M.mem x !rettuple && not (S.mem x !CollectDanger.danger) then M.find x !rettuple else 0 in
+
+      let inc = if M.mem l !rettuple && not (S.mem l !CollectDanger.danger) then M.find l !rettuple else 0 in
       let x' = Id.genid "salloc" in
       let rec s n =
 	if n <= 0 then []
 	else (x' ^ "."^ string_of_int n)::s (n-1) in
       stackmap := !stackmap@s inc;
+      let ss = stacksize () in
       if ss > 0 then Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
       Out.print buf (Out.LdI(reg_sw, reg_cl, 0));
+      Out.print buf (Out.Comment ("\tCall "^l));
       Out.print buf (Out.CallR(reg_sw));
       if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
       if List.mem a allregs && a <> regs.(0) then

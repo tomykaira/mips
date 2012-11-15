@@ -377,17 +377,21 @@ int simulate(simulation_options * opt)
 		switch(opcode)
 		{
 			case ADD:
-				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);
+				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);				
 				IRD = IRS + IRT;
-							
+				//if (IRD==0x32286){step=true;enable_step();break;}					 
 				break;
 			case SUB:
 				D_REGISTER(log_fp, "REG: SUB %02X %08X\n", get_rd(inst), IRS - IRT);
+
 				IRD = IRS - IRT;
+				//if (IRD==0xc86d0fe){step=true;enable_step();break;}					
 				break;
 			case MUL:
 				D_REGISTER(log_fp, "REG: MUL %02X %08X\n", get_rd(inst), IRS * IRT);
+				
 				IRD = IRS * IRT;
+
 				break;
 			case AND:
 				D_REGISTER(log_fp, "REG: AND %02X %08X\n", get_rd(inst), IRS & IRT);
@@ -557,18 +561,23 @@ int simulate(simulation_options * opt)
 				break;
 			case LDR:
 				D_REGISTER(log_fp, "REG: LDR %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				//if (IRS+IRT>=RAM_SIZE){step=true; enable_step(); break;}
+				//if (IRT==0x32286){printf("%08X %08X\n", IRS, IRT);}
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
 				IRD = RAM[(IRS + IRT)];
+
 				break;
 			case FLDR:
 				D_REGISTER(log_fp, "REG: FLDR f%02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				//	if (IRS+IRT>=RAM_SIZE){step=true; enable_step(); break;}
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
 				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
+								if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
 				assert(IRS + IMM >= 0);
 				if (IRS + IMM >= RAM_SIZE) {
 					DUMP_PC
@@ -580,18 +589,21 @@ int simulate(simulation_options * opt)
 			case LDI:
 				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
 
+				//				if (IRS+IMM>=RAM_SIZE){step=true; enable_step(); break;}
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
 				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
+				if (IRS+IMM==0x326F0) {step=true;enable_step();break;}
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
 				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+				if (IRS+IMM>=RAM_SIZE){step=true; enable_step(); break;}
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				FRT = RAM[(IRS + IMM)];

@@ -184,7 +184,7 @@ and g' tail env = function
       | _ -> Ans(AddI(x, 0)))
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
-      Ans(CallCls(x, int, float))
+      Ans(CallCls(Id.L(x), x, int, float))
   | Closure.AppDir(Id.L(x), ays) ->
       let ayts = List.map (fun y -> (y, M.find y env)) ays in
       let (int, float) = separate ayts in

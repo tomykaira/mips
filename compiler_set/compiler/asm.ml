@@ -59,7 +59,7 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | IfFLT of Id.t * Id.t * t * t
   | IfFLE of Id.t * Id.t * t * t
   (* closure address, integer arguments, and float arguments *)
-  | CallCls of Id.t * Id.t list * Id.t list
+  | CallCls of Id.l * Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
@@ -115,7 +115,7 @@ let rec fv_exp = function
   | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
     -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
 
-  | CallCls(x, ys, zs) -> x :: ys @ zs
+  | CallCls(_, x, ys, zs) -> x :: ys @ zs
   | CallDir(_, ys, zs) -> ys @ zs
 and fv = function
   | Ans(exp) -> fv_exp exp
@@ -140,7 +140,7 @@ let rec fv_var_exp = function
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfFEq(x,y,e1,e2)
   | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
     -> (List.filter is_var [x;y]) @ remove_and_uniq S.empty (fv_var e1 @ fv_var e2)
-  | CallCls(x, ys, zs) -> List.filter is_var (x :: ys @ zs)
+  | CallCls(_, x, ys, zs) -> List.filter is_var (x :: ys @ zs)
   | CallDir(_, ys, zs) -> List.filter is_var (ys @ zs)
 and fv_var = function
   | Ans(exp) -> fv_var_exp exp
@@ -177,7 +177,7 @@ let rec fv_int_exp = function
     -> x :: y :: remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
   | IfFEq(_,_,e1,e2) | IfFLT(_,_,e1,e2) | IfFLE(_,_,e1,e2)
     -> remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
-  | CallCls(x, ys, _) -> x :: ys 
+  | CallCls(_, x, ys, _) -> x :: ys 
   | CallDir(_, ys, _) -> ys 
 and fv_int = function
   | Ans(exp) -> fv_int_exp exp
@@ -198,7 +198,7 @@ let rec fv_float_exp = function
     -> remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
   | IfFEq(x,y,e1,e2) | IfFLT(x,y,e1,e2) | IfFLE(x,y,e1,e2)
     -> x :: y :: remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
-  | CallCls(_, _, zs) | CallDir(_, _, zs) -> zs 
+  | CallCls(_, _, _, zs) | CallDir(_, _, zs) -> zs 
 and fv_float = function
   | Ans(exp) -> fv_float_exp exp
   | Let((x, t), exp, e) ->
@@ -213,92 +213,3 @@ let rec concat e1 xt e2 =
   | Let(yt, exp, e1') -> Let(yt, exp, concat e1' xt e2)
 
 
-
-(**************************************************************)
-(* デバッグ用関数. expを出力. nは深さ. *)
-let rec ind m = if m <= 0 then ()
-                else (Printf.eprintf "  "; ind (m-1))
-let rec dbprint n exp =
-  ind n;
-  match exp with
-  | Nop -> Printf.eprintf "Nop\n%!"
-
-  | Add (a, b) -> Printf.eprintf "Add %s %s\n%!" a b
-  | Sub (a, b) -> Printf.eprintf "Sub %s %s\n%!" a b
-  | Mul (a, b) -> Printf.eprintf "Mul %s %s\n%!" a b
-  | And (a, b) -> Printf.eprintf "And %s %s\n%!" a b
-  | Or  (a, b) -> Printf.eprintf "Or %s %s\n%!" a b
-  | Nor (a, b) -> Printf.eprintf "Nor %s %s\n%!" a b
-  | Xor (a, b) -> Printf.eprintf "Xor %s %s\n%!" a b
-
-  | AddI (a, b) -> Printf.eprintf "AddI %s %d\n%!" a b
-  | SubI (a, b) -> Printf.eprintf "SubI %s %d\n%!" a b
-  | MulI (a, b) -> Printf.eprintf "MulI %s %d\n%!" a b
-  | AndI (a, b) -> Printf.eprintf "AndI %s %d\n%!" a b
-  | OrI  (a, b) -> Printf.eprintf "OrI %s %d\n%!" a b
-  | NorI (a, b) -> Printf.eprintf "NorI %s %d\n%!" a b
-  | XorI (a, b) -> Printf.eprintf "XorI %s %d\n%!" a b
-
-  | Int a -> Printf.eprintf "Int %d\n%!" a
-  | Float a-> Printf.eprintf "Float %f\n%!" a
-  | SetL (Id.L l) -> Printf.eprintf "SetL L %s\n%!" l
-  | SllI (a, b) -> Printf.eprintf "Sll %s %d\n%!" a b
-  | SraI (a, b) -> Printf.eprintf "Sar %s %d\n%!" a b
-  | IMovF (a) -> Printf.eprintf "IMovF %s\n%!" a
-  | FMovI (a) -> Printf.eprintf "FMovI %s\n%!" a
-
-  | FMov a -> Printf.eprintf "FMov %s\n%!" a
-  | FNeg a -> Printf.eprintf "FNeg %s\n%!" a
-  | FAdd (a, b) -> Printf.eprintf "FAdd %s %s\n%!" a b
-  | FSub (a, b) -> Printf.eprintf "FSub %s %s\n%!" a b
-  | FMul (a, b) -> Printf.eprintf "FMul %s %s\n%!" a b
-  | FMulN (a, b) -> Printf.eprintf "FMulN %s %s\n%!" a b
-  | FDiv (a, b) -> Printf.eprintf "FDiv %s %s\n%!" a b
-  | FDivN (a, b) -> Printf.eprintf "FDivN %s %s\n%!" a b
-  | FInv a -> Printf.eprintf "FInv %s\n%!" a
-  | FSqrt a -> Printf.eprintf "FSqrt %s\n%!" a
-
-  | LdI (a, b) -> Printf.eprintf "LdI %s %d\n%!" a b
-  | StI (a, b, c) -> Printf.eprintf "StI %s %s %d\n%!" a b c
-  | LdR (a, b) -> Printf.eprintf "LdR %s %s\n%!" a b
-  | FLdI (a, b) -> Printf.eprintf "FLdI %s %d\n%!" a b
-  | FStI (a, b, c) -> Printf.eprintf "FStI %s %s %d\n%!" a b c
-  | FLdR (a, b) -> Printf.eprintf "FLdR %s %s\n%!" a b
-
-  | Comment s -> Printf.eprintf "Comment %s\n%!" s
-
-  | IfEq (a, b, p, q) -> Printf.eprintf "If %s = %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-  | IfLE (a, b, p, q) -> Printf.eprintf "If %s <= %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-  | IfLT (a, b, p, q) -> Printf.eprintf "If %s < %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-  | IfFEq (a, b, p, q) -> Printf.eprintf "IfF %s = %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-  | IfFLE (a, b, p, q) -> Printf.eprintf "IfF %s <= %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-  | IfFLT (a, b, p, q) -> Printf.eprintf "IfF %s < %s Then\n%!" a b;
-                         dbprint2 (n+1) p; ind n; Printf.eprintf "Else\n%!"; dbprint2 (n+1) q
-
-
-  | CallCls (a, i, f) -> Printf.eprintf "CallCls %s  I(%s), F(%s)\n%!" a (String.concat "," i) (String.concat "," f)
-  | CallDir (Id.L l, i, f) -> Printf.eprintf "CallDir %s  I(%s), F(%s)\n%!" l (String.concat "," i) (String.concat "," f)
-  | Save (a, b) -> Printf.eprintf "Save %s %s\n%!" a b
-  | Restore (a) -> Printf.eprintf "Restore %s\n%!" a
-  | SAlloc (a) -> Printf.eprintf "SAlloc %d\n%!" a
-
-
-(* デバッグ用関数. tを出力 *)
-and dbprint2 n t =
-  ind n;
-  match t with
-  | Ans exp -> Printf.eprintf "Ans\n%!"; dbprint (n+1) exp
-  | Let ((x, y), exp, s) -> Printf.eprintf "Let %s:%s =\n%!" x (Type.show y);
-                            dbprint (n+1) exp; dbprint2 n s
-
-(* デバッグ用関数. fundefを出力. *)
-let dbprint3 f =
-  ind 1;
-  match f.name with
-    Id.L a -> Printf.eprintf "L %s (IArgs = (%s), FArgs = (%s) ret : {%s}) =\n%!" a (String.concat "," f.args) (String.concat "," f.fargs) (Type.show f.ret);
-           dbprint2 2 f.body

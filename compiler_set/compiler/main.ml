@@ -49,7 +49,7 @@ let off flag f x = if !flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' = off offcs Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
+  let e' = off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'

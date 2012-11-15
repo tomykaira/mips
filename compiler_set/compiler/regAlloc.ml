@@ -106,7 +106,7 @@ and simple' dest cont = function
   | IfFLT(x,y,e1,e2) ->
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLT(x,y,e1,e2))) e1 e2
   | CallDir(Id.L(l),_,_) as exp when List.mem l inl -> (false, Ans(exp), M.empty)
-  | CallCls(x,ys,zs) as c ->
+  | CallCls(_,x,ys,zs) as c ->
       let rec f x y = match (x,y) with
 	| ([],_) | (_,[]) -> []
 	| (z::xs,w::ys) -> (z,[w])::f xs ys in
@@ -253,7 +253,7 @@ let rec gc dest cont regenv ifprefer e =
       | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
       | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
-      | CallCls(x, ys, zs) as exp -> g'_call dest cont regenv graph exp (fun ys zs -> CallCls(find x Type.Int regenv, ys, zs)) ys zs
+      | CallCls(l, x, ys, zs) as exp -> g'_call dest cont regenv graph exp (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
       | CallDir(Id.L l, ys, zs) when List.mem l inl ->
 	  (Ans(CallDir(Id.L l,
 		       (List.map (fun y -> find y Type.Int regenv) ys),
