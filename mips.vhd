@@ -27,6 +27,7 @@ architecture struct of mips is
        read_data    : out std_logic_vector(31 downto 0));
   end component;
 
+  signal inst_address : std_logic_vector(15 downto 0);
   signal inst_write_data : std_logic_vector(31 downto 0);
   signal inst_write_enable : STD_LOGIC;
 
@@ -38,11 +39,13 @@ architecture struct of mips is
        received_data : in std_logic_vector(7 downto 0);
        in_execution  : out STD_LOGIC;
        write_enable  : out STD_LOGIC;
+       write_address : out std_logic_vector(15 downto 0);
        write_data    : out std_logic_vector(31 downto 0));
   end component;
 
   signal in_execution : STD_LOGIC;
   signal rx_input_enable : STD_LOGIC;
+  signal inst_write_address : std_logic_vector(15 downto 0);
 
   component main_decoder is
 
@@ -145,8 +148,10 @@ begin
     clk          => clk,
     write_enable => inst_write_enable,
     write_data   => inst_write_data,
-    address      => pc(15 downto 0),
+    address      => inst_address,
     read_data    => instruction);
+
+  inst_address <= pc(15 downto 0) when in_execution = '1' else inst_write_address;
 
   instruction_loader_inst : instruction_loader port map (
     clk           => clk,
@@ -154,6 +159,7 @@ begin
     input_enable  => rx_input_enable,
     received_data => rx_received_data, 
     in_execution  => in_execution,
+    write_address => inst_write_address,
     write_enable  => inst_write_enable,
     write_data    => inst_write_data);
 

@@ -7,17 +7,20 @@ module instruction_loader (input clk,
                            input [7:0]       received_data,
                            output reg        in_execution,
                            output reg        write_enable,
+                           output reg [15:0] write_address,
                            output reg [31:0] write_data);
 
    reg [31:0] buffer;
    reg [1:0] ptr;
    reg i_write_enable;
+   reg inc_address_in_next_clock;
 
    task initialize;
       begin
          buffer <= 32'h00000000;
          ptr <= 2'b00;
          in_execution <= 0;
+         write_address <= 0;
       end
    endtask
 
@@ -49,12 +52,18 @@ module instruction_loader (input clk,
            2'b11 : buffer[7:0] <= received_data;
          endcase
 
+         if (inc_address_in_next_clock == 1) begin
+            inc_address_in_next_clock <= 0;
+            write_address <= write_address + 1;
+         end
+
          if (ptr == 3) begin
             if (buffer == 32'hffffffff)
               in_execution <= ! in_execution;
-            else if (in_execution == 0)
-              i_write_enable <= 1;
-            else
+            else if (in_execution == 0) begin
+               i_write_enable <= 1;
+               inc_address_in_next_clock <= 1;
+            end else
               i_write_enable <= 0;
          end else
            i_write_enable <= 0;
