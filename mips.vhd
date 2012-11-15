@@ -104,14 +104,14 @@ architecture struct of mips is
   signal pc_src : std_logic_vector(2 downto 0);
   signal alu_control : std_logic_vector(3 downto 0);
 
-  signal current_stage, next_stage : std_logic_vector(3 downto 0);
+  signal current_stage, next_stage, decoded_next_stage : std_logic_vector(3 downto 0);
 
 begin
   cont : main_decoder port map (
     op          => instruction(31 downto 26),
     rx_wait     => rx_waiting,
     stage       => current_stage,
-    next_stage  => next_stage,
+    next_stage  => decoded_next_stage,
     bus_to_reg  => bus_to_reg,
     alu_src     => alu_src,
     pc_src      => pc_src,
@@ -128,6 +128,10 @@ begin
     reset => reset,
     d     => next_stage,
     q     => current_stage);
+
+  -- temporary fix
+  -- next_stage is from main_decoder in normal operation, but hold to Fetch in data_load mode
+  next_stage <= decoded_next_stage when in_execution = '1' else "0000";
 
   dp : data_path port map (
     clk           => clk,

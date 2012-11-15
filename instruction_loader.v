@@ -43,7 +43,7 @@ module instruction_loader (input clk,
       if (reset == 1) begin
          initialize();
       end
-      else if (input_enable == 1) begin
+      else if (input_enable == 1 && in_execution == 0) begin
          ptr <= ptr + 1;
          case (ptr)
            2'b00 : buffer[31:24] <= received_data;
@@ -58,13 +58,12 @@ module instruction_loader (input clk,
          end
 
          if (ptr == 3) begin
-            if (buffer == 32'hffffffff)
-              in_execution <= ! in_execution;
-            else if (in_execution == 0) begin
+            if (buffer[31:8] == 24'hffffff && received_data == 8'hff)
+              in_execution <= 1;
+            else begin
                i_write_enable <= 1;
                inc_address_in_next_clock <= 1;
-            end else
-              i_write_enable <= 0;
+            end
          end else
            i_write_enable <= 0;
       end
