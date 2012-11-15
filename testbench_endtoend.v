@@ -30,10 +30,11 @@ module testbench_endtoend();
             .CLK(clk), .XRST(xreset), .RS_RX(rs_rx), .RS_TX(rs_tx));
 
    // in post-map simulation, other modules are not available.
-   i232c #(.wtime(16'h008F)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
+   i232c #(.wtime(16'h0006)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
 
    // set by instruction loader
    parameter MEM_SIZE=1194;
+   parameter RS232C_DELAY=84;
    reg [31:0] RAM[MEM_SIZE-1:0];
 
    integer i;
@@ -43,13 +44,13 @@ module testbench_endtoend();
 
          // input 0_????????_1
          rs_rx <= 0;
-         #2000;
+         #RS232C_DELAY;
          for (i=0; i<8; i = i+1) begin
             rs_rx <= data[i];
-            #2000;
+            #RS232C_DELAY;
          end
          rs_rx <= 1;
-         #2000;
+         #RS232C_DELAY;
 
       end
    endtask

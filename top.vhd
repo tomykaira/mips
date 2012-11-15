@@ -62,7 +62,7 @@ architecture top of top is
   end component;
 
   component rs232c_buffer is
-    generic (wtime : std_logic_vector(15 downto 0) := x"008F");
+    generic (wtime : std_logic_vector(15 downto 0) := x"0005");
 
     port (
       clk       : in std_logic;
@@ -75,7 +75,7 @@ architecture top of top is
 
   component i232c_buffer is
     
-    generic (wtime : std_logic_vector(15 downto 0) := x"008F");
+    generic (wtime : std_logic_vector(15 downto 0) := x"0005");
 
     port (
       clk       : in std_logic;
