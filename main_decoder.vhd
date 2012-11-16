@@ -118,36 +118,30 @@ use IEEE.STD_LOGIC_1164.all;
 -- 101000 |         |     D | E          | 0          | IMM     | CUR    | RT      | 000           | 0         | 0           | 0         | 0         | 0 # ldi
 -- 101000 |         |     E | M          |            | IMM     | CUR    | RT      |               |           |             |           |           | 0 
 -- 101000 |         |     M | M1         |            | IMM     | CUR    | RT      |               |           |             |           |           | 0 
--- 101000 |         |    M1 | M2         |            | IMM     | CUR    | RT      |               |           |             |           |           | 0 
--- 101000 |         |    M2 | W          | 0          | IMM     | CUR    | RT      |               |           |             |           |           | 0 
+-- 101000 |         |    M1 | W          | 0          | IMM     | CUR    | RT      |               |           |             |           |           | 0 
 -- 101000 |         |     W | F          | 1          | -       | NEXT   | RT      |               |           |             | 1         |           | 0 
 -- 101001 |         |     D | E          | 0          | IMM     | CUR    | -       | 000           | 0         |             | 0         |           | 0 # sti
 -- 101001 |         |     E | M          |            | IMM     | CUR    |         |               | 0         |             |           |           | 0 
 -- 101001 |         |     M | M1         |            | IMM     | CUR    |         |               | 1         |             |           |           | 0 
--- 101001 |         |    M1 | M2         |            | IMM     | CUR    |         |               | 1         |             |           |           | 0 
--- 101001 |         |    M2 | F          | 0          | IMM     | NEXT   |         |               | 1         |             |           |           | 0 
+-- 101001 |         |    M1 | F          | 0          | IMM     | NEXT   |         |               | 0         |             |           |           | 0 
 -- 101100 |         |     D | E          | 0          | REG     | CUR    | RD      | 000           | 0         |             | 0         |           | 0 # ldr
 -- 101100 |         |     E | M          |            |         | CUR    |         |               |           |             |           |           | 0 
 -- 101100 |         |     M | M1         |            |         | CUR    |         |               |           |             |           |           | 0 
--- 101100 |         |    M1 | M2         |            |         | CUR    |         |               |           |             |           |           | 0 
--- 101100 |         |    M2 | W          |            |         | CUR    |         |               |           |             |           |           | 0 
+-- 101100 |         |    M1 | W          |            |         | CUR    |         |               |           |             |           |           | 0 
 -- 101100 |         |     W | F          | 1          | -       | NEXT   | RD      |               |           |             | 1         |           | 0 
 -- 101010 |         |     D | E          | 0          | IMM     | CUR    | FRT     | 000           | 0         |             | 0         |           | 0 # fldi
 -- 101010 |         |     E | M          |            | IMM     | CUR    |         |               |           |             |           |           | 0 
 -- 101010 |         |     M | M1         |            | IMM     | CUR    |         |               |           |             |           |           | 0 
--- 101010 |         |    M1 | M2         |            | IMM     | CUR    |         |               |           |             |           |           | 0 
--- 101010 |         |    M2 | W          |            | IMM     | CUR    |         |               |           |             |           |           | 0 
+-- 101010 |         |    M1 | W          |            | IMM     | CUR    |         |               |           |             |           |           | 0 
 -- 101010 |         |     W | F          | 1          | -       | NEXT   | FRT     |               |           |             | 1         |           | 0 
 -- 101011 |         |     D | E          | 0          | IMM     | CUR    | -       | 000           | 0         |             | 0         |           | 0 # fsti
 -- 101011 |         |     E | M          |            | IMM     | CUR    |         |               | 0         |             |           |           | 0 
 -- 101011 |         |     M | M1         |            | IMM     | CUR    |         |               | 1         |             |           |           | 0 
--- 101011 |         |    M1 | M2         |            | IMM     | CUR    |         |               | 1         |             |           |           | 0 
--- 101011 |         |    M2 | F          | 0          | IMM     | NEXT   |         |               | 1         |             | 0         |           | 0 
+-- 101011 |         |    M1 | F          | 0          | IMM     | NEXT   |         |               | 0         |             | 0         |           | 0 
 -- 101110 |         |     D | E          | 0          | REG     | CUR    | FRD     | 000           | 0         |             | 0         |           | 0 # fldr
 -- 101110 |         |     E | M          |            |         | CUR    |         |               |           |             |           |           | 0 
 -- 101110 |         |     M | M1         |            |         | CUR    |         |               |           |             |           |           | 0 
--- 101110 |         |    M1 | M2         |            |         | CUR    |         |               |           |             |           |           | 0 
--- 101110 |         |    M2 | W          | 0          |         | CUR    |         |               |           |             |           |           | 0 
+-- 101110 |         |    M1 | W          | 0          |         | CUR    |         |               |           |             |           |           | 0 
 -- 101110 |         |     W | F          | 1          | -       | NEXT   | FRD     |               |           |             | 1         |           | 0 
 -- # conditional branch - no execute, because next PC is implicitly decided in a clock
 --#op b   | rx_wait | stage | next_stage | bus_to_reg | alu_src | pc_src | reg_dst | alu_control b | mem_write | send_enable | reg_write | rx_enable | rx_pop
@@ -488,26 +482,6 @@ begin  -- behave
         assert op_group = "101" or op_group = "111"
           report "only memory or call / return is known to use memory1 stage";
 
-        -- memory operation
-        -- jump and special operations
-        next_stage <= x"7";
-        if op_id = "100" or op_id = "110" then
-          alu_src <= '0';
-          reg_dst <= '1';
-        else
-          alu_src <= '1';
-          reg_dst <= '0';
-        end if;
-
-        if op_group = "101" then
-          -- lsb of write operation is 1
-          flags <= "0" & op(0) & "000";
-        else
-          flags <= "01000";
-        end if;
-
-      when x"7" =>  -- memory 2
-        
         case op_group is
           -- memory operation
           when "101" =>
@@ -617,7 +591,7 @@ begin  -- behave
   end process;
 
   bus_to_reg  <= flags(4);
-  mem_write   <= flags(3);
+  mem_write   <= '1' when flags(3) = '1' and stage = x"5" else '0';
   send_enable <= flags(2);
   reg_write   <= flags(1);
   rx_enable   <= flags(0);
