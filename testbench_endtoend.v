@@ -30,7 +30,12 @@ module testbench_endtoend();
             .CLK(clk), .XRST(xreset), .RS_RX(rs_rx), .RS_TX(rs_tx));
 
    // in post-map simulation, other modules are not available.
-   i232c #(.wtime(16'h008F)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
+   i232c #(.wtime(16'h0006)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
+
+   // set by instruction loader
+   parameter MEM_SIZE=1194;
+   parameter RS232C_DELAY=84;
+   reg [31:0] RAM[MEM_SIZE-1:0];
 
    integer i;
    task send;
@@ -39,17 +44,30 @@ module testbench_endtoend();
 
          // input 0_????????_1
          rs_rx <= 0;
-         #2000;
+         #RS232C_DELAY;
          for (i=0; i<8; i = i+1) begin
             rs_rx <= data[i];
-            #2000;
+            #RS232C_DELAY;
          end
          rs_rx <= 1;
-         #2000;
+         #RS232C_DELAY;
 
       end
    endtask
 
+   task send_word;
+      input [31:0] data;
+      begin
+
+         send(data[31:24]);
+         send(data[23:16]);
+         send(data[15:8]);
+         send(data[7:0]);
+
+      end
+   endtask
+
+   integer j;
    // initialize test by xresetting
    initial begin
       xreset <= 0;
@@ -57,6 +75,15 @@ module testbench_endtoend();
       #22;
       xreset <= 1;
       #100;
+
+      #300;
+
+      $readmemh ("instruction.dat", RAM);
+      for (j = 0; j < MEM_SIZE; j = j + 1) begin
+         send_word(RAM[j]);
+      end
+
+      send_word(32'hffffffff); // end marker
 
       #300;
 
