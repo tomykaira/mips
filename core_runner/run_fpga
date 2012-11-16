@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+tmpfile=/tmp/`basename $1`
+
+cd $HOME/hwex/tools
+. use-ise.sh >/dev/null
+impact -batch  mimic.impact.cmd > /dev/null
+cd -
+cut -f1 $1 > $tmpfile
+$HOME/programs/cpu/io_program/readwrite -d $tmpfile
