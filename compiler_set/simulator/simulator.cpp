@@ -678,6 +678,7 @@ int simulate(simulation_options * opt)
 int main(int argc, char** argv)
 {
 	int c;
+	int ret;
 	int length = 0;
 
 	simulation_options opt;
@@ -758,5 +759,11 @@ int main(int argc, char** argv)
 
 	cerr << "<simulate> " << endl;
 
-	return simulate(&opt);
+	ret = simulate(&opt);
+
+	cerr << endl;
+        cerr << "issued instructions : " << cnt <<endl;
+	cerr << hex << "FR = " << FR << " , " << "HR = " << HR << endl;
+
+	return (ret); 
 }

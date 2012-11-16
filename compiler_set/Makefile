@@ -36,12 +36,12 @@ SLD_PATH = test/min-rt/sld/contest.sld
 # min-rtを実行するときの出力ファイル
 PPM_PATH = test/min-rt/contest.ppm
 
-LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
+LOR_PATH=$(LORELEY_DIR)/Simple/simple2.lor
 LOR_PPM_PATH=$(LOR_PATH).ppm
 
 MIN_CAML=BISECT_FILE=compiler/coverage compiler/min-caml
 
-INPUT= -f $(LOR_PATH)
+INPUT= # -f $(LOR_PATH)
 
 architecture:
 	cd assembler; make
@@ -104,12 +104,12 @@ lor:
 lor-run:
 	make lor
 	touch $(LOR_PPM_PATH)
-	eog $(LOR_PPM_PATH) & 2> /dev/null
+#	eog $(LOR_PPM_PATH) & 2> /dev/null
 	make -s ./test/Loreley/main.run > $(LOR_PPM_PATH)
 
 lor-run_f:
 	touch $(LOR_PPM_PATH)
-	eog $(LOR_PPM_PATH) & 2> /dev/null
+#	eog $(LOR_PPM_PATH) & 2> /dev/null
 	make -s ./test/Loreley/main.run > $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
