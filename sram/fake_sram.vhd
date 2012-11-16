@@ -69,7 +69,7 @@ begin  -- behave
   assert XGA   = '0' report "Fake SRAM: XGA";
   assert XZCKE = '0' report "Fake SRAM: XZCKE";
   assert ADVA  = '0' report "Fake SRAM: ADVA";
-  assert XFT   = '1' report "Fake SRAM: XFT";
+  assert XFT   = '0' report "Fake SRAM: XFT";
   assert XLBO  = '1' report "Fake SRAM: XLBO";
   assert ZZA   = '0' report "Fake SRAM: ZZA";
 
@@ -81,14 +81,12 @@ begin  -- behave
       if XWA = '0' then
         -- ZA is always connected. problem is in when it is writing
         assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
-        if ZA <= MEM_SIZE then
-          write1     <= ZD;
-          addr1      <= ZA;
-          write2 <= write1;
-          addr2 <= addr1;
-          -- not essential, for safety
-          mem(conv_integer(addr2)) <= write2;
-        end if;
+        addr1  <= "0000000000" & ZA(9 downto 0);
+
+        write2 <= ZD;
+        addr2  <= addr1;
+        -- not essential, for safety
+        mem(conv_integer(addr2)) <= write2;
       else
         if ZA <= MEM_SIZE then
           read1     <= mem(conv_integer(ZA));
