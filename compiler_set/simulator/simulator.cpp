@@ -618,7 +618,8 @@ int simulate(simulation_options * opt)
 				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
-				if (opt->enable_stdout) {
+				if (opt->enable_stdout &&
+				    IRT != 231 && IRT != 181 && IRT != 130) { // 終了マーカは無視。ログには出す
 					printf("%c", (char)IRT);
 				}
 				D_IO(log_fp, "IO: %c\n", (char)IRT);
