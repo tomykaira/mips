@@ -51,14 +51,15 @@ architecture behave of fake_sram is
 
   signal sram_data : std_logic_vector(31 downto 0);
 
-  signal read1, write1, write2 : std_logic_vector(31 downto 0);
-  signal addr1, addr2 : std_logic_vector(19 downto 0);
+  signal read1 : std_logic_vector(31 downto 0);
+  signal addr1 : std_logic_vector(19 downto 0);
 
   signal clk : STD_LOGIC;
+  signal previous_XWA : STD_LOGIC;
 
 begin  -- behave
 
-  ZD  <= sram_data when XWA='1' else (others => 'Z');
+  ZD  <= sram_data when previous_XWA='1' else (others => 'Z');
   ZDP <= (others => 'Z'); -- not available
 
   clk <= ZCLKMA(0);
@@ -75,6 +76,13 @@ begin  -- behave
 
   assert XZBE  = "0000" report "Fake SRAM: XZBE";
 
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      previous_XWA <= XWA;
+    end if;
+  end process;
+
   sram_mock: process (clk, ZD, ZA, XWA)
   begin  -- process sram_mock
     if rising_edge(clk) then
@@ -82,16 +90,15 @@ begin  -- behave
         -- ZA is always connected. problem is in when it is writing
         assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
         addr1  <= "0000000000" & ZA(9 downto 0);
-
-        write2 <= ZD;
-        addr2  <= addr1;
-        -- not essential, for safety
-        mem(conv_integer(addr2)) <= write2;
       else
         if ZA <= MEM_SIZE then
           read1     <= mem(conv_integer(ZA));
           sram_data <= read1;
         end if;
+      end if;
+
+      if previous_XWA = '0' then
+        mem(conv_integer(addr1)) <= ZD;
       end if;
     end if;
   end process sram_mock;
