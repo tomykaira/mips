@@ -10,6 +10,9 @@ module instruction_memory (input clk,
 
    reg [31:0] RAM[MEM_SIZE-1:0];
 
+   initial
+     $readmemh ("instruction.dat", RAM);
+
    always @ (posedge clk) begin
       if (write_enable == 1) begin
          RAM[address] <= write_data;
