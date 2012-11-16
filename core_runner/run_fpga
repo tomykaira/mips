@@ -7,6 +7,6 @@ IMPACT=$HOME/Xilinx/ISE_DS/ISE/bin/lin64/impact
 source $HOME/Xilinx/ISE_DS/settings64.sh >/dev/null 2>/dev/null
 export XILINXD_LICENSE_FILE=2100@133.11.27.150
 $IMPACT -batch mimic.impact.cmd > /dev/null 2>/dev/null
-\cd -
+\cd - > /dev/null
 cut -f1 $1 > $tmpfile
 $HOME/programs/cpu/io_program/readwrite -d $tmpfile
