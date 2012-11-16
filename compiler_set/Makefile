@@ -145,6 +145,14 @@ test-simple: $(TESTS:%=test/%.run_f)
 test-comp: $(MEMOIZE_TESTS:%=test/%.run_cmp)
 test-large: $(LARGE_TESTS:%=test/%.run_large)
 
+test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(LARGE_TESTS:%=test/%.run_core_cmp)
+
+%.run_core: %.sim %.core
+	diff $*.sim $*.core
+
+%.run_core_cmp: %.core
+	diff $*.ans $*.core
+
 # .bin, .sが存在しないときのみビルドして実行
 %.run:
 	make $*.bin
@@ -162,21 +170,27 @@ test-large: $(LARGE_TESTS:%=test/%.run_large)
 	simulator/simulator $*.bin | tee /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
-%.ans:
-	make $*.bin_f
-	simulator/simulator $*.bin 2>/dev/null | tee $*.ans
-	ocaml $*.ml
-
 %.run_large:
 	make $*.bin_f
 	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
+%.core: %.bin
+	../core_runner/run_fpga $*.bin > $*.core
+
+%.ocaml: %.ml
+	ocaml $*.ml > $*.ocaml
+
+%.sim: %.bin
+	simulator/simulator $*.bin > $*.sim
+
+%.ans:
+	make $*.bin_f
+	simulator/simulator $*.bin 2>/dev/null | tee $*.ans
+	ocaml $*.ml
+
 # .bin, .sが存在しないときのみビルド
-%.bin:
-	cat $(LIB_ML) $*.ml > __tmp__.ml
-	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
-	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
+%.bin: %.s
 	assembler/assembler $*.s $*.bin
 
 # .bin, .sが存在しててもビルドする
@@ -187,7 +201,7 @@ test-large: $(LARGE_TESTS:%=test/%.run_large)
 	assembler/assembler $*.s $*.bin
 
 # .sが存在しないときのみビルド
-%.s:
+%.s: %.ml
 	cat $(LIB_ML) $*.ml > __tmp__.ml
 	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
