@@ -2,9 +2,8 @@ SIMULATOR=../../../simulator/simulator
 
 # order from easy (simple) to hard (complicated)
 TEST_WITH_OCAML=read_environment read_glConf read_deConf read_cMap read_dnas \
-decode_init
+decode_init output_ppm
 # read_gene: printer bug
-# output_ppm: infinite loop
 TEST_WITH_ANSWER=apply_func
 # apply_gene_no_random shooting_sub: heisenbug
 
