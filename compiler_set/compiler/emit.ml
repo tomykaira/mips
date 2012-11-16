@@ -324,5 +324,12 @@ let f (Prog(fundefs, e)) =
   stackset := S.empty;
   stackmap := [];
   g (NonTail(reg_0), e);
+  Out.print buf (Out.Comment "Send end marker, then halt");
+  Out.print buf (Out.AddI("$r3", reg_0, 231));
+  Out.print buf (Out.Outputb("$r3"));
+  Out.print buf (Out.AddI("$r3", reg_0, 181));
+  Out.print buf (Out.Outputb("$r3"));
+  Out.print buf (Out.AddI("$r3", reg_0, 130));
+  Out.print buf (Out.Outputb("$r3"));
   Out.print buf Out.Halt;
   List.rev !buf
