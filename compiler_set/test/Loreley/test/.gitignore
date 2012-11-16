@@ -1,0 +1,6 @@
+*.ocaml
+*.input
+*.sim
+*.bin
+*.s
+*_tmp.ml

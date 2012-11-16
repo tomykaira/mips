@@ -1,109 +1,147 @@
 {
-(* lexer§¨Õ¯Õ—§π§Î —øÙ°¢¥ÿøÙ°¢∑ø§ §…§ŒƒÍµ¡ *)
-open Parser
-open Type
+(* lexer„ÅåÂà©Áî®„Åô„ÇãÂ§âÊï∞„ÄÅÈñ¢Êï∞„ÄÅÂûã„Å™„Å©„ÅÆÂÆöÁæ© *)
+  open Parser
+  open Type
 }
 
-(* ¿µµ¨…Ω∏Ω§ŒŒ¨µ≠ *)
+(* Ê≠£Ë¶èË°®Áèæ„ÅÆÁï•Ë®ò *)
 let space = [' ' '\t' '\n' '\r']
 let digit = ['0'-'9']
 let lower = ['a'-'z']
 let upper = ['A'-'Z']
 
-rule token = parse
-| space+
-    { token lexbuf }
-| "(*"
-    { comment lexbuf; (* •Õ•π•»§∑§ø•≥•·•Û•»§Œ§ø§·§Œ•»•Í•√•Ø *)
-      token lexbuf }
-| '('
-    { LPAREN }
-| ')'
-    { RPAREN }
-| "true"
-    { BOOL(true) }
-| "false"
-    { BOOL(false) }
-| "not"
-    { NOT }
-| digit+ (* ¿∞øÙ§Úª˙∂Á≤Ú¿œ§π§Î•Î°º•Î *)
-    { let i = int_of_string (Lexing.lexeme lexbuf) in
-      let rec f x = if x = 0 then (0, 0)
-                    else let (y, z) = f (x lsr 1) in
-                         (x land 1 + y, z + 1) in
-      let (a, b) = f i in
-      if i > 0 && a = 1 && b > 0 then BIN(b-1) else INT(i) }
-| digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
-    { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
-| '-' (* -.§Ë§Í∏Â≤Û§∑§À§∑§ §Ø§∆§‚Œ…§§? ∫«ƒπ∞Ï√◊? *)
-    { MINUS }
-| '+' (* +.§Ë§Í∏Â≤Û§∑§À§∑§ §Ø§∆§‚Œ…§§? ∫«ƒπ∞Ï√◊? *)
-    { PLUS }
-| "-."
-    { MINUS_DOT }
-| "+."
-    { PLUS_DOT }
-| "*"
-    { AST }
-| "/"
-    { SLASH }
-| "*."
-    { AST_DOT }
-| "/."
-    { SLASH_DOT }
-| '='
-    { EQUAL }
-| "<>"
-    { LESS_GREATER }
-| "<="
-    { LESS_EQUAL }
-| ">="
-    { GREATER_EQUAL }
-| '<'
-    { LESS }
-| '>'
-    { GREATER }
-| "if"
-    { IF }
-| "then"
-    { THEN }
-| "else"
-    { ELSE }
-| "let"
-    { LET }
-| "in"
-    { IN }
-| "rec"
-    { REC }
-| ','
-    { COMMA }
-| '_'
-    { IDENT(Id.gentmp Type.Unit) }
-| "Array.create" (* [XX] ad hoc *)
-    { ARRAY_CREATE }
-| '.'
-    { DOT }
-| "<-"
-    { LESS_MINUS }
-| ';'
-    { SEMICOLON }
-| eof
-    { EOF }
-| lower (digit|lower|upper|'_')* (* ¬æ§Œ°÷ÕΩÃÛ∏Ï°◊§Ë§Í∏Â§«§ §§§»§§§±§ §§ *)
-    { IDENT(Lexing.lexeme lexbuf) }
-| _
-    { failwith
-	(Printf.sprintf "unknown token %s near characters %d-%d"
-	   (Lexing.lexeme lexbuf)
-	   (Lexing.lexeme_start lexbuf)
-	   (Lexing.lexeme_end lexbuf)) }
-and comment = parse
-| "*)"
-    { () }
-| "(*"
-    { comment lexbuf;
-      comment lexbuf }
-| eof
-    { Format.eprintf "warning: unterminated comment@." }
-| _
-    { comment lexbuf }
+  rule token = parse
+    | space+
+        { token lexbuf }
+    | "(*"
+        { comment lexbuf; (* „Éç„Çπ„Éà„Åó„Åü„Ç≥„É°„É≥„Éà„ÅÆ„Åü„ÇÅ„ÅÆ„Éà„É™„ÉÉ„ÇØ *)
+          token lexbuf }
+    | '('
+        { LPAREN }
+    | ')'
+        { RPAREN }
+    | "true"
+        { BOOL(true) }
+    | "false"
+        { BOOL(false) }
+    | "not"
+        { NOT }
+    | digit+ (* Êï¥Êï∞„ÇíÂ≠óÂè•Ëß£Êûê„Åô„Çã„É´„Éº„É´ *)
+        { let i = int_of_string (Lexing.lexeme lexbuf) in
+          let rec f x = if x = 0 then (0, 0)
+            else let (y, z) = f (x lsr 1) in
+                 (x land 1 + y, z + 1) in
+          let (a, b) = f i in
+          if i > 0 && a = 1 && b > 0 then BIN(b-1) else INT(i) }
+    | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
+        { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
+    | '-' (* -.„Çà„ÇäÂæåÂõû„Åó„Å´„Åó„Å™„Åè„Å¶„ÇÇËâØ„ÅÑ? ÊúÄÈï∑‰∏ÄËá¥? *)
+        { MINUS }
+    | '+' (* +.„Çà„ÇäÂæåÂõû„Åó„Å´„Åó„Å™„Åè„Å¶„ÇÇËâØ„ÅÑ? ÊúÄÈï∑‰∏ÄËá¥? *)
+        { PLUS }
+    | "-."
+        { MINUS_DOT }
+    | "+."
+        { PLUS_DOT }
+    | "*"
+        { AST }
+    | "/"
+        { SLASH }
+    | "*."
+        { AST_DOT }
+    | "/."
+        { SLASH_DOT }
+    | "=="
+        { DOUBLE_EQUAL }
+    | ":="
+        { COLON_EQUAL }
+    | '='
+        { EQUAL }
+    | "<>"
+        { LESS_GREATER }
+    | "<="
+        { LESS_EQUAL }
+    | ">="
+        { GREATER_EQUAL }
+    | "->"
+        { ARROW }
+    | "|"
+        { PIPE }
+    | '<'
+        { LESS }
+    | '>'
+        { GREATER }
+    | "&&"
+        { AND }
+    | "or"
+        { OR }
+    | "if"
+        { IF }
+    | "then"
+        { THEN }
+    | "else"
+        { ELSE }
+    | "let"
+        { LET }
+    | "in"
+        { IN }
+    | "rec"
+        { REC }
+    | "match"
+        { MATCH }
+    | "with"
+        { WITH }
+    | "ref"
+        { REF }
+    | ','
+        { COMMA }
+    | '_'
+        { IDENT(Id.gentmp Type.Unit) }
+    | "[]"
+        { EMPTY_BRACKET }
+    | "::"
+        { DOUBLE_COLON }
+    | "Array.create" (* [XX] ad hoc *)
+        { ARRAY_CREATE }
+    | "Array.make" (* [XX] ad hoc *)
+        { ARRAY_CREATE }
+    | "Array.init" (* [XX] ad hoc *)
+        { ARRAY_INIT }
+    | "array_init" (* [XX] ad hoc *)
+        { ARRAY_INIT }
+    | "[|"
+        { L_ARRAY_BRACKET }
+    | "|]"
+        { R_ARRAY_BRACKET }
+    | '.'
+        { DOT }
+    | "<-"
+        { LESS_MINUS }
+    | ';'
+        { SEMICOLON }
+    | '!'
+        { BANG }
+    | '\'' (space|digit|lower|upper|'_') '\''
+        { INT(Char.code (Lexing.lexeme lexbuf).[1]) }
+    | "'\\n\'"
+        { INT(Char.code '\n') }
+    | eof
+        { EOF }
+    | lower (digit|lower|upper|'_')* (* ‰ªñ„ÅÆ„Äå‰∫àÁ¥ÑË™û„Äç„Çà„ÇäÂæå„Åß„Å™„ÅÑ„Å®„ÅÑ„Åë„Å™„ÅÑ *)
+        { IDENT(Lexing.lexeme lexbuf) }
+    | _
+        { failwith
+            (Printf.sprintf "unknown token %s near characters %d-%d"
+               (Lexing.lexeme lexbuf)
+               (Lexing.lexeme_start lexbuf)
+               (Lexing.lexeme_end lexbuf)) }
+  and comment = parse
+    | "*)"
+        { () }
+    | "(*"
+        { comment lexbuf;
+          comment lexbuf }
+    | eof
+        { failwith "warning: unterminated comment@." }
+    | _
+        { comment lexbuf }

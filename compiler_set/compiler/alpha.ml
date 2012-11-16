@@ -2,12 +2,12 @@
 
 open KNormal
 
-(* ¥Ç¥Ð¥Ã¥°ÍÑ¡£true¤Ê¤éKnormal.t¤ò½ÐÎÏ *)
+(* ãƒ‡ãƒãƒƒã‚°ç”¨ã€‚trueãªã‚‰Knormal.tã‚’å‡ºåŠ› *)
 let debug = ref false
 
 let find x env = try M.find x env with Not_found -> x
 
-let rec g env = function (* ¦ÁÊÑ´¹¥ë¡¼¥Á¥óËÜÂÎ *)
+let rec g env = function (* Î±å¤‰æ›ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
   | Unit -> Unit
   | Int(i) -> Int(i)
   | Float(d) -> Float(d)
@@ -25,29 +25,42 @@ let rec g env = function (* ¦ÁÊÑ´¹¥ë¡¼¥Á¥óËÜÂÎ *)
   | IfEq(x, y, e1, e2) -> IfEq(find x env, find y env, g env e1, g env e2)
   | IfLE(x, y, e1, e2) -> IfLE(find x env, find y env, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(find x env, find y env, g env e1, g env e2)
-  | Let((x, t), e1, e2) -> (* let¤Î¦ÁÊÑ´¹ *)
-      let x' = Id.genid x in
-      Let((x', t), g env e1, g (M.add x x' env) e2)
+  | IfNil(x, e1, e2) -> IfNil(find x env, g env e1, g env e2)
+  | Let((x, t), e1, e2) -> (* letã®Î±å¤‰æ› *)
+    let x' = Id.genid x in
+    Let((x', t), g env e1, g (M.add x x' env) e2)
   | Var(x) -> Var(find x env)
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* let rec¤Î¦ÁÊÑ´¹ *)
-      let env = M.add x (Id.genid x) env in
-      let ys = List.map fst yts in
-      let env' = M.add_list2 ys (List.map Id.genid ys) env in
-      LetRec({ name = (find x env, t);
-	       args = List.map (fun (y, t) -> (find y env', t)) yts;
-	       body = g env' e1 },
-	     g env e2)
+  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* let recã®Î±å¤‰æ› *)
+    let env = M.add x (Id.genid x) env in
+    let ys = List.map fst yts in
+    let env' = M.add_list2 ys (List.map Id.genid ys) env in
+    LetRec({ name = (find x env, t);
+             args = List.map (fun (y, t) -> (find y env', t)) yts;
+             body = g env' e1 },
+           g env e2)
   | App(x, ys) -> App(find x env, List.map (fun y -> find y env) ys)
   | Tuple(xs) -> Tuple(List.map (fun x -> find x env) xs)
-  | LetTuple(xts, y, e) -> (* LetTuple¤Î¦ÁÊÑ´¹ *)
-      let xs = List.map fst xts in
-      let env' = M.add_list2 xs (List.map Id.genid xs) env in
-      LetTuple(List.map (fun (x, t) -> (find x env', t)) xts,
-	       find y env,
-	       g env' e)
+  | LetTuple(xts, y, e) -> (* LetTupleã®Î±å¤‰æ› *)
+    let xs = List.map fst xts in
+    let env' = M.add_list2 xs (List.map Id.genid xs) env in
+    LetTuple(List.map (fun (x, t) -> (find x env', t)) xts,
+             find y env,
+             g env' e)
   | Get(x, y) -> Get(find x env, find y env)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
   | ExtArray(x) -> ExtArray(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Nil -> Nil
+  | Cons(x, y) -> Cons(find x env, find y env)
+  | LetList((matcher, typ), y, e) ->
+    let replace_in_matcher env = function
+      | Syntax.ListWithNil(vars)    -> Syntax.ListWithNil(List.map (fun v -> find v env) vars)
+      | Syntax.ListWithoutNil(vars) -> Syntax.ListWithoutNil(List.map (fun v -> find v env) vars)
+    in
+    let xs = Syntax.matcher_variables matcher in
+    let env' = M.add_list2 xs (List.map Id.genid xs) env in
+    LetList((replace_in_matcher env' matcher, typ),
+            find y env,
+            g env' e)
 
 let f = g M.empty

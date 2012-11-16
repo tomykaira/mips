@@ -1,52 +1,53 @@
 # Sumii's Makefile for Min-Caml (for GNU Make)
 # 
-# ack.ml¤Ê¤É¤Î¥Æ¥¹¥È¥×¥í¥°¥é¥à¤òtest/¤ËÍÑ°Õ¤·¤Æmake do_test¤ò¼Â¹Ô¤¹¤ë¤È¡¢
-# min-caml¤Èocaml¤Ç¥³¥ó¥Ñ¥¤¥ë¡¦¼Â¹Ô¤·¤¿·ë²Ì¤ò¼«Æ°¤ÇÈæ³Ó¤·¤Ş¤¹¡£
+# ack.mlãªã©ã®ãƒ†ã‚¹ãƒˆãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’test/ã«ç”¨æ„ã—ã¦make do_testã‚’å®Ÿè¡Œã™ã‚‹ã¨ã€
+# min-camlã¨ocamlã§ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ãƒ»å®Ÿè¡Œã—ãŸçµæœã‚’è‡ªå‹•ã§æ¯”è¼ƒã—ã¾ã™ã€‚
+
+AUXLIB_DIRS = +deriving +/usr/local/lib/ocaml/3.12.1/bisect
+OCAMLFLAGS = -w Aef
 
 RESULT = min-caml
 NCSUFFIX = .opt
 CC = gcc
 CFLAGS = -g -O2 -Wall
 
+LIBS = nums deriving
+CLIBS=
+
+INCDIRS = $(AUXLIB_DIRS)
+LIBDIRS = $(AUXLIB_DIRS)
+
 #default: debug-code top $(RESULT) do_test
 $(RESULT): debug-code top
-## [¼«Ê¬¡Ê½»°æ¡ËÍÑ¤ÎÃí]
-## ¡¦OCamlMakefile¤ä¸Å¤¤GNU Make¤Î¥Ğ¥°(?)¤Ç¾å¤Î¤è¤¦¤ÊÄêµÁ¤¬É¬Í×(??)
-## ¡¦OCamlMakefile¤Ç¤Ïdebug-code¤Ènative-code¤Î¤½¤ì¤¾¤ì¤Ç
-##   .mli¤¬¥³¥ó¥Ñ¥¤¥ë¤µ¤ì¤Æ¤·¤Ş¤¦¤Î¤Ç¡¢Î¾Êı¤È¤âdefault:¤Î±¦ÊÕ¤ËÆş¤ì¤ë¤È
-##   ºÆmake»ş¤Ë¡Ê.mli¤¬ÊÑ¹¹¤µ¤ì¤Æ¤¤¤ë¤Î¤Ç¡Ë.ml¤âºÆ¥³¥ó¥Ñ¥¤¥ë¤µ¤ì¤ë
-clean:: nobackup
+br: bisect-byte-code
+## [è‡ªåˆ†ï¼ˆä½äº•ï¼‰ç”¨ã®æ³¨]
+## ãƒ»OCamlMakefileã‚„å¤ã„GNU Makeã®ãƒã‚°(?)ã§ä¸Šã®ã‚ˆã†ãªå®šç¾©ãŒå¿…è¦(??)
+## ãƒ»OCamlMakefileã§ã¯debug-codeã¨native-codeã®ãã‚Œãã‚Œã§
+##   .mliãŒã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã•ã‚Œã¦ã—ã¾ã†ã®ã§ã€ä¸¡æ–¹ã¨ã‚‚default:ã®å³è¾ºã«å…¥ã‚Œã‚‹ã¨
+##   å†makeæ™‚ã«ï¼ˆ.mliãŒå¤‰æ›´ã•ã‚Œã¦ã„ã‚‹ã®ã§ï¼‰.mlã‚‚å†ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã•ã‚Œã‚‹
+clean:: nobackup clean-coverage
 
-# ¢­¤â¤·¼ÂÁõ¤ò²şÂ¤¤·¤¿¤é¡¢¤½¤ì¤Ë¹ç¤ï¤»¤ÆÊÑ¤¨¤ë
-SOURCES = global.ml float.c type.ml id.ml m.ml s.ml \
-syntax.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
-alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
-inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml \
-closure.mli closure.ml asm.mli asm.ml virtual.mli virtual.ml \
-simm.mli simm.ml regAlloc.mli regAlloc.ml emit.mli emit.ml \
+clean-coverage:
+	rm -rf coverage*
+	rm -rf report
+
+# â†“ã‚‚ã—å®Ÿè£…ã‚’æ”¹é€ ã—ãŸã‚‰ã€ãã‚Œã«åˆã‚ã›ã¦å¤‰ãˆã‚‹
+SOURCES = global.ml type.ml id.ml syntax.ml m.ml s.ml \
+ parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
+aNormal.ml alpha.ml beta.ml inline.ml ifThenElse.ml \
+constFold.ml elim.ml cse.ml \
+lambdaLift.ml closure.ml\
+flattenTuple.ml unfoldTuple.ml embedTuple.ml elimTuple.ml\
+asm.ml collectDanger.ml virtual.mli virtual.ml together.ml\
+simm.mli simm.ml graphColor.ml out.ml emit.ml\
+regAlloc.mli regAlloc.ml jumpElim.ml\
 main.mli main.ml
 
-# ¢­¥Æ¥¹¥È¥×¥í¥°¥é¥à¤¬Áı¤¨¤¿¤é¡¢¤³¤ì¤âÁı¤ä¤¹
-TESTS = print sum-tail gcd sum fib ack even-odd \
-adder funcomp cls-rec cls-bug cls-bug2 \
-shuffle spill spill2 spill3 join-stack join-stack2 join-stack3 \
-join-reg join-reg2 non-tail-if non-tail-if2 \
-inprod inprod-rec inprod-loop matmul matmul-flat
-
-#do_test: $(TESTS:%=test/%.cmp)
-
-.PRECIOUS: test/%.s test/% test/%.res test/%.ans test/%.cmp
-TRASH = $(TESTS:%=test/%.s) $(TESTS:%=test/%) $(TESTS:%=test/%.res) $(TESTS:%=test/%.ans) $(TESTS:%=test/%.cmp)
-
-test/%.s: $(RESULT) test/%.ml
-	./$(RESULT) test/$*
-test/%: test/%.s libmincaml.S stub.c
-	$(CC) $(CFLAGS) -m32 $^ -lm -o $@
-test/%.res: test/%
-	$< > $@
-test/%.ans: test/%.ml
-	ocaml $< > $@
-test/%.cmp: test/%.res test/%.ans
-	diff $^ > $@
-
 include OCamlMakefile
+
+bisect-byte-code:		$(PRE_TARGETS)
+			$(QUIET)$(MAKE) -r -f $(OCAMLMAKEFILE) $(BCRESULT) \
+				REAL_RESULT="$(BCRESULT)" \
+				OCAMLFLAGS="-I +bisect -pp \"camlp4o str.cma `ocamlc -where`/bisect/bisect_pp.cmo\" $(OCAMLFLAGS)" \
+				OCAMLLDFLAGS="-I +bisect bisect.cma $(OCAMLLDFLAGS)" \
+				make_deps=yes
