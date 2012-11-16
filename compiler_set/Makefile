@@ -123,14 +123,14 @@ lor-clean:
 TESTS=adder and array_init cls-bug2 cls-bug cls-rec double_equal even-odd fib \
 funcomp gcd join-reg join-reg2 join-stack join-stack2 \
 join-stack3 let-array let-fun list list2 list-float matmul \
-matmul-flat multest nest-tuple non-tail-if2 pattern \
+matmul-flat multest nest-tuple non-tail-if non-tail-if2 pattern \
 print-char print ref ref2 shuffle spill spill2 spill3 \
 sum-tail tuple-fv tuple2 tuple3 tuple-return
 
 # tests whose result can be different because of FPU, or
 # ocaml cannot process
 MEMOIZE_TESTS=float fmul log-exp hyperbolic inprod-loop inprod-rec \
-non-tail-if power random
+power random
 
 # tests use input file
 INPUT_TESTS=fib_input
