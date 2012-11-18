@@ -45,13 +45,16 @@ begin  -- blackbox
   XWA  <= not write_enable;
 
   ZD        <= saved_write_data when previous_write_enable = '1' else (others => 'Z');
-  data_read <= (others => 'Z')  when previous_write_enable = '1' else ZD;
 
   -- data_read is not refreshed in simulation
   -- workaround: forcefully update it with clock timing
   process (address, data_write, write_enable, ZD, clk, previous_write_enable)
   begin
-
+    if previous_write_enable = '1' then
+      data_read <= (others => 'Z');
+    else
+      data_read <= ZD;
+    end if;
     if rising_edge(clk) then
       previous_write_enable <= write_enable;
       saved_write_data <= data_write;

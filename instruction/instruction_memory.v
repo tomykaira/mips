@@ -20,6 +20,7 @@ module instruction_memory (input clk,
       end
       else begin
          read_data <= RAM[address]; // word align
+         $display("INST: %8d %h", address, read_data);
       end
    end
 
