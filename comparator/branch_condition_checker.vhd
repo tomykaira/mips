@@ -12,7 +12,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 -- DOCTEST DEPENDENCIES: ./comparator.vhd
 -- TEST
 -- def f { |x| x.include?(".") ? [x.to_f].pack('f').unpack('I').first : x.to_i }
--- op   b | a   f | b   f | go_branch
+-- op   b | rs  f | rt  f | go_branch
 -- 100000 | 5     | 5     | 1    # beq
 -- 100000 | 1     |       | 0
 -- 100001 | 2     |       | 1    # blt
@@ -37,7 +37,7 @@ entity branch_condition_checker is
   
   port (
     op        : in std_logic_vector(5 downto 0);
-    a, b      : in std_logic_vector(31 downto 0);
+    rs, rt      : in std_logic_vector(31 downto 0);
     go_branch : out STD_LOGIC
   );
 
@@ -47,7 +47,7 @@ architecture behave of branch_condition_checker is
 
   component comparator is
     port (
-      a, b     : in std_logic_vector(31 downto 0);
+      rs, rt   : in std_logic_vector(31 downto 0);
       is_float : in STD_LOGIC;
       lt, eq   : out STD_LOGIC
       );
@@ -59,8 +59,8 @@ architecture behave of branch_condition_checker is
 begin  -- behave
 
   comparator_inst : comparator port map (
-    a => a,
-    b => b,
+    rs => rs,
+    rt => rt,
     is_float => is_float,
     lt => lt,
     eq => eq
