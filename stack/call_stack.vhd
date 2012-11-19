@@ -10,12 +10,11 @@ entity call_stack is
   
   port (
     clk        : in STD_LOGIC;
-    -- decide to push
-    op         : in std_logic_vector(5 downto 0);
+
+    do_push, do_pop : in STD_LOGIC;
+
     -- as input data
     current_pc : in std_logic_vector(31 downto 0);
-    pc_src     : in std_logic_vector(2 downto 0);
-
     stack_top  : out std_logic_vector(31 downto 0)
   );
 
@@ -37,7 +36,7 @@ architecture behave of call_stack is
             );
   end component;
 
-  signal full, empty, do_push, do_pop, enable : STD_LOGIC;
+  signal full, empty, enable : STD_LOGIC;
   
 begin  -- behave
 
@@ -56,12 +55,4 @@ begin  -- behave
   assert (do_pop = '0' or empty = '0') report "PC Stack is empty and popping";
   assert full = '0'  report "PC Stack is full";
 
-  -- push: call and leaving this instruction
-  do_push <= '1' when pc_src /= "000" and (op = "111010" or op = "111011")
-             else '0';
-
-  -- pop: return and top is loaded to PC-flipflop
-  do_pop <= '1' when pc_src = "101" and op = "111100"
-            else '0';
-  
 end behave;
