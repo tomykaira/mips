@@ -7,7 +7,6 @@ use IEEE.STD_LOGIC_ARITH.all;
 -- PC is valid for least 16bits, others are roughly calculated.
 
 -- TEST
--- alias CUR  000
 -- alias NEXT 001
 -- alias J    010
 -- alias REL  011 # conditional relative branching
