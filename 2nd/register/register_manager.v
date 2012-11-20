@@ -133,8 +133,8 @@ module register_manager (input clk, input reset,
                                      .write_float_2(write_float_2),
                                      .position(rt_position));
 
-   myd #(32) rs_ff(.D(raw_rs_data), .C(clk), .Q(rs_data));
-   myd #(32) rt_ff(.D(raw_rt_data), .C(clk), .Q(rt_data));
+   flip_reset #(32) rs_ff(.d(raw_rs_data), .clk(clk), .reset(reset), .q(rs_data));
+   flip_reset #(32) rt_ff(.d(raw_rt_data), .clk(clk), .reset(reset), .q(rt_data));
 
    always @ (*) begin
       if (write_float_0 == 1) begin
@@ -157,7 +157,7 @@ module register_manager (input clk, input reset,
         0: raw_rs_data <= write_data_0;
         1: raw_rs_data <= write_data_1;
         2: raw_rs_data <= write_data_2;
-        3: 
+        3:
           if (rs_float == 1)
             raw_rs_data <= float_rs_data;
           else
@@ -170,7 +170,7 @@ module register_manager (input clk, input reset,
         0: raw_rt_data <= write_data_0;
         1: raw_rt_data <= write_data_1;
         2: raw_rt_data <= write_data_2;
-        3: 
+        3:
           if (rt_float == 1)
             raw_rt_data <= float_rt_data;
           else
