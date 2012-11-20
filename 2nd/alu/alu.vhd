@@ -78,7 +78,7 @@ begin  -- behave
   rt_addr <= inst(20 downto 16);
   rd_addr <= inst(15 downto 11);
 
-  process(op, rt_addr, rd_addr)
+  process(op, rt, imm, rt_addr, rd_addr)
   begin
     case op is
       when ADD | SUB | cXOR =>
