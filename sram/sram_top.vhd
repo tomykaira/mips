@@ -85,7 +85,7 @@ architecture sram_top of sram_top is
 
   signal rx_done, push_enable : STD_LOGIC;
 
-  signal counter : std_logic_vector(9 downto 0) := (others => '0');
+  signal counter : std_logic_vector(7 downto 0) := (others => '0');
 
   type statetype is (INPUT, READING, WRITING, WRITING2);
   signal state : statetype := INPUT;
@@ -100,7 +100,7 @@ begin  -- test
     o=>iclk);
 
   data_memory : sramc port map (
-    ZD  => ZD, 
+    ZD  => ZD,
     ZDP => ZDP,
     ZA  => ZA,
     XWA => XWA,
@@ -119,7 +119,7 @@ begin  -- test
     tx        => RS_TX);
 
   push_enable <= '1' when state = READING else '0';
-  
+
   receiver : i232c port map (
     clk     => iclk,
     rx      => RS_RX,
@@ -151,28 +151,28 @@ begin  -- test
       data_addr <= (others => '0');
       data_write <= (others => '0');
 
-      if state = INPUT and rx_done = '1' then
+      if state = INPUT then
         counter <= (others => '0');
-        state <= WRITING;
-        data_addr  <= USE_ADDRESS;
-        mem_write_enable <= '1';
-        data_write <= x"000000" & rx_data;
-
-      elsif state = WRITING and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= WRITING2;
-        mem_write_enable <= '1';
-        data_write <= x"00000000";
-        data_addr  <= USE_ADDRESS + 1;
-
-      elsif state = WRITING2 and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= READING;
-        data_addr  <= USE_ADDRESS;
-
-      elsif state = READING and counter >= READ_LIMIT then
-        counter <= (others => '0');
-        state <= INPUT;
+        if rx_done = '1' then
+          state <=  WRITING;
+        end if;
+      else
+        case (counter) is
+          when x"00" => -- write
+            data_addr        <= USE_ADDRESS;
+            mem_write_enable <= '1';
+            data_write       <= x"000000" & rx_data;
+          when x"01" => -- read
+            mem_write_enable <= '0';
+            data_addr        <= USE_ADDRESS;
+            state            <= READING;
+          when x"02" | x"03" | x"04" | x"05" => -- read2
+            state            <= READING;
+            data_addr        <= USE_ADDRESS;
+            mem_write_enable <= '0';
+          when others =>
+            state <=  INPUT;
+        end case;
       end if;
     end if;
   end process;
