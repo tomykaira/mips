@@ -4,7 +4,7 @@ LIB_ML = lib_ml.ml
 # アセンブリのライブラリファイル
 LIB_ASM = lib_asm.s
 
-OPTION = 
+OPTION =
 # 入力ファイルをテキストとして扱う
 # min-rtで、test/min-rt/sld以下の.sldファイルを入力ファイルとしたいときは
 # 普通はこっちにしとけば大体間違いはない
@@ -223,6 +223,6 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 
 .PHONY: cur
 
-cur: 
+cur:
 	make tools
 	assembler/assembler test/Loreley/main.s test/Loreley/main.bin

@@ -17,7 +17,7 @@ let offset x = (* xがスタックのどこにあるか *)
   loc 0 !stackmap
 let stacksize () = List.length !stackmap
 
-let rettuple = ref M.empty 
+let rettuple = ref M.empty
 
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) *)
@@ -47,31 +47,26 @@ and g' = function (* 各命令のアセンブリ生成 *)
 
   | NonTail(x), Add(y, z) -> Out.print buf (Out.Add(x,y,z))
   | NonTail(x), Sub(y, z) -> Out.print buf (Out.Sub(x,y,z))
-  | NonTail(x), Mul(y, z) -> Out.print buf (Out.Mul(x,y,z))
-  | NonTail(x), And(y, z) -> Out.print buf (Out.And(x,y,z))
-  | NonTail(x), Or (y, z) -> Out.print buf (Out.Or(x,y,z))
-  | NonTail(x), Nor(y, z) -> Out.print buf (Out.Nor(x,y,z))
   | NonTail(x), Xor(y, z) -> Out.print buf (Out.Xor(x,y,z))
 
   | NonTail(x), AddI(y, z) when x = y && z = 0-> ()
   | NonTail(x), AddI(y, z) -> Out.print buf (Out.AddI(x,y,z))
   | NonTail(x), SubI(y, z) -> Out.print buf (Out.SubI(x,y,z))
-  | NonTail(x), MulI(y, z) -> Out.print buf (Out.MulI(x,y,z))
-  | NonTail(x), AndI(y, z) -> Out.print buf (Out.AndI(x,y,z))
-  | NonTail(x), OrI (y, z) -> Out.print buf (Out.OrI (x,y,z))
-  | NonTail(x), NorI(y, z) -> Out.print buf (Out.NorI(x,y,z))
   | NonTail(x), XorI(y, z) -> Out.print buf (Out.XorI(x,y,z))
 
   | NonTail(x), Int(i) when -0x8000 <= i && i <= 0x7FFF ->
       Out.print buf (Out.AddI(x, reg_0, i))
   | NonTail(x), Int(i) ->
-      Out.print buf (Out.Mvlo(x, Int32.to_int (Int32.logand (Int32.of_int i) (Int32.of_int 0xFFFF))));
-      Out.print buf (Out.Mvhi(x, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 16)))
+      Out.print buf (Out.AddI(x, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 16), 0));
+      Out.print buf (Out.SllI(x, x, 16));
+      Out.print buf (Out.AddI(x, Int32.to_int (Int32.logand (Int32.of_int i) 0xFFFFl), 0))
+
   | NonTail(x), Float(i) when i = 0.0 ->
       Out.print buf (Out.IMovF(x, reg_0))
   | NonTail(x), Float(i) ->
-      Out.print buf (Out.FMvlo (x, Int32.to_int (Int32.logand (Int32.bits_of_float i) (Int32.of_int 0xFFFF))));
-      Out.print buf (Out.FMvhi(x, Int32.to_int (Int32.shift_right_logical (Int32.bits_of_float i) 16)))
+      Out.print buf (Out.FMvhi(x, Int32.to_int (Int32.shift_right_logical (Int32.bits_of_float i) 16)));
+      let lo = Int32.to_int (Int32.logand (Int32.bits_of_float i) 0xFFFFl) in
+      if lo <> 0 then Out.print buf (Out.FMvlo (x, lo))
 
   | NonTail(x), SetL(Id.L(y)) -> Out.print buf (Out.SetL(x, y))
   | NonTail(x), SllI(y, z) -> Out.print buf (Out.SllI(x, y, z))
@@ -80,16 +75,14 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), FMovI(y) -> Out.print buf (Out.FMovI(x, y))
 
   | NonTail(x), FMov(y) when x = y -> ()
-  | NonTail(x), FMov(y) -> Out.print buf (Out.FMov(x, y))
-  | NonTail(x), FNeg(y) -> Out.print buf (Out.FNeg(x, y))
+  | NonTail(x), FMov(y) -> Out.print buf (Out.FAdd(x, y, reg_f0))
+  | NonTail(x), FNeg(y) -> Out.print buf (Out.FSub(x, reg_f0, y))
   | NonTail(x), FAdd(y, z) -> Out.print buf (Out.FAdd(x,y,z))
   | NonTail(x), FSub(y, z) -> Out.print buf (Out.FSub(x,y,z))
   | NonTail(x), FMul(y, z) -> Out.print buf (Out.FMul(x,y,z))
-  | NonTail(x), FMulN(y, z) -> Out.print buf (Out.FMulN(x,y,z))
-  | NonTail(x), FDiv(y, z) -> Out.print buf (Out.FInv(reg_fsw, z));
+  | NonTail(x), FDiv(y, z) ->
+      Out.print buf (Out.FInv(reg_fsw, z));
       Out.print buf (Out.FMul(x, y, reg_fsw))
-  | NonTail(x), FDivN(y, z) -> Out.print buf (Out.FInv(reg_fsw, z));
-      Out.print buf (Out.FMulN(x, y, reg_fsw))
   | NonTail(x), FInv(y) -> Out.print buf (Out.FInv(x, y))
   | NonTail(x), FSqrt(y) -> Out.print buf (Out.FSqrt(x, y))
 
@@ -129,10 +122,10 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ as exp) ->
       g' (NonTail(Id.gentmp Type.Unit), exp);
       Out.print buf Out.Return
-  | Tail, (Add _ | Sub _ | Mul _ | And _ | Or _ | Nor _ | Xor _ | AddI _ | SubI _ | MulI _ | AndI _ | OrI _ | NorI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | SAlloc _ as exp) ->
+  | Tail, (Add _ | Sub _ | Xor _ | AddI _ | SubI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | SAlloc _ as exp) ->
       g' (NonTail(regs.(0)), exp);
       Out.print buf Out.Return
-  | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FMulN _ | FDiv _ | FDivN _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _ as exp) ->
+  | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _ as exp) ->
       g' (NonTail(fregs.(0)), exp);
       Out.print buf Out.Return
   | Tail, (Restore(x) as exp) ->
@@ -241,7 +234,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
       if List.mem a allregs && a <> regs.(0) then
 	Out.print buf (Out.AddI(a, regs.(0), 0))
       else if List.mem a allfregs && a <> fregs.(0) then
-	Out.print buf (Out.FMov(a, fregs.(0)))
+	Out.print buf (Out.FAdd(a, fregs.(0), reg_f0))
   | NonTail(a), CallDir(Id.L(x), ys, zs) ->
       (match x with
 (* コンパイラでインラインに出力されるライブラリ関数 *)
@@ -261,13 +254,13 @@ and g' = function (* 各命令のアセンブリ生成 *)
 	  Out.print buf (Out.Call x);
 	  if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
 	  if List.mem a allregs && a <> regs.(0) then
-	    Out.print buf (Out.AddI(a, regs.(0), 0))	
+	    Out.print buf (Out.AddI(a, regs.(0), 0))
 	  else if List.mem a allfregs && a <> fregs.(0) then
-	    Out.print buf (Out.FMov(a, fregs.(0))))
+	    Out.print buf (Out.FAdd(a, fregs.(0), reg_f0)))
 
 and g'_tail_if e1 e2 b b_taken =
   let stackset_back = !stackset in
-  Out.print buf Out.Nop; 
+  Out.print buf Out.Nop;
   g (Tail, e2);
   Out.print buf (Out.Label b_taken);
   stackset := stackset_back;
@@ -275,7 +268,7 @@ and g'_tail_if e1 e2 b b_taken =
 and g'_non_tail_if dest e1 e2 b b_taken =
   let b_cont = Id.genid (b ^ "_cont") in
   let stackset_back = !stackset in
-  Out.print buf Out.Nop; 
+  Out.print buf Out.Nop;
   g (dest, e2);
   let stackset1 = !stackset in
   Out.print buf (Out.J b_cont);
@@ -300,7 +293,7 @@ and g'_args x_reg_cl ys zs =
       (0, [])
       zs in
   List.iter
-    (fun (z, fr) -> Out.print buf (Out.FMov(fr, z)))
+    (fun (z, fr) -> Out.print buf (Out.FAdd(fr, z, reg_f0)))
     (shuffle reg_fsw zfrs)
 
 let h { name = Id.L(x); args = _; fargs = _; body = e; ret = t } =
@@ -321,8 +314,8 @@ let f (Prog(fundefs, e)) =
   Out.print buf (Out.AddI(reg_hp, reg_0, 0));
   Out.print buf (Out.Mvlo(reg_fp, 65535));
   Out.print buf (Out.Mvhi(reg_fp, 2047));  (* 512MB *)
-  Out.print buf (Out.OrI(reg_1, reg_0, 1));
-  Out.print buf (Out.Nor(reg_m1, reg_0, reg_0));
+  Out.print buf (Out.AddI(reg_1, reg_0, 1));
+  Out.print buf (Out.SubI(reg_m1, reg_0, 1));
   stackset := S.empty;
   stackmap := [];
   g (NonTail(reg_0), e);

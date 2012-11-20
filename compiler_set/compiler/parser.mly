@@ -86,6 +86,7 @@ let expand_nest nested tuple rest =
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL COLON_EQUAL DOUBLE_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
 %left AST SLASH AST_DOT SLASH_DOT
+%left prec_binast
 %right prec_unary_minus
 %left prec_app
 %left DOT
@@ -135,8 +136,15 @@ exp:
     { Add($1, $3) }
 | exp MINUS exp
     { Sub($1, $3) }
-| exp AST BIN
-    { Sll($1, $3) }
+| exp AST exp
+    { match $3 with
+    | Int(i) ->
+          let rec f x = if x = 0 then (0, 0)
+            else let (y, z) = f (x lsr 1) in
+                 (x land 1 + y, z + 1) in
+          let (a, b) = f i in
+          if i > 0 && a = 1 && b > 0 then Sll($1, b-1) else App(Var("mul"),[$1;$3])
+    | _ -> App(Var("mul"),[$1;$3]) }
 | exp SLASH BIN
     { Sra($1, $3) }
 | exp EQUAL exp
