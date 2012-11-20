@@ -33,18 +33,14 @@ use IEEE.STD_LOGIC_ARITH.all;
 -- /TEST
 
 entity forwarding is
-  port (rs_addr      : in std_logic_vector(4 downto 0);
-        rs_data      : in std_logic_vector(31 downto 0);
-        rs_float     : in STD_LOGIC;
-        rt_addr      : in std_logic_vector(4 downto 0);
-        rt_data      : in std_logic_vector(31 downto 0);
-        rt_float     : in STD_LOGIC;
+  port (addr         : in std_logic_vector(4 downto 0);
+        data         : in std_logic_vector(31 downto 0);
+        float        : in STD_LOGIC;
         write_addr   : in std_logic_vector(4 downto 0);
         write_data   : in std_logic_vector(31 downto 0);
         write_enable : in STD_LOGIC;
         write_float  : in STD_LOGIC;
-        rs_forward   : out std_logic_vector(31 downto 0);
-        rt_forward   : out std_logic_vector(31 downto 0));
+        forward_data : out std_logic_vector(31 downto 0));
 end forwarding;
 
 architecture behave of forwarding is
