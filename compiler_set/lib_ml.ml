@@ -91,6 +91,24 @@ let rec cos x =
 
 let rec mul10 x = x * 8 + x * 2 in
 
+(* / 2, * 2はparser.mlyで左・右シフトに変換されるので使ってよい *)
+let rec mul_sub a b =
+if b = 0 then 0
+else (
+let b_mod_2 = b - (b / 2) * 2 in
+if b_mod_2 = 0 then
+(mul_sub (a * 2) (b / 2))
+else
+(mul_sub (a * 2) (b / 2)) + a
+) in
+
+let rec mul a b =
+if b < 0 then
+mul_sub (-a) (-b)
+else
+mul_sub a b in
+
+
 (* read_int *)
 let read_int_ans = Array.create 1 0 in
 let read_int_s = Array.create 1 0 in
@@ -167,7 +185,7 @@ let rec print_int_10000 x flg =
 
     (* 1000の位を表示 *)
     let tx = div_binary_search x 1000 0 10 in
-    let dx = tx * 1000 in
+    let dx = mul tx 1000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -179,7 +197,7 @@ let rec print_int_10000 x flg =
         (print_char (48 + tx); true) in
     (* 100の位を表示 *)
     let tx = div_binary_search x 100 0 10 in
-    let dx = tx * 100 in
+    let dx = mul tx 100 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -191,7 +209,7 @@ let rec print_int_10000 x flg =
         (print_char (48 + tx); true) in
     (* 10の位を表示 *)
     let tx = div_binary_search x 10 0 10 in
-    let dx = tx * 10 in
+    let dx = mul tx 10 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -215,7 +233,7 @@ let rec print_int x =
     else
     (* 100000000の位を表示 *)
     let tx = div_binary_search x 100000000 0 3 in
-    let dx = tx * 100000000 in
+    let dx = mul tx 100000000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then false
@@ -223,7 +241,7 @@ let rec print_int x =
 
     (* 10000000の位を表示 *)
     let tx = div_binary_search x 10000000 0 10 in
-    let dx = tx * 10000000 in
+    let dx = mul tx 10000000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -236,7 +254,7 @@ let rec print_int x =
 
     (* 1000000の位を表示 *)
     let tx = div_binary_search x 1000000 0 10 in
-    let dx = tx * 1000000 in
+    let dx = mul tx 1000000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -249,7 +267,7 @@ let rec print_int x =
 
     (* 100000の位を表示 *)
     let tx = div_binary_search x 100000 0 10 in
-    let dx = tx * 100000 in
+    let dx = mul tx 100000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -262,7 +280,7 @@ let rec print_int x =
 
     (* 10000の位を表示 *)
     let tx = div_binary_search x 10000 0 10 in
-    let dx = tx * 10000 in
+    let dx = mul tx 10000 in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
@@ -277,7 +295,7 @@ in
 
 let rec mod a b =
   let d = div a b in
-  a - (b * d)
+  a - (mul b d)
 in
 
 let abs x =

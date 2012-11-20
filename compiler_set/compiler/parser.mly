@@ -135,8 +135,8 @@ exp:
     { Add($1, $3) }
 | exp MINUS exp
     { Sub($1, $3) }
-| exp AST exp
-    { Mul($1, $3) }
+| exp AST BIN
+    { Sll($1, $3) }
 | exp SLASH BIN
     { Sra($1, $3) }
 | exp EQUAL exp
