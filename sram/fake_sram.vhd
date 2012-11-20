@@ -6,7 +6,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 -- it needs more configuration to match with actual SRAM
 
 entity fake_sram is
-  
+
   port (
     -- data and parity
     ZD:  inout std_logic_vector(31 downto 0);
@@ -83,6 +83,7 @@ begin  -- behave
   begin
     if rising_edge(clk) then
       previous_XWA <= XWA;
+      addr1 <= internal_address;
     end if;
   end process;
 
@@ -100,11 +101,10 @@ begin  -- behave
       else
         read1     <= mem(conv_integer(internal_address));
       end if;
-
       sram_data <= read1;
 
       if previous_XWA = '0' then
-        mem(conv_integer(internal_address)) <= write_data;
+        mem(conv_integer(addr1)) <= write_data;
       end if;
     end if;
   end process sram_mock;

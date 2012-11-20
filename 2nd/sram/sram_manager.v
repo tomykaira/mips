@@ -14,9 +14,9 @@ module sram_manager (input clk,
                      input [31:0]      imm,
 
                      input [31:0]      memory_read,
-                     output reg [31:0] memory_write,
+                     output [31:0]     memory_write,
                      output reg [31:0] memory_address,
-                     output            memory_write_enable, 
+                     output            memory_write_enable,
 
                      output            enable,
                      output [4:0]      addr,
@@ -35,6 +35,7 @@ module sram_manager (input clk,
 
    // memory config
    assign memory_write_enable = op[0];
+   assign memory_write = rt;
 
    always @ (*) begin
       if (op[2] == 1)
@@ -43,11 +44,7 @@ module sram_manager (input clk,
         memory_address <= rs + imm;
    end
 
-   always @ (posedge(clk)) begin // postpone write data update until next clock
-      memory_write <= rt;
-   end
 
- 
    // write-back
    assign enable = write_enable[0];
    assign addr   = write_addr[0];
@@ -61,10 +58,10 @@ module sram_manager (input clk,
    always @ (*) begin
       current_enable <= 1;
       case (op)
-        6'b101000: current_addr <= op[20:16];
-        6'b101100: current_addr <= op[15:11];
-        6'b101010: current_addr <= op[20:16];
-        6'b101110: current_addr <= op[15:11];
+        6'b101000: current_addr <= inst[20:16];
+        6'b101100: current_addr <= inst[15:11];
+        6'b101010: current_addr <= inst[20:16];
+        6'b101110: current_addr <= inst[15:11];
         default: begin
            current_addr <= 0;
            current_enable <= 0;

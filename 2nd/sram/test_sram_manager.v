@@ -40,7 +40,7 @@ module test_sram_manager ();
    task dispatch;
       input [5:0] op;
       begin
-         inst <= {op,26'b00000000000001000010000000}; // output to $f2
+         inst <= {op,5'b00000,5'b00010,5'b00010,11'b0}; // output to $f2
          #10;
       end
    endtask
@@ -51,7 +51,7 @@ module test_sram_manager ();
       begin
 
          if (enable !== 1 || float !== float_expected || addr !== 2 || data !== expected) begin
-            $display ("FAIL");
+            $display ("FAIL %d %d(%d) %d %d(%d)", enable, float, float_expected, addr, data, expected);
             $stop;
          end
       end
@@ -61,7 +61,7 @@ module test_sram_manager ();
       reset <= 1;
       #22;
       reset <= 0;
-      #10;
+      #15;
 
       rs <= 5;
       rt <= 10;
@@ -79,24 +79,15 @@ module test_sram_manager ();
       rt <= 30;
 
       dispatch(FSTI);
-      #10;
+      dispatch(NOP);
       dispatch(FLDI);
-      #10;
-      #10;
+      dispatch(NOP);
       assertion(1, 30);
-
-      dispatch(LDI);
-      #10;
-      #10;
-      assertion(0, 10);
 
       rt <= 15;
 
-      dispatch(STI);
-      #10;
       dispatch(LDR);
-      #10;
-      #10;
+      dispatch(NOP);
       assertion(0, 10);
 
       rt <= 9;
@@ -109,9 +100,8 @@ module test_sram_manager ();
       dispatch(LDI);
       imm <= 21;
       dispatch(LDI);
-      #10;
       assertion(0, 9);
-      #10;
+      dispatch(NOP);
       assertion(0, 10);
 
    end
