@@ -20,14 +20,17 @@ module register_mux_buffer (input [4:0]      addr,
                             output reg [1:0] position);
 
    always @ (*) begin
-      if (write_enable_2 == 1 && write_addr_2 == addr && write_float_2 == float)
-        position <= 2;
-      else if (write_enable_1 == 1 && write_addr_1 == addr && write_float_1 == float)
-        position <= 1;
-      else if (write_enable_0 == 1 && write_addr_0 == addr && write_float_0 == float)
-        position <= 0;
+      if (addr == 0)
+         position <= 3;
       else
-        position <= 3;
+        if (write_enable_2 == 1 && write_addr_2 == addr && write_float_2 == float)
+          position <= 2;
+        else if (write_enable_1 == 1 && write_addr_1 == addr && write_float_1 == float)
+          position <= 1;
+        else if (write_enable_0 == 1 && write_addr_0 == addr && write_float_0 == float)
+          position <= 0;
+        else
+          position <= 3;
    end
 
 endmodule
