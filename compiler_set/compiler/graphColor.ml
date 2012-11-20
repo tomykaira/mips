@@ -105,8 +105,7 @@ let color cs regenv prefer g s =
       (fun x l ->
 	let y =
 	  if is_reg x then Colored(x) else
-	  try Colored (M.find x regenv)
-	  with Not_found ->
+	  try Colored(M.find x regenv) with Not_found ->
 	    let k =
 	      try List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
 	      with Not_found -> [] in
@@ -135,8 +134,8 @@ let color cs regenv prefer g s =
     with Not_found -> g in
   let add_hates x (y,l) g =
     match y with
-	| Colored(c) -> List.fold_left (fun g z -> add_hate z [c] g) g l
-	| Prefer(p,_) -> List.fold_left (fun g z -> add_hate z p g) g l in
+    | Colored(c) -> List.fold_left (fun g z -> add_hate z [c] g) g l
+    | Prefer(p,_) -> List.fold_left (fun g z -> add_hate z p g) g l in
   let g2 = M.fold add_hates s1 (M.fold add_hates g1 g1) in
   let s2 = M.fold add_hates s1 s1 in
 
@@ -166,11 +165,11 @@ let color cs regenv prefer g s =
     match y with
     | (Prefer (p,s), l) ->
         let q' = List.fold_left
-	            (fun q' x -> match M.find x g with
-	                         | (Colored(c),_) -> c::q'
-		                 | _ -> q')
-	            []
-  	            p in
+	    (fun q' x -> match M.find x g with
+	    | (Colored(c),_) -> c::q'
+	    | _ -> q')
+	    []
+  	    p in
 	let (q2, q1) = List.partition (fun x -> List.mem x s) q' in
 	let (cs2, cs1) = List.partition (fun x -> List.mem x s) cs in
         M.add x (Colored(List.find (fun c -> able c l g) (q1@q2@cs1@cs2)), l) g

@@ -1,0 +1,34 @@
+#!/bin/sh -e
+
+arg=$1
+base=`basename $arg`
+root_log="$base"_simulation.log
+ext=${arg##*.}
+
+if [ $ext = "bin" ]; then
+  echo "file copy"
+  cp $arg ../instruction.dat
+  size=`wc $arg | awk '{ print $1 }'`
+  sed ../instruction_memory.v -e "s/MEM_SIZE=.*;/MEM_SIZE=$size;/" > inst.v
+  mv inst.v ../instruction_memory.v
+  exit
+fi
+
+if [ -f $arg.ml ]; then
+  make $arg.bin_f
+elif [ -f $arg.s ]; then
+  assembler/assembler $arg.s $arg.bin
+fi
+simulator/simulator $arg.bin > $root_log
+echo "grep INST"
+cat $root_log | grep "^INST" > "$base"_inst.log || /bin/true
+echo "grep REG"
+cat $root_log | grep "^REG" > "$base"_reg.log || /bin/true
+echo "grep MEM"
+cat $root_log | grep "^MEM" > "$base"_mem.log || /bin/true
+# grep IO $root_log
+echo "file copy"
+cp $arg.bin ../instruction.dat
+size=`wc $arg.bin | awk '{ print $1 }'`
+sed ../instruction_memory.v -e "s/MEM_SIZE=.*;/MEM_SIZE=$size;/" > inst.v
+mv inst.v ../instruction_memory.v

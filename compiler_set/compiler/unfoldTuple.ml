@@ -5,7 +5,7 @@ open Closure
 module S' =
   Set.Make
     (struct
-      type t = (int * int) * (string * Type.t list * bool)
+      type t = (int * int) * (string * Type.t list)
       let compare = compare
     end)
 
@@ -28,21 +28,21 @@ let count ts =
 let rec h' tups r yts =
   let yts' = List.concat yts in
   if S'.is_empty tups then (yts', r, List.map (List.map snd) yts)
-  else let (n, (x, l, b)) = S'.min_elt tups in
+  else let (n, (x, l)) = S'.min_elt tups in
        let (int , float)  = count (List.map snd yts') in
        let (int', float') = count l in
-       let tups' = S'.remove (n,(x,l, b)) tups in
+       let tups' = S'.remove (n,(x,l)) tups in
        if int+int'-1 > rn || float+float' > fn then h' tups' r yts
        else
 	 let wts = List.map (fun t -> (Id.genid x, t)) l in
          let unf = function
                    | [(y, _)] when y = x -> wts
                    | y -> y in
-         h' tups' (((x, Type.Tuple(l,b)), wts)::r) (List.map unf yts)
+         h' tups' (((x, Type.Tuple(l)), wts)::r) (List.map unf yts)
 
 let h_args yts =
   let add (x,n) (y, t) = match t with
-    | Type.Tuple(l,b) -> (S'.add ((List.length l, n), (y, l, b)) x, n+1)
+    | Type.Tuple(l) -> (S'.add ((List.length l, n), (y, l)) x, n+1)
     | _ -> (x, n) in
   let (tups, _) = List.fold_left add (S'.empty,0) yts in
   h' tups [] (List.map (fun x -> [x]) yts)
@@ -52,7 +52,7 @@ let h_args yts =
 let h'' zts =
   let r = List.fold_left
             (fun l (x, t) -> match t with
-	                     | Type.Tuple(ts,b) -> ((x, Type.Tuple(ts,b)), (List.map (fun t -> (Id.genid x, t)) ts))::l
+	                     | Type.Tuple(ts) -> ((x, Type.Tuple(ts)), (List.map (fun t -> (Id.genid x, t)) ts))::l
                              | _ -> l)
             []
             zts in
@@ -64,84 +64,92 @@ let h'' zts =
 
 
 (* gで使う補助関数 *)
-let rec g'' = function
-  | Type.Fun(ts, t,b) ->
+let rec gsup = function
+  | Type.Fun(ts, t) ->
       let (yts,_,_) = h_args (List.map (fun t -> (Id.genid "", t)) ts) in
-      Type.Fun(List.map (fun x -> g'' (snd x)) yts, g'' t,b)
-  | Type.Tuple(ts,b) -> Type.Tuple(List.map g'' ts,b)
-  | Type.Array(t,b) -> Type.Array(g'' t,b)
+      Type.Fun(List.map (fun x -> gsup (snd x)) yts, gsup t)
+  | Type.Tuple(ts) -> Type.Tuple(List.map gsup ts)
+  | Type.Array(t) -> Type.Array(gsup t)
   | t -> t
-let g' (a,r) (c,d) =
+let gsup2 (a,r) (c,d) =
   match d with
   | [x] -> (a@[c], r)
-  | l -> let xts = List.map (fun t -> (Id.genid c, g'' t)) l in
+  | l -> let xts = List.map (fun t -> (Id.genid c, gsup t)) l in
          (a@(List.map fst xts), (xts, c)::r)
 (* プログラム本体の関数呼び出しの引数のタプルを展開する関数 *)
 let rec g env = function
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env e1, g env e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env e1, g env e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env e1, g env e2)
-  | Let((x, Type.Fun(ts, t,b)), e1, e2) ->
+  | Let((x, Type.Fun(ts, t)), exp, e) ->
       let (yts, _, yenv) = h_args (List.map (fun t -> (Id.genid x, t)) ts) in
       let env' = M.add x (yenv, []) env in
-      Let((x, Type.Fun(List.map (fun x -> g'' (snd x)) yts, g'' t, b)), g env e1, g env' e2)
-  | Let((x,t), e1, e2) -> Let((x,g'' t), g env e1, g env e2)
-  | MakeCls((x, Type.Fun(_,t, b)), {entry = Id.L(l); actual_fv = fvs}, e) ->
+      concat (g' env exp) (x, Type.Fun(List.map (fun x -> gsup (snd x)) yts, gsup t)) (g env' e)
+  | Let((x,t), exp, e) -> concat (g' env exp) (x,gsup t) (g env e)
+  | MakeCls((x, Type.Fun(_,t)), {entry = Id.L(l); actual_fv = fvs}, e) ->
       let (yenv, zenv) = M.find l env in
       let (fvs', r) = List.fold_left
-	               g'
+	               gsup2
 	               ([], [])
 	               (List.combine fvs zenv) in
       List.fold_left
 	(fun a (xts, c) -> LetTuple(xts, c, a))
-        (MakeCls((x, Type.Fun(List.map g'' (List.concat yenv), g'' t, b)), {entry = Id.L(l); actual_fv = fvs'}, g (M.add x (yenv, []) env) e))
-	r
-  | AppCls(x, args) ->
-      let (yenv, _) = M.find x env in
-      let (args', r) = List.fold_left
-	                 g'
-	                 ([], [])
-	                 (List.combine args yenv) in
-      List.fold_left
-	(fun a (xts, c) -> LetTuple(xts, c, a))
-        (AppCls(x, args'))
-	r
-  | AppDir(Id.L(x), args) when M.mem x env ->
-      let (yenv, _) = M.find x env in
-      let (args', r) = List.fold_left
-	                 g'
-	                 ([], [])
-	                 (List.combine args yenv) in
-      List.fold_left
-	(fun a (xts, c) -> LetTuple(xts, c, a))
-        (AppDir(Id.L(x), args'))
+        (MakeCls((x, Type.Fun(List.map gsup (List.concat yenv), gsup t)), {entry = Id.L(l); actual_fv = fvs'}, g (M.add x (yenv, []) env) e))
 	r
   | LetTuple(xts, y, e) ->
       let a = List.fold_left
 	        (fun a (x,t) -> match t with
-		| Type.Fun(ts,_,_) ->
+		| Type.Fun(ts,_) ->
 		    let (_, _, yenv) = h_args (List.map (fun t -> (Id.genid x, t)) ts) in
 		    (x,(yenv,[]))::a
 		| _ -> a)
 	        []
 	        xts in
-      let xts' = List.map (fun (x,t) -> (x,g'' t)) xts in
+      let xts' = List.map (fun (x,t) -> (x,gsup t)) xts in
       LetTuple(xts', y, g (M.add_list a env) e)
-  | e -> e
+  | LetList((x, Type.Fun(ts, t)), y, e) ->
+      let (yts, _, yenv) = h_args (List.map (fun t -> (Id.genid "fl", t)) ts) in
+      let env' = M.add_list (List.map (fun p -> (p, (yenv, []))) (Syntax.matcher_variables x)) env in
+      LetList((x, Type.Fun(List.map (fun x -> gsup (snd x)) yts, gsup t)), y, g env' e)
+  | LetList((x,t), y, e) -> LetList((x,gsup t), y, g env e)
+  | Ans(exp) -> g' env exp
+and g' env = function
+  | IfEq(x, y, e1, e2) -> Ans(IfEq(x, y, g env e1, g env e2))
+  | IfLE(x, y, e1, e2) -> Ans(IfLE(x, y, g env e1, g env e2))
+  | IfLT(x, y, e1, e2) -> Ans(IfLT(x, y, g env e1, g env e2))
+  | IfNil(x, e1, e2) -> Ans(IfNil(x, g env e1, g env e2))
+  | AppCls(x, args) ->
+      let (yenv, _) = M.find x env in
+      let (args', r) = List.fold_left
+	                 gsup2
+	                 ([], [])
+	                 (List.combine args yenv) in
+      List.fold_left
+	(fun a (xts, c) -> LetTuple(xts, c, a))
+        (Ans(AppCls(x, args')))
+	r
+  | AppDir(Id.L(x), args) when M.mem x env ->
+      let (yenv, _) = M.find x env in
+      let (args', r) = List.fold_left
+	                 gsup2
+	                 ([], [])
+	                 (List.combine args yenv) in
+      List.fold_left
+	(fun a (xts, c) -> LetTuple(xts, c, a))
+        (Ans(AppDir(Id.L(x), args')))
+	r
+  | exp -> Ans(exp)
 
 
 
 (* 関数の引数や自由変数のタプルを展開する関数.引数の場合小さいもの優先 *)
 let h env { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
   match t with
-  | Type.Fun(_,b, c) ->
+  | Type.Fun(_,b) ->
   let (yts', yunf, yenv) = h_args yts in
   let (zts', zunf, zenv) = h'' zts in
   let env' = M.add x (yenv,zenv) env in
   let a =
     List.fold_left
       (fun a (x,t) -> match t with
-      | Type.Fun(ts,_,_) ->
+      | Type.Fun(ts,_) ->
 	  let (_, _, yenv) = h_args (List.map (fun t -> (Id.genid x, t)) ts) in
 	  (x,(yenv,[]))::a
       | _ -> a)
@@ -152,7 +160,7 @@ let h env { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
             (fun x (yt, zts) -> Let(yt, Tuple(List.map fst zts), x))
             e
             (yunf@zunf) in
-  ({ name = (Id.L(x), Type.Fun(List.map (fun x -> g'' (snd x)) yts', g'' b, c)); args = List.map (fun (y,t) -> (y, g'' t)) yts'; formal_fv = List.map (fun (z,t) -> (z, g'' t)) zts'; body = g env'' e' }, env')
+  ({ name = (Id.L(x), Type.Fun(List.map (fun x -> gsup (snd x)) yts', gsup b)); args = List.map (fun (y,t) -> (y, gsup t)) yts'; formal_fv = List.map (fun (z,t) -> (z, gsup t)) zts'; body = g env'' e' }, env')
   | _ -> failwith "type error"
 
 

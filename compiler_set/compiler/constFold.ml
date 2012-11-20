@@ -1,6 +1,6 @@
 open ANormal
 
-(* Äê¿ô¾ö¤ß¹þ¤ß¤È¡¢x + 0 = x Åù¤Î´ÊÌó¤ò¹Ô¤¦¥â¥¸¥å¡¼¥ë *)
+(* å®šæ•°ç•³ã¿è¾¼ã¿ã¨ã€x + 0 = x ç­‰ã®ç°¡ç´„ã‚’è¡Œã†ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ« *)
 
 module S' =
   Set.Make
@@ -8,6 +8,7 @@ module S' =
       type t = (Id.t * Id.t)
       let compare = compare
     end)
+
 
 let memi x env =
   try (match M.find x env with Int(_) -> true | _ -> false)
@@ -18,17 +19,26 @@ let memf x env =
 let memt x env =
   try (match M.find x env with Tuple(_) -> true | _ -> false)
   with Not_found -> false
+let meml x env =
+  try (match M.find x env with Nil | Cons(_, _) -> true | _ -> false)
+  with Not_found -> false
 
 let findi x env = (match M.find x env with Int(i) -> i | _ -> raise Not_found)
 let findf x env = (match M.find x env with Float(d) -> d | _ -> raise Not_found)
 let findt x env = (match M.find x env with Tuple(ys) -> ys | _ -> raise Not_found)
+let findl x env =
+  let found = M.find x env in
+  match found with
+    | Nil | Cons(_, _) -> found
+    | _ -> raise Not_found
 
-let rec g env envle envne envif = function (* Äê¿ô¾ö¤ß¹þ¤ßÅù¤ò¹Ô¤¦¥ë¡¼¥Á¥óËÜÂÎ *)
-  | Let((x, t) as xt, exp, e) -> (* let¤Î¥±¡¼¥¹ *)
+
+let rec g env envle envne envif = function (* å®šæ•°ç•³ã¿è¾¼ã¿ç­‰ã‚’è¡Œã†ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ *)
+  | Let((x, t) as xt, exp, e) -> (* letã®ã‚±ãƒ¼ã‚¹ *)
       let e1' = g' env envle envne envif exp in
       let (env', envif') =
 	(match e1' with
-        | Ans(Int _ | Float _ | Tuple _ | Neg _ | FNeg _ | ExtFunApp("not",_) as exp') -> (M.add x exp' env, envif)
+        | Ans(Int _ | Float _ | Tuple _ | Nil | Cons _ | Neg _ | FNeg _ | ExtFunApp("not",_) as exp') -> (M.add x exp' env, envif)
 	| Ans(IfEq(y,z,Ans(Int _ | Float _ as exp1),Ans(Int _ | Float _ as exp2))) ->
 	    (env, M.add x ((fun p q -> IfEq(y,z,p,q)), exp1, exp2) envif)
 	| Ans(IfLE(y,z,Ans(Int _ | Float _ as exp1),Ans(Int _ | Float _ as exp2))) ->
@@ -47,6 +57,7 @@ let rec g env envle envne envif = function (* Äê¿ô¾ö¤ß¹þ¤ßÅù¤ò¹Ô¤¦¥ë¡¼¥Á¥óËÜÂÎ *
 	xts
 	(findt y env)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env envle envne envif e)
+  | LetList(xts, y, e) -> LetList(xts, y, g env envle envne envif e)
   | Ans(exp) -> g' env envle envne envif exp
 and g' env envle envne envif = function
   | Var(x) when memi x env -> Ans(Int(findi x env))
@@ -67,9 +78,9 @@ and g' env envle envne envif = function
   | Mul(x, y) when memi x env && findi x env = 0 -> Ans(Int(0))
   | Mul(x, y) when memi y env && findi y env = 0 -> Ans(Int(0))
 
-  | Sll(x, y) when memi x env -> Ans(Int((findi x env) lsl y))
+(*  | Sll(x, y) when memi x env -> Ans(Int((findi x env) lsl y)) *)
   | Sll(x, y) when y = 0 -> Ans(Var(x))
-  | Sra(x, y) when memi x env -> Ans(Int((findi x env) asr y))
+(*  | Sra(x, y) when memi x env -> Ans(Int((findi x env) asr y)) *)
   | Sra(x, y) when y = 0 -> Ans(Var(x))
 
   | FNeg(x) when memf x env -> Ans(Float(-.(findf x env)))
@@ -174,15 +185,19 @@ and g' env envle envne envif = function
   | IfLT(x, y, _, e2) when x = y || S'.mem (y,x) envle -> g env envle envne envif e2
   | IfLT(x, y, e1, e2) -> Ans(IfLT(x, y, g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e1, g env (S'.add (y,x) envle) envne envif e2))
 
+  | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2
+  | IfNil(x, e1, e2) -> Ans(IfNil(x, g env envle envne envif e1, g env envle envne envif e2))
 
-  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
-      Ans(Int((findi x env) lxor (findi y env)))
+(*  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
+      Ans(Int((findi x env) lxor (findi y env))) *)
   | ExtFunApp("xor", [x;y]) when memi x env && findi x env = 0 -> Ans(Var(y))
   | ExtFunApp("xor", [x;y]) when memi y env && findi y env = 0 -> Ans(Var(x))
   | ExtFunApp("not", [x]) when memi x env -> Ans(Int(1 - (findi x env)))
   | ExtFunApp("not", [x]) as exp when M.mem x env -> (match M.find x env with
     | ExtFunApp("not", [y]) -> Ans(Var(y))
     | _ -> Ans(exp))
+  | ExtFunApp("lsl", [x;y]) when memi y env -> Ans(Sll(x, findi x env))
+  | ExtFunApp("lsr", [x;y]) when memi y env -> Ans(Sra(x, findi x env))
   | e -> Ans(e)
 
 let f e = Format.eprintf "Constant Folding...@.";

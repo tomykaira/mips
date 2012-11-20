@@ -1,26 +1,16 @@
-type t = (* MinCaml¤Î·¿¤òÉ½¸½¤¹¤ë¥Ç¡¼¥¿·¿ *)
+(*pp deriving *)
+type t = (* MinCamlã®å‹ã‚’è¡¨ç¾ã™ã‚‹ãƒ‡ãƒ¼ã‚¿å‹ *)
   | Unit
   | Bool
   | Int
   | Float
-  | Fun of t list * t * bool (* arguments are uncurried *)
-  | Tuple of t list * bool
-  | Array of t * bool
+  | Fun of t list * t (* arguments are uncurried *)
+  | Tuple of t list
+  | Array of t
   | Var of t option ref
+  | List of t option ref
+      deriving (Show)
 
-let rec show x =
-  match x with
-  | Unit -> "Unit"
-  | Bool -> "Bool"
-  | Int -> "Int"
-  | Float -> "Float"
-  | Fun (l,t, b) -> "Fun((" ^ String.concat "," (List.map show l) ^ ")->" ^ show t ^ ")" ^ string_of_bool b
-  | Tuple (l, b) -> "(" ^ String.concat " * " (List.map show l) ^")"^ string_of_bool b
-  | Array (t, b) -> "(Array " ^ show t ^ ")" ^ string_of_bool b
-  | Var a ->
-      (match !a with
-       | Some t -> "Var " ^ show t
-       | None -> "Var")
+let gentyp () = Var(ref None) (* æ–°ã—ã„å‹å¤‰æ•°ã‚’ä½œã‚‹ *)
 
-let gentyp () = Var(ref None) (* ¿·¤·¤¤·¿ÊÑ¿ô¤òºî¤ë *)
-
+let show = Show.show<t>

@@ -5,6 +5,7 @@ let counter = ref 0
 
 let pg0 = ("%g0", Type.Unit)
 
+
 (* コンパイラで出力するライブラリ関数。emit.mlでインラインに展開され,退避不要 *)
 let inl = ["min_caml_print_char" ; "min_caml_input_char" ; "min_caml_read_char"]
 
@@ -87,7 +88,7 @@ and ecall' = function
 (* 本体 *)
 let rec simple dest = function
   | Ans(exp) -> simple' pg0 (Ans(Nop)) exp
-  | Let((x,t) as xt, exp, e) ->
+  | Let(xt, exp, e) ->
       let (a1, e1', p1) = simple' xt e exp in
       if a1 then (a1, e1', p1)
       else let (a2, e2', p2) = simple dest e in
@@ -106,7 +107,7 @@ and simple' dest cont = function
   | IfFLT(x,y,e1,e2) ->
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLT(x,y,e1,e2))) e1 e2
   | CallDir(Id.L(l),_,_) as exp when List.mem l inl -> (false, Ans(exp), M.empty)
-  | CallCls(x,ys,zs) as c ->
+  | CallCls(_,x,ys,zs) as c ->
       let rec f x y = match (x,y) with
 	| ([],_) | (_,[]) -> []
 	| (z::xs,w::ys) -> (z,[w])::f xs ys in
@@ -158,199 +159,189 @@ let rec gc dest cont regenv ifprefer e =
   g dest cont regenv graph ifprefer e
 
 (* 命令列のレジスタ割り当て. contは後続の命令列 *)
-and g dest cont regenv graph ifprefer = function 
-  | Ans(exp) -> g'_and_restore dest cont regenv graph ifprefer exp 
-  | Let((x, t) as xt, exp, e) ->
-      assert (not (M.mem x regenv));
-      counter := !counter + 1; if !counter mod 1000 = 0 then Format.eprintf ".%!";
-      let cont' = concat e dest cont in
-      let (e1', regenv1, graph1) = g'_and_restore xt cont' regenv graph ifprefer exp in
-      if is_br exp then
-	(match alloc cont' regenv1 graph1 x t with
-        | Spill(y) ->
-  	    let r = try M.find y regenv1 with _ -> assert false in
-	    let (e2', regenv2, graph2) =
-	      gc dest cont (add x r (M.remove y regenv1)) ifprefer e in
-	    let save =
-	      try Save(M.find y regenv, y)
-	      with Not_found -> Nop in
-	    (seq(save, concat e1' (r, t) e2'), regenv2, graph2)
-        | Alloc(r) ->
-	    let (e2', regenv2, graph2) = gc dest cont (add x r regenv1) ifprefer e in
-	    (concat e1' (r, t) e2', regenv2, graph2))
-      else if is_call exp then
-	let (reg, regenv1'') =
-	  match t with
-	  | Type.Unit -> ("%g0", regenv1)
-	  | Type.Float -> (fregs.(0), add x fregs.(0) regenv1)
-	  | _ -> (regs.(0), add x regs.(0) regenv1) in
-	let (e2', regenv2, graph2) = gc dest cont regenv1'' ifprefer e in
-	(concat e1' (reg, t) e2', regenv2, graph2)
-      else
-	(match alloc cont' regenv1 graph x t with
-        | Spill(y) ->
-  	    let r = M.find y regenv1 in
-	    let (e2', regenv2, graph2) =
-	      g dest cont (add x r (M.remove y regenv1)) graph ifprefer e in
-	    let save =
-	      try Save(M.find y regenv, y)
-	      with Not_found -> Nop in	    
-	    (seq(save, concat e1' (r, t) e2'), regenv2, graph2)
-        | Alloc(r) ->
-	    let (e2', regenv2, graph2) = g dest cont (add x r regenv1) graph ifprefer e in
-	    (concat e1' (r, t) e2', regenv2, graph2))
+    and g dest cont regenv graph ifprefer = function 
+      | Ans(exp) -> g'_and_restore dest cont regenv graph ifprefer exp 
+      | Let((x, t) as xt, exp, e) ->
+	  assert (not (M.mem x regenv));
+	  counter := !counter + 1; if !counter mod 1000 = 0 then Format.eprintf ".%!";
+	  let cont' = concat e dest cont in
+	  let (e1', regenv1, graph1) = g'_and_restore xt cont' regenv graph ifprefer exp in
+	  if is_br exp then
+	    (match alloc cont' regenv1 graph1 x t with
+            | Spill(y) ->
+  		let r = try M.find y regenv1 with _ -> assert false in
+		let (e2', regenv2, graph2) =
+		  gc dest cont (add x r (M.remove y regenv1)) ifprefer e in
+		let save =
+		  try Save(M.find y regenv, y)
+		  with Not_found -> Nop in
+		(seq(save, concat e1' (r, t) e2'), regenv2, graph2)
+            | Alloc(r) ->
+		let (e2', regenv2, graph2) = gc dest cont (add x r regenv1) ifprefer e in
+		(concat e1' (r, t) e2', regenv2, graph2))
+	  else if is_call exp then
+	    let (reg, regenv1'') =
+	      match t with
+	      | Type.Unit -> ("%g0", regenv1)
+	      | Type.Float -> (fregs.(0), add x fregs.(0) regenv1)
+	      | _ -> (regs.(0), add x regs.(0) regenv1) in
+	    let (e2', regenv2, graph2) = gc dest cont regenv1'' ifprefer e in
+	    (concat e1' (reg, t) e2', regenv2, graph2)
+	  else
+	    (match alloc cont' regenv1 graph x t with
+            | Spill(y) ->
+  		let r = M.find y regenv1 in
+		let (e2', regenv2, graph2) =
+		  g dest cont (add x r (M.remove y regenv1)) graph ifprefer e in
+		let save =
+		  try Save(M.find y regenv, y)
+		  with Not_found -> Nop in	    
+		(seq(save, concat e1' (r, t) e2'), regenv2, graph2)
+            | Alloc(r) ->
+		let (e2', regenv2, graph2) = g dest cont (add x r regenv1) graph ifprefer e in
+		(concat e1' (r, t) e2', regenv2, graph2))
 
 (* 使用される変数をスタックからレジスタへRestore *)
-and g'_and_restore dest cont regenv graph ifprefer exp = 
-  try g' dest cont regenv graph ifprefer exp
-  with NoReg(x, t) ->
-    g dest cont regenv graph ifprefer (Let((x, t), Restore(x), Ans(exp)))
-and g' dest cont regenv graph ifprefer = function (* 各命令のレジスタ割り当て *)
-  | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | SAlloc _ as exp -> (Ans(exp), regenv, graph)
-  | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | Sub(x, y) -> (Ans(Sub(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | Mul(x, y) -> (Ans(Mul(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | And(x, y) -> (Ans(And(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | Or (x, y) -> (Ans(Or (find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | Nor(x, y) -> (Ans(Nor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | Xor(x, y) -> (Ans(Xor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
+    and g'_and_restore dest cont regenv graph ifprefer exp = 
+      try g' dest cont regenv graph ifprefer exp
+      with NoReg(x, t) ->
+	g dest cont regenv graph ifprefer (Let((x, t), Restore(x), Ans(exp)))
+    and g' dest cont regenv graph ifprefer = function (* 各命令のレジスタ割り当て *)
+      | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | SAlloc _ as exp -> (Ans(exp), regenv, graph)
+      | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
+      | Sub(x, y) -> (Ans(Sub(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
+      | Xor(x, y) -> (Ans(Xor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
 
-  | AddI(x, y) -> (Ans(AddI(find x Type.Int regenv, y)), regenv, graph)
-  | SubI(x, y) -> (Ans(SubI(find x Type.Int regenv, y)), regenv, graph)
-  | MulI(x, y) -> (Ans(MulI(find x Type.Int regenv, y)), regenv, graph)
-  | AndI(x, y) -> (Ans(AndI(find x Type.Int regenv, y)), regenv, graph)
-  | OrI (x, y) -> (Ans(OrI (find x Type.Int regenv, y)), regenv, graph)
-  | NorI(x, y) -> (Ans(NorI(find x Type.Int regenv, y)), regenv, graph)
-  | XorI(x, y) -> (Ans(XorI(find x Type.Int regenv, y)), regenv, graph)
+      | AddI(x, y) -> (Ans(AddI(find x Type.Int regenv, y)), regenv, graph)
+      | SubI(x, y) -> (Ans(SubI(find x Type.Int regenv, y)), regenv, graph)
+      | XorI(x, y) -> (Ans(XorI(find x Type.Int regenv, y)), regenv, graph)
 
-  | SllI(x, y) -> (Ans(SllI(find x Type.Int regenv, y)), regenv, graph)
-  | SraI(x, y) -> (Ans(SraI(find x Type.Int regenv, y)), regenv, graph)
-  | IMovF(x) -> (Ans(IMovF(find x Type.Int regenv)), regenv, graph)
-  | FMovI(x) -> (Ans(FMovI(find x Type.Float regenv)), regenv, graph)
+      | SllI(x, y) -> (Ans(SllI(find x Type.Int regenv, y)), regenv, graph)
+      | SraI(x, y) -> (Ans(SraI(find x Type.Int regenv, y)), regenv, graph)
+      | IMovF(x) -> (Ans(IMovF(find x Type.Int regenv)), regenv, graph)
+      | FMovI(x) -> (Ans(FMovI(find x Type.Float regenv)), regenv, graph)
 
-  | FMov(x) -> (Ans(FMov(find x Type.Float regenv)), regenv, graph)
-  | FNeg(x) -> (Ans(FNeg(find x Type.Float regenv)), regenv, graph)
-  | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FSub(x, y) -> (Ans(FSub(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FMul(x, y) -> (Ans(FMul(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FMulN(x, y) -> (Ans(FMulN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FDiv(x, y) -> (Ans(FDiv(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FDivN(x, y) -> (Ans(FDivN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-  | FInv(x) -> (Ans(FInv(find x Type.Float regenv)), regenv, graph)
-  | FSqrt(x) -> (Ans(FSqrt(find x Type.Float regenv)), regenv, graph)
+      | FMov(x) -> (Ans(FMov(find x Type.Float regenv)), regenv, graph)
+      | FNeg(x) -> (Ans(FNeg(find x Type.Float regenv)), regenv, graph)
+      | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FSub(x, y) -> (Ans(FSub(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FMul(x, y) -> (Ans(FMul(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FDiv(x, y) -> (Ans(FDiv(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FInv(x) -> (Ans(FInv(find x Type.Float regenv)), regenv, graph)
+      | FSqrt(x) -> (Ans(FSqrt(find x Type.Float regenv)), regenv, graph)
 
-  | LdI(x, y) -> (Ans(LdI(find x Type.Int regenv, y)), regenv, graph)
-  | StI(x, y, z) -> (Ans(StI(find x Type.Int regenv, find y Type.Int regenv, z)), regenv, graph)
-  | LdR(x, y) -> (Ans(LdR(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-  | FLdI(x, y) -> (Ans(FLdI(find x Type.Int regenv, y)), regenv, graph)
-  | FStI(x, y, z) -> (Ans(FStI(find x Type.Float regenv, find y Type.Int regenv, z)), regenv, graph)
-  | FLdR(x, y) -> (Ans(FLdR(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
+      | LdI(x, y) -> (Ans(LdI(find x Type.Int regenv, y)), regenv, graph)
+      | StI(x, y, z) -> (Ans(StI(find x Type.Int regenv, find y Type.Int regenv, z)), regenv, graph)
+      | LdR(x, y) -> (Ans(LdR(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
+      | FLdI(x, y) -> (Ans(FLdI(find x Type.Int regenv, y)), regenv, graph)
+      | FStI(x, y, z) -> (Ans(FStI(find x Type.Float regenv, find y Type.Int regenv, z)), regenv, graph)
+      | FLdR(x, y) -> (Ans(FLdR(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
 
-  | IfEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-  | IfFEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfFEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
-  | CallCls(x, ys, zs) as exp -> g'_call dest cont regenv graph exp (fun ys zs -> CallCls(find x Type.Int regenv, ys, zs)) ys zs
-  | CallDir(Id.L l, ys, zs) when List.mem l inl ->
-      (Ans(CallDir(Id.L l,
-		   (List.map (fun y -> find y Type.Int regenv) ys),
-	           (List.map (fun z -> find z Type.Float regenv) zs))),
-       regenv, graph)
-  | CallDir(Id.L l, ys, zs) as exp ->
-      g'_call dest cont regenv graph exp (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
-  | _ -> assert false
+      | CallCls(l, x, ys, zs) as exp -> g'_call dest cont regenv graph exp (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
+      | CallDir(Id.L l, ys, zs) when List.mem l inl ->
+	  (Ans(CallDir(Id.L l,
+		       (List.map (fun y -> find y Type.Int regenv) ys),
+	               (List.map (fun z -> find z Type.Float regenv) zs))),
+	   regenv, graph)
+      | CallDir(Id.L l, ys, zs) as exp ->
+	  g'_call dest cont regenv graph exp (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
+      | _ -> assert false
 
-and g'_if dest cont regenv graph ifprefer exp constr e1 e2 = (* ifのレジスタ割り当て *)
-  let ((e1', regenv1, graph1), (e2', regenv2, graph2)) =
-    if ecall e2 then
-      let (e1', regenv1, graph1) = g dest cont regenv graph ifprefer e1 in
-      ((e1', regenv1, graph1), g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv1 ifprefer) e2)
-    else if ecall e1 then
-      let (e2', regenv2, graph2) = g dest cont regenv graph ifprefer e2 in
-      (g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv2 ifprefer) e1, (e2', regenv2, graph2))
-    else (g dest cont regenv graph ifprefer e1, g dest cont regenv graph ifprefer e2) in
-  (* aがtrueなら1が,falseなら2が基準 *)
-  let a = M.cardinal regenv1 < M.cardinal regenv2 in
-  let graphA = if a then graph1 else graph2 in
-  let regenvA = if a then regenv1 else regenv2 in
-  let regenvB = if a then regenv2 else regenv1 in
-  (* AとB両方にある(場所は問わない)変数だけ使う。A基準。 *)
-  let (drA, regenvA) =
-    match alloc cont regenvA graphA (fst dest) (snd dest) with
-    | Spill(y) -> (M.find y regenvA, M.remove y regenvA)
-    | Alloc(r) -> (r, regenvA) in
-  let (drB, regenvB) =
-    match alloc cont regenvB (M.singleton (fst dest) (Colored drA)) (fst dest) (snd dest) with
-    | Spill(y) -> (M.find y regenvB, M.remove y regenvB)
-    | Alloc(r) -> (r, regenvB) in
-  let (rm0, fm0) = 
-    match snd dest with
-    | Type.Unit -> ([], [])
-    | Type.Float -> ([], [(drB, drA)])
-    | _ -> ([(drB, drA)], []) in
-  let add' a b = if List.mem a b then b else a::b in
-  let (regenv', rm, fm, rs) = 
-    List.fold_left
-      (fun (regenv', rm, fm, rs) x ->
-        try
-	  let rA = M.find x regenvA in
-	  let rB = M.find x regenvB in
-	  let rs' = S.add rA (S.add rB rs) in
-	  if rA.[1] = 'r' then
-	    if List.for_all (fun x -> S.mem x rs') allregs then
-	      (regenv', rm, fm, S.add x rs)
-	    else (add x rA regenv', add' (rB,rA) rm, fm, rs')
-	  else if List.for_all (fun x -> S.mem x rs') allfregs then
-	    (regenv', rm, fm, S.add x rs)
-	  else (add x rA regenv', rm, add' (rB,rA) fm, rs')
-	with Not_found -> (regenv', rm, fm, rs))
-      (M.empty, rm0, fm0, S.of_list [drA;drB])
-      (List.filter (fun x -> M.mem x graphA) (fv cont)) in
+    and g'_if dest cont regenv graph ifprefer exp constr e1 e2 = (* ifのレジスタ割り当て *)
+      let ((e1', regenv1, graph1), (e2', regenv2, graph2)) =
+	if ecall e2 then
+	  let (e1', regenv1, graph1) = g dest cont regenv graph ifprefer e1 in
+	  ((e1', regenv1, graph1), g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv1 ifprefer) e2)
+	else if ecall e1 then
+	  let (e2', regenv2, graph2) = g dest cont regenv graph ifprefer e2 in
+	  (g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv2 ifprefer) e1, (e2', regenv2, graph2))
+	else (g dest cont regenv graph ifprefer e1, g dest cont regenv graph ifprefer e2) in
+      (* aがtrueなら1が,falseなら2が基準 *)
+      let a = M.cardinal regenv1 < M.cardinal regenv2 in
+      let graphA = if a then graph1 else graph2 in
+      let regenvA = if a then regenv1 else regenv2 in
+      let regenvB = if a then regenv2 else regenv1 in
+      (* AとB両方にある(場所は問わない)変数だけ使う。A基準。 *)
+      let (drA, regenvA) =
+	match alloc cont regenvA graphA (fst dest) (snd dest) with
+	| Spill(y) -> (M.find y regenvA, M.remove y regenvA)
+	| Alloc(r) -> (r, regenvA) in
+      let (drB, regenvB) =
+	match alloc cont regenvB (M.singleton (fst dest) (Colored drA)) (fst dest) (snd dest) with
+	| Spill(y) -> (M.find y regenvB, M.remove y regenvB)
+	| Alloc(r) -> (r, regenvB) in
+      let (rm0, fm0) = 
+	match snd dest with
+	| Type.Unit -> ([], [])
+	| Type.Float -> ([], [(drB, drA)])
+	| _ -> ([(drB, drA)], []) in
+      let add' a b = if List.mem a b then b else a::b in
+      let (regenv', rm, fm, rs) = 
+	List.fold_left
+	  (fun (regenv', rm, fm, rs) x ->
+            try
+	      let rA = M.find x regenvA in
+	      let rB = M.find x regenvB in
+	      let rs' = S.add rA (S.add rB rs) in
+	      if rA.[1] = 'r' then
+		if List.for_all (fun x -> S.mem x rs') allregs then
+		  (regenv', rm, fm, S.add x rs)
+		else (add x rA regenv', add' (rB,rA) rm, fm, rs')
+	      else if List.for_all (fun x -> S.mem x rs') allfregs then
+		(regenv', rm, fm, S.add x rs)
+	      else (add x rA regenv', rm, add' (rB,rA) fm, rs')
+	    with Not_found -> (regenv', rm, fm, rs))
+	  (M.empty, rm0, fm0, S.of_list [drA;drB])
+	  (List.filter (fun x -> M.mem x graphA) (fv cont)) in
 
-  (* スワップに使うレジスタを探す *)
-  let reg_sw' = 
-    List.find (fun x -> not (S.mem x rs)) allregs in
-  let reg_fsw' =
-    List.find (fun x -> not (S.mem x rs)) allfregs in
-  let rm' = List.rev (Emit.shuffle reg_sw' rm) in
-  let fm' = List.rev (Emit.shuffle reg_fsw' fm) in
-  let movA = match snd dest with
-  | Type.Unit -> Nop
-  | Type.Float -> FMov(drA)
-  | _ -> AddI(drA, 0) in
-  let move =
-    List.fold_left
-      (fun e (p, fr) -> Let((fr,Type.Float), FMov(p), e))
+      (* スワップに使うレジスタを探す *)
+      let reg_sw' = 
+	List.find (fun x -> not (S.mem x rs)) allregs in
+      let reg_fsw' =
+	List.find (fun x -> not (S.mem x rs)) allfregs in
+      let rm' = List.rev (Emit.shuffle reg_sw' rm) in
+      let fm' = List.rev (Emit.shuffle reg_fsw' fm) in
+      let movA = match snd dest with
+      | Type.Unit -> Nop
+      | Type.Float -> FMov(drA)
+      | _ -> AddI(drA, 0) in
+      let move =
+	List.fold_left
+	  (fun e (p, fr) -> Let((fr,Type.Float), FMov(p), e))
+	  (List.fold_left
+	     (fun e (p, r) -> Let((r,Type.Int), AddI(p, 0), e))
+	     (Ans(movA))
+	     rm')
+	  fm' in
+      let e1'' = if a || move = Ans(movA) then e1' else concat e1' (drB, snd dest) move in
+      let e2'' = if not a || move = Ans(movA) then e2' else concat e2' (drB, snd dest) move in
       (List.fold_left
-	 (fun e (p, r) -> Let((r,Type.Int), AddI(p, 0), e))
-	 (Ans(movA))
-	 rm')
-      fm' in
-  let e1'' = if a || move = Ans(movA) then e1' else concat e1' (drB, snd dest) move in
-  let e2'' = if not a || move = Ans(movA) then e2' else concat e2' (drB, snd dest) move in
-  (List.fold_left
-     (fun e x ->
-       if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
-       seq(Save(M.find x regenv, x), e)) (* そうでない変数は分岐直前にセーブ *)
-     (Ans(constr e1'' e2''))
-     (fv cont),
-   regenv', M.add (fst dest) (Colored drA) graphA)
-    
+	 (fun e x ->
+	   if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
+	   seq(Save(M.find x regenv, x), e)) (* そうでない変数は分岐直前にセーブ *)
+	 (Ans(constr e1'' e2''))
+	 (fv cont),
+       regenv', M.add (fst dest) (Colored drA) graphA)
+	
 
 (* 関数呼び出しのレジスタ割り当て *)
-and g'_call dest cont regenv graph exp constr ys zs = 
-  (List.fold_left
-     (fun e x ->
-       if x = fst dest || not (M.mem x regenv) then e else
-       seq(Save(M.find x regenv, x), e))
-     (Ans(constr
-	    (List.map (fun y -> find y Type.Int regenv) ys)
-	    (List.map (fun z -> find z Type.Float regenv) zs)))
-     (fv cont),
-   M.empty, graph)
+    and g'_call dest cont regenv graph exp constr ys zs = 
+      (List.fold_left
+	 (fun e x ->
+	   if x = fst dest || not (M.mem x regenv) then e else
+	   seq(Save(M.find x regenv, x), e))
+	 (Ans(constr
+		(List.map (fun y -> find y Type.Int regenv) ys)
+		(List.map (fun z -> find z Type.Float regenv) zs)))
+	 (fv cont),
+       M.empty, graph)
 
 let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数のレジスタ割り当て *)
   let regenv = add x reg_cl M.empty in

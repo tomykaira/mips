@@ -1,71 +1,73 @@
+(*pp deriving *)
+
 let limit = ref 1000
 
-(* ¥Ç¥Ð¥Ã¥°¥Õ¥é¥°¤È¥Ç¥Ð¥Ã¥°ÍÑ´Ø¿ô *)
+
+(* ãƒ‡ãƒãƒƒã‚°ãƒ•ãƒ©ã‚°ã¨ãƒ‡ãƒãƒƒã‚°ç”¨é–¢æ•° *)
 let dbpa = ref false
 let dbty = ref false
 let dbkn = ref false
 let dbal = ref false
 let dban = ref false
 let dbit = ref false
-let dblc = ref false
 let dbll = ref false
 let dbcl = ref false
 let dbft = ref false
 let dbut = ref false
 let dbet = ref false
-let dba2 = ref false
 let dblt = ref false
 let dbvi = ref false
-let dbc2 = ref false
 let dbsi = ref false
 let dbto = ref false
 let dbra = ref false
 
-let debsy f t = (if !f = true then Syntax.dbprint 0 t else ()); t
-let debkn f t = (if !f = true then KNormal.dbprint 0 t else ()); t
-let deban f t = (if !f = true then ANormal.dbprint 0 t else ()); t
-let debcl f = function
-    Closure.Prog (x, y) as t ->
-      (if !f then (Printf.eprintf "Functions:\n%!"; List.iter Closure.dbprint2 x; Printf.eprintf "\nMain Program:\n%!"; Closure.dbprint 1 y));
-      t
-let debas f = function
-    Asm.Prog (x, y) as t->
-      (if !f then (Printf.eprintf "Functions:\n%!"; List.iter Asm.dbprint3 x; Printf.eprintf "\nMain Program:\n%!"; Asm.dbprint2 1 y));
-      t
 
+let debsy f t = (if !f = true then print_endline (Show.show<Syntax.t> t) else ()); t
+let debkn f t = (if !f = true then print_endline (Show.show<KNormal.t> t) else ()); t
+let deban f t = (if !f = true then print_endline (Show.show<ANormal.t> t) else ()); t
+let debcl f t = (if !f = true then print_endline (Show.show<Closure.prog> t) else ()); t
+let debas f t = (if !f = true then print_endline (Show.show<Asm.prog> t) else ()); t
 
-(* ÆÃÄê¤ÎºÇÅ¬²½½èÍý¤ò¤·¤Ê¤¤¥Õ¥é¥°¤È¤½¤ìÍÑ¤Î´Ø¿ô *)
+(* ç‰¹å®šã®æœ€é©åŒ–å‡¦ç†ã‚’ã—ãªã„ãƒ•ãƒ©ã‚°ã¨ãã‚Œç”¨ã®é–¢æ•° *)
 let offcs = ref false
 let offbe = ref false
 let offin = ref false
 let offcf = ref false
-let offlc = ref false
 let offte = ref false
 let offel = ref false
 let offll = ref false
-let offut = ref true
-let offet = Global.offet := true; Global.offet
-let offa2 = ref false
+let offut = ref false
+let offet = Global.offet := false; Global.offet
 let offlt = ref false
-let offc2 = ref true
 let offsi = ref false
 let offto = ref false
 
 let off flag f x = if !flag then x else f x
 
 
-
-(* ºÇÅ¬²½½èÍý¤ò¤¯¤ê¤«¤¨¤¹ *)
+(* æœ€é©åŒ–å‡¦ç†ã‚’ãã‚Šã‹ãˆã™ *)
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' = off offcs Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
+  let e' = off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'
 
 
-(* ¥Ð¥Ã¥Õ¥¡¤ò¥³¥ó¥Ñ¥¤¥ë¤·¤Æ¥Á¥ã¥ó¥Í¥ë¤Ø½ÐÎÏ¤¹¤ë *)
+let parse_buf_exn lexbuf =
+  try
+    Parser.exp Lexer.token lexbuf
+  with exn ->
+    begin
+      let curr = lexbuf.Lexing.lex_curr_p in
+      let line = curr.Lexing.pos_lnum in
+      let cnum = curr.Lexing.pos_cnum in
+      let tok = Lexing.lexeme lexbuf in
+      failwith (Printf.sprintf "Parse error at %d:%d `%s'" line cnum tok)
+    end
+
+(* ãƒãƒƒãƒ•ã‚¡ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã—ã¦ãƒãƒ£ãƒ³ãƒãƒ«ã¸å‡ºåŠ›ã™ã‚‹ *)
 let lexbuf outchan l =
   Id.counter := 0;
   Typing.extenv := M.empty;
@@ -75,29 +77,28 @@ let lexbuf outchan l =
       (debas dbra (RegAlloc.f
        (debas dbto (off offto Together.f
         (debas dbsi (off offsi Simm.f
-         (debas dbc2 (off offc2 ConstFold2.f
  	  (debas dbvi (Virtual.f
- 	   (debcl dblt (off offlt ElimTuple.f
-	    (debcl dba2 (off offa2 Assoc2.f
+		       (CollectDanger.f
+ 	    (debcl dblt (off offlt ElimTuple.f
 	     (debcl dbet (off offet EmbedTuple.f
 	      (debcl dbut (off offut UnfoldTuple.f
 	       (debcl dbft (off (ref (!offet && !offut)) FlattenTuple.f
 	        (debcl dbcl (Closure.f
 	         (deban dbll (off offll LambdaLift.f
 	          (deban dbit (iter !limit
-		   (deban dblc (off offlc LCM.f
-		    (deban dban (ANormal.f 
-	             (debkn dbal (Alpha.f
-	              (debkn dbkn (KNormal.f
-	               (debsy dbty (Typing.f
-	                (debsy dbpa (Parser.exp Lexer.token l))))))))))))))))))))))))))))))))))))))))
+        	   (deban dban (ANormal.f 
+	            (debkn dbal (Alpha.f
+	             (debkn dbkn (KNormal.f
+	              (debsy dbty (Typing.f
+	               (debsy dbpa (parse_buf_exn l)))))))))))))))))))))))))))))))))))
 
 
-(* Ê¸»úÎó¤ò¥³¥ó¥Ñ¥¤¥ë¤·¤ÆÉ¸½à½ÐÎÏ¤ËÉ½¼¨¤¹¤ë *)
-let string s = lexbuf stdout (Lexing.from_string s) 
 
-(* ¥Õ¥¡¥¤¥ë¤ò¥³¥ó¥Ñ¥¤¥ë¤·¤Æ¥Õ¥¡¥¤¥ë¤Ë½ÐÎÏ¤¹¤ë *)
-let file f = 
+(* æ–‡å­—åˆ—ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã—ã¦æ¨™æº–å‡ºåŠ›ã«è¡¨ç¤ºã™ã‚‹ *)
+let string s = lexbuf stdout (Lexing.from_string s)
+
+(* ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã—ã¦ãƒ•ã‚¡ã‚¤ãƒ«ã«å‡ºåŠ›ã™ã‚‹ *)
+let file f =
   let inchan = open_in (f ^ ".ml") in
   let outchan = open_out (f ^ ".s") in
   try
@@ -106,13 +107,13 @@ let file f =
     close_out outchan;
   with e -> (close_in inchan; close_out outchan; raise e)
 
-(* ¤³¤³¤«¤é¥³¥ó¥Ñ¥¤¥é¤Î¼Â¹Ô¤¬³«»Ï¤µ¤ì¤ë *)
-let () = 
+(* ã“ã“ã‹ã‚‰ã‚³ãƒ³ãƒ‘ã‚¤ãƒ©ã®å®Ÿè¡ŒãŒé–‹å§‹ã•ã‚Œã‚‹ *)
+let () =
   let files = ref [] in
   Arg.parse
     [("-inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
-     ("-ifthenelse", Arg.Int(fun i -> IfThenElse.len := i), "maximum size of program absorbed by if sentence");
+
    ("-b", Arg.Set Global.bin, "use binary file as input");
 
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
@@ -121,16 +122,13 @@ let () =
    ("-dbAlpha", Arg.Set dbal, "debug: print KNormal.t after alpha");
    ("-dbANormal", Arg.Set dban, "debug: print ANormal.t after A normalizetion");
    ("-dbIter", Arg.Set dbit, "debug: print ANormal.t after iter");
-   ("-dbLCM", Arg.Set dblc, "debug: print ANormal.t after LCM");
    ("-dbLambdaLift", Arg.Set dbll, "debug: print ANormal.t after LambdaLift");
    ("-dbClosure", Arg.Set dbcl, "debug: print Closure.t after closure");
    ("-dbFlattenTuple", Arg.Set dbft, "debug: print Closure.t after FT");
    ("-dbUnfoldTuple", Arg.Set dbut, "debug: print Closure.t after UT");
    ("-dbEmbedTuple", Arg.Set dbet, "debug: print Closure.t after EmbedTuple");
-   ("-dbAssoc2", Arg.Set dba2, "debug: print Closure.t after Assoc2");
    ("-dbElimTuple", Arg.Set dblt, "debug: print Closure.t after ElimTuple");
    ("-dbVirtual", Arg.Set dbvi, "debug: print Asm.t after virtualize");
-   ("-dbConstFold2", Arg.Set dbc2, "debug: print Asm.t after CF2");
    ("-dbSimm", Arg.Set dbsi, "debug: print Asm.t after Simm");
    ("-dbTogether", Arg.Set dbto, "debug: print Asm.t after Together");
    ("-dbRegAlloc", Arg.Set dbra, "debug: print Asm.t after RegAlloc");
@@ -139,20 +137,17 @@ let () =
    ("-offBeta", Arg.Set offbe, "off: NO beta");
    ("-offInline", Arg.Set offin, "off: NO Inline");
    ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
-   ("-offLCM", Arg.Set offlc, "off: NO LCM");
    ("-offIfThenElse", Arg.Set offel, "off: NO if then else");
    ("-offElim", Arg.Set offel, "off: NO Elim");
    ("-offLambdaLift", Arg.Set offll, "off: NO LambdaLift");
    ("-offUnfoldTuple", Arg.Set offut, "off: NO Unfold Tuple");
    ("-offEmbedTuple", Arg.Set offet, "off: NO Embed Tuple");
-   ("-offAssoc2", Arg.Set offa2, "off: NO Assoc 2");
    ("-offElimTuple", Arg.Set offlt, "off: NO Elim Tuple");
-   ("-offConstFold2", Arg.Set offc2, "off: NO ConstFold2");
    ("-offSimm", Arg.Set offsi, "off: NO Simm");
    ("-offTogether", Arg.Set offto, "off: NO Together");]
     (fun s -> files := !files @ [s])
     ("Mitou Min-Caml Compiler (C) Eijiro Sumii\n" ^
-     Printf.sprintf "usage: %s [-inline m] [-iter n] ...filenames without \".ml\"..." Sys.argv.(0));
+        Printf.sprintf "usage: %s [-inline m] [-iter n] ...filenames without \".ml\"..." Sys.argv.(0));
   List.iter
     (fun f -> ignore (file f))
     !files
