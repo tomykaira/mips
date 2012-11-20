@@ -1,6 +1,6 @@
 open Asm
 
-(* Neg + Mul -> FMulN等の最適化を行うモジュール。 *)
+(* いろいろな最適化を行うモジュール。 *)
 
 let find x env = try M.find x env with Not_found -> Nop
 (* 複数の命令を一つにまとめる関数 *)
@@ -21,14 +21,10 @@ and g' env = function
   | FMul(x, y) as exp ->
       (match (find x env, find y env) with
       | (FNeg(z), FNeg(w)) -> FMul(z, w)
-      | (FNeg(z), _) -> FMulN(z, y)
-      | (_, FNeg(z)) -> FMulN(x, z)
       | _ -> exp)
   | FDiv(x, y) as exp ->
       (match (find x env, find y env) with
       | (FNeg(z), FNeg(w)) -> FDiv(z, w)
-      | (FNeg(z), _) -> FDivN(z, y)
-      | (_, FNeg(z)) -> FDivN(x, z)
       | _ -> exp)
   | FNeg(x) as exp ->
       (match find x env with

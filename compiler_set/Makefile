@@ -4,7 +4,7 @@ LIB_ML = lib_ml.ml
 # アセンブリのライブラリファイル
 LIB_ASM = lib_asm.s
 
-OPTION = 
+OPTION =
 # 入力ファイルをテキストとして扱う
 # min-rtで、test/min-rt/sld以下の.sldファイルを入力ファイルとしたいときは
 # 普通はこっちにしとけば大体間違いはない
@@ -36,12 +36,12 @@ SLD_PATH = test/min-rt/sld/contest.sld
 # min-rtを実行するときの出力ファイル
 PPM_PATH = test/min-rt/contest.ppm
 
-LOR_PATH=$(LORELEY_DIR)/Simple/simple2.lor
+LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
 LOR_PPM_PATH=$(LOR_PATH).ppm
 
 MIN_CAML=BISECT_FILE=compiler/coverage compiler/min-caml
 
-INPUT= # -f $(LOR_PATH)
+INPUT=  -f $(LOR_PATH)
 
 architecture:
 	cd assembler; make
@@ -223,6 +223,6 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 
 .PHONY: cur
 
-cur: 
+cur:
 	make tools
 	assembler/assembler test/Loreley/main.s test/Loreley/main.bin

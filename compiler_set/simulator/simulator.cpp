@@ -276,6 +276,7 @@ int simulate(simulation_options * opt)
 	do
 	{
 		ZR = 0;
+		freg[0] = 0;
 
 		// フレーム/ヒープレジスタは絶対に負になることはない
 		if (FR < 0)
@@ -378,19 +379,19 @@ int simulate(simulation_options * opt)
 		switch(opcode)
 		{
 			case ADD:
-				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);				
+				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);
 				IRD = IRS + IRT;
-				//if (IRD==0x32286){step=true;enable_step();break;}					 
+				//if (IRD==0x32286){step=true;enable_step();break;}
 				break;
 			case SUB:
 				D_REGISTER(log_fp, "REG: SUB %02X %08X\n", get_rd(inst), IRS - IRT);
 
 				IRD = IRS - IRT;
-				//if (IRD==0xc86d0fe){step=true;enable_step();break;}					
+				//if (IRD==0xc86d0fe){step=true;enable_step();break;}
 				break;
 			case MUL:
 				D_REGISTER(log_fp, "REG: MUL %02X %08X\n", get_rd(inst), IRS * IRT);
-				
+
 				IRD = IRS * IRT;
 
 				break;
@@ -509,7 +510,7 @@ int simulate(simulation_options * opt)
 				break;
 			case FMVHI:
 				D_REGISTER(log_fp, "REG: FMVHI f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
-				FRT = ((uint32_t)IMM << 16) | (FRT & 0xffff);
+				FRT = ((uint32_t)IMM << 16);
 				break;
 			case J:
 				jump_logger.push_back(pc);
@@ -651,7 +652,7 @@ int simulate(simulation_options * opt)
 						int counter = jump_logger[i];
 						printf("%d\t%d\t%s\n", i, counter-1, ROM[counter - 1].getInst().c_str());
 					}
-					
+
 					break;
 				case 6:
 					DUMP_PC
@@ -771,5 +772,5 @@ int main(int argc, char** argv)
         cerr << "issued instructions : " << cnt <<endl;
 	cerr << hex << "FR = " << FR << " , " << "HR = " << HR << endl;
 
-	return (ret); 
+	return (ret);
 }
