@@ -182,7 +182,7 @@ module test_register_manager ();
 
       test1(3);
 
-      // you cannot read data just when you write
+      // you read data just when you write by forwarding
       write_enable_alu <= 1;
       write_addr_alu <= 5;
       write_data_alu <= 29;
@@ -191,11 +191,9 @@ module test_register_manager ();
       rs_addr <= 5;
       rs_float <= 0;
 
-      #10
-      if (rs_data === 29) begin
-         $display ("FAIL");
-         $stop;
-      end
+      test1(29);
+
+      write_enable_alu <= 0;
 
       test_4clk(29);
    end

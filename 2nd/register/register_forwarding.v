@@ -1,15 +1,15 @@
 // Insert this circuit after mux
 
 module register_forwarding(input [4:0] addr,
-                           input [31:0] data,
-                           input        float,
+                           input [31:0]  data,
+                           input         float,
 
-                           input        write_enable_misc, write_enable_alu, write_enable_mem, write_enable_fpu,
-                           input [4:0]  write_addr_misc, write_addr_alu, write_addr_mem, write_addr_fpu,
-                           input [31:0] write_data_misc, write_data_alu, write_data_mem, write_data_fpu,
-                           input        write_float_misc, write_float_alu, write_float_mem, write_float_fpu,
+                           input         write_enable_misc, write_enable_alu, write_enable_mem, write_enable_fpu,
+                           input [4:0]   write_addr_misc, write_addr_alu, write_addr_mem, write_addr_fpu,
+                           input [31:0]  write_data_misc, write_data_alu, write_data_mem, write_data_fpu,
+                           input         write_float_misc, write_float_alu, write_float_mem, write_float_fpu,
 
-                           output       forward_data);
+                           output [31:0] forward_data);
 
    wire [31:0] fpu_data, mem_data, alu_data;
 

@@ -133,8 +133,36 @@ module register_manager (input clk, input reset,
                                      .write_float_2(write_float_2),
                                      .position(rt_position));
 
-   flip_reset #(32) rs_ff(.d(raw_rs_data), .clk(clk), .reset(reset), .q(rs_data));
-   flip_reset #(32) rt_ff(.d(raw_rt_data), .clk(clk), .reset(reset), .q(rt_data));
+   reg [31:0] rs_data_clk, rt_data_clk;
+   reg [4:0] rs_addr_clk, rt_addr_clk;
+   reg rs_float_clk, rt_float_clk;
+
+   always @ (posedge(clk)) begin
+      rs_data_clk <= raw_rs_data;
+      rs_addr_clk <= rs_addr;
+      rs_float_clk <= rs_float;
+
+      rt_data_clk <= raw_rt_data;
+      rt_addr_clk <= rt_addr;
+      rt_float_clk <= rt_float;
+   end
+
+   // TODO: from here, instantiate forwarding and pass test
+   register_forwarding rs_forwarding
+     (.addr(rs_addr_clk), .data(rs_data_clk), .float(rs_float),
+      .write_enable_misc(write_enable_misc), .write_enable_alu(write_enable_alu), .write_enable_mem(write_enable_mem), .write_enable_fpu(write_enable_fpu),
+      .write_addr_misc(write_addr_misc), .write_addr_alu(write_addr_alu), .write_addr_mem(write_addr_mem), .write_addr_fpu(write_addr_fpu),
+      .write_data_misc(write_data_misc), .write_data_alu(write_data_alu), .write_data_mem(write_data_mem), .write_data_fpu(write_data_fpu),
+      .write_float_misc(write_float_misc), .write_float_alu(write_float_alu), .write_float_mem(write_float_mem), .write_float_fpu(write_float_fpu),
+      .forward_data(rs_data));
+
+   register_forwarding rt_forwarding
+     (.addr(rt_addr_clk), .data(rt_data_clk), .float(rt_float),
+      .write_enable_misc(write_enable_misc), .write_enable_alu(write_enable_alu), .write_enable_mem(write_enable_mem), .write_enable_fpu(write_enable_fpu),
+      .write_addr_misc(write_addr_misc), .write_addr_alu(write_addr_alu), .write_addr_mem(write_addr_mem), .write_addr_fpu(write_addr_fpu),
+      .write_data_misc(write_data_misc), .write_data_alu(write_data_alu), .write_data_mem(write_data_mem), .write_data_fpu(write_data_fpu),
+      .write_float_misc(write_float_misc), .write_float_alu(write_float_alu), .write_float_mem(write_float_mem), .write_float_fpu(write_float_fpu),
+      .forward_data(rt_data));
 
    always @ (*) begin
       if (write_float_0 == 1) begin

@@ -10,26 +10,18 @@ use IEEE.STD_LOGIC_ARITH.all;
 -- do not forward 0.
 
 -- TEST
--- rs_addr | rs_data | rs_float | rt_addr | rt_data | rt_float | write_addr | write_data | write_enable | write_float | rs_forward | rt_forward
---       5 |      33 |        0 |       8 |      29 |        0 |          0 |         42 |            0 |           0 |         33 |         29
---       5 |         |          |       8 |         |          |          5 |            |            0 |             |         33 |         29
---       5 |         |          |       8 |         |          |          5 |            |            1 |             |         42 |         29
---       5 |         |          |       8 |         |          |          8 |            |            0 |             |         33 |         29
---       5 |         |          |       8 |         |          |          8 |            |            1 |             |         33 |         42
---       5 |      33 |        1 |       8 |      29 |        1 |          0 |         42 |            0 |           1 |         33 |         29
---       5 |         |          |       8 |         |          |          5 |            |            0 |             |         33 |         29
---       5 |         |          |       8 |         |          |          5 |            |            1 |             |         42 |         29
---       5 |         |          |       8 |         |          |          8 |            |            0 |             |         33 |         29
---       5 |         |          |       8 |         |          |          8 |            |            1 |             |         33 |         42
+-- addr | data | float | write_addr | write_data | write_enable | write_float | forward_data
+--    5 |   33 |     0 |          0 |         42 |            0 |           0 |         33
+--      |      |       |          5 |            |            0 |             |         33
+--      |      |       |          5 |            |            1 |             |         42
+--      |      |     1 |          0 |            |            0 |           1 |         33
+--      |      |       |          5 |            |            0 |             |         33
+--      |      |       |          5 |            |            1 |             |         42
 -- # float and general
---       5 |         |        0 |       8 |         |        0 |          5 |            |            1 |           1 |         33 |         29
---       5 |         |          |       8 |         |          |          8 |            |            1 |             |         33 |         29
--- # rs = rt
---       5 |         |        0 |       5 |      33 |        0 |          5 |            |            0 |           0 |         33 |         33
---       5 |         |          |       5 |      33 |          |          5 |            |            1 |             |         42 |         42
+--      |      |     0 |          5 |            |            1 |           1 |         33
 -- # when addr is 0
---       0 |       0 |          |       8 |      29 |          |          0 |            |            1 |             |          0 |         29
---       5 |      33 |          |       0 |       0 |          |          0 |            |            1 |             |         33 |         0
+--    0 |      |     0 |          0 |            |            1 |           0 |         33
+--    0 |      |     1 |          0 |            |            1 |           1 |         33
 -- /TEST
 
 entity forwarding is
@@ -45,21 +37,12 @@ end forwarding;
 
 architecture behave of forwarding is
 begin
-  process (rs_addr, rs_data, rs_float, write_addr, write_data, write_enable, write_float)
+  process (addr, data, float, write_addr, write_data, write_enable, write_float)
   begin
-    if write_enable = '1' and rs_addr = write_addr and rs_float = write_float and rs_addr /= "00000" then
-      rs_forward <= write_data;
+    if write_enable = '1' and addr = write_addr and float = write_float and addr /= "00000" then
+      forward_data <= write_data;
     else
-      rs_forward <= rs_data;
-    end if;
-  end process;
-
-  process (rt_addr, rt_data, rt_float, write_addr, write_data, write_enable, write_float)
-  begin
-    if write_enable = '1' and rt_addr = write_addr and rt_float = write_float and rt_addr /= "00000" then
-      rt_forward <= write_data;
-    else
-      rt_forward <= rt_data;
+      forward_data <= data;
     end if;
   end process;
 end behave;
