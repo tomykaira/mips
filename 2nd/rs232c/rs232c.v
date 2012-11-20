@@ -9,6 +9,7 @@ module rs232c(input clk,
 
               input             rx_wait,
               input [7:0]       received_data,
+              output reg        rx_pop,
 
               output reg        enable,
               output            float, // always false
@@ -28,9 +29,12 @@ module rs232c(input clk,
          enable <= 1'b1;
          addr <= inst[20:16];
          data <= {24'b0,received_data};
+         rx_pop <= 1'b1;
 
-      end else
-        enable <= 0;
+      end else begin
+         enable <= 0;
+         rx_pop <= 0;
+      end
    end
 
    always @ (posedge(clk)) begin
