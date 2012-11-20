@@ -5,6 +5,7 @@ module program_counter(input clk,
                        input         reset,
                        input [31:0]  inst,
                        input [31:0]  rs,
+                       input         keep_pc,
                        input         branch_taken,
                        output [31:0] pc);
 
@@ -29,9 +30,12 @@ module program_counter(input clk,
       .address(decoded_addr),
       .push_stack(push_stack));
 
+   wire current_kind_including_decoded;
+   assign current_kind_including_decoded = keep_pc == 1 ? 2'b00 : current_kind;
+
    program_counter_calculator calculator_inst
      (.current_pc(pc),
-      .current_kind(current_kind),
+      .current_kind(current_kind_including_decoded),
       .decoded_addr(decoded_addr),
       .prev_is_jump_reg(is_jump_reg[1]),
       .prev_register(rs),
