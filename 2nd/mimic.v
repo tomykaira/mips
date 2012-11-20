@@ -47,7 +47,7 @@ module mimic(input clk,
    wire [4:0]  rs_addr, rt_addr;
    wire        rs_float, rt_float;
    wire [15:0] raw_imm;
-   wire        keep_pc;
+   wire        cpu_keep_pc;
    decoder decoder_inst(.clk(clk),
                         .reset(reset),
                         .inst(inst_fetch),
@@ -58,10 +58,12 @@ module mimic(input clk,
                         .rs_float(rs_float),
                         .rt_float(rt_float),
                         .raw_imm(raw_imm),
-                        .keep_pc(keep_pc));
+                        .keep_pc(cpu_keep_pc));
 
    wire [31:0] rs_data, rt_data;
    wire branch_taken;
+   wire keep_pc;
+   assign keep_pc = in_execution == 0 || cpu_keep_pc == 1 ? 1'b1 : 1'b0;
    program_counter pc_inst
      (.clk(clk), .reset(reset), .inst(inst_fetch), .rs(rs_data), .keep_pc(keep_pc), .branch_taken(branch_taken),
       .pc(pc));
