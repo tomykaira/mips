@@ -13,6 +13,10 @@ use IEEE.NUMERIC_STD.all;
 -- alias XORI 000101
 -- alias SLLI 000110
 -- alias SRAI 000111
+-- alias FMVLO 010010
+-- alias FMVHI 010011
+-- alias IMOVF 010110
+-- alias FMOVI 010111
 -- def i { |x| (x + "00001000100001000000000000").to_i(2) }
 -- inst i| rs | rt | imm | enable | addr | data | float
 -- ADD   |  9 | 18 |   3 |      1 |    2 |   27 |     0
@@ -25,6 +29,10 @@ use IEEE.NUMERIC_STD.all;
 -- SRAI  | 25 |  0 |   3 |      1 |    2 |    3 |     0
 -- SRAI  | -1 |  0 |   5 |      1 |    2 |   -1 |     0
 -- SRAI  | -9 |  0 |   1 |      1 |    2 |   -5 |     0
+-- FMVHI |  5 |  2 |   2 |      1 |    2 |131072|     1
+-- FMVLO |131072|2 |   3 |      1 |    2 |131075|     1
+-- IMOVF |  5 |  2 |   0 |      1 |    2 |    5 |     1
+-- FMOVI |  5 |  2 |   0 |      1 |    2 |    5 |     0
 -- 111111|  0 |  0 |   0 |      0 |    - |    - |     -
 -- /TEST
 
@@ -42,6 +50,21 @@ end alu;
 
 architecture behave of alu is
 
+
+  constant ADD : std_logic_vector(5 downto 0) := "000000";
+  constant SUB : std_logic_vector(5 downto 0) := "000001";
+  constant cXOR : std_logic_vector(5 downto 0) := "000010";
+  constant ADDI : std_logic_vector(5 downto 0) := "000011";
+  constant SUBI : std_logic_vector(5 downto 0) := "000100";
+  constant XORI : std_logic_vector(5 downto 0) := "000101";
+  constant SLLI : std_logic_vector(5 downto 0) := "000110";
+  constant SRAI : std_logic_vector(5 downto 0) := "000111";
+
+  constant FMVLO : std_logic_vector(5 downto 0) := "010010";
+  constant FMVHI : std_logic_vector(5 downto 0) := "010011";
+  constant IMOVF : std_logic_vector(5 downto 0) := "010110";
+  constant FMOVI : std_logic_vector(5 downto 0) := "010111";
+
   signal op : std_logic_vector(5 downto 0);
   signal rt_addr, rd_addr : std_logic_vector(4 downto 0);
   signal other : std_logic_vector(31 downto 0);
@@ -49,7 +72,7 @@ architecture behave of alu is
 
 begin  -- behave
 
-  float <= '0';
+  float <= '1' when op = FMVHI or op = FMVLO or OP = IMOVF else '0';
 
   op <= inst(31 downto 26);
   rt_addr <= inst(20 downto 16);
@@ -58,11 +81,11 @@ begin  -- behave
   process(op, rt_addr, rd_addr)
   begin
     case op is
-      when "000000" | "000001" | "000010" =>
+      when ADD | SUB | cXOR =>
         enable <= '1';
         addr <= rd_addr;
         other <= rt;
-      when "000011" | "000100" | "000101" | "000110" | "000111" =>
+      when ADDI | SUBI | XORI | SLLI | SRAI | FMVLO | FMVHI | IMOVF | FMOVI =>
         enable <= '1';
         addr <= rt_addr;
         other <= imm;
@@ -75,26 +98,32 @@ begin  -- behave
     variable shift_amount : integer;
   begin
     case op is
-      when "000000" | "000011" =>
+      when ADD | ADDI =>
         out_buf <= rs + other;
-      when "000001" | "000100" =>
+      when SUB | SUBI =>
         out_buf <= rs - other;
-      when "000010" | "000101"=>
+      when cXOR | XORI =>
         out_buf <= rs xor other;
-      when "000110" =>
+      when SLLI =>
         out_buf <= (others => '0');
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         assert imm < x"100000" report "shift amount is too large";
         shift_amount := conv_integer(imm(4 downto 0));
         out_buf(31 downto shift_amount) <= rs(31-shift_amount downto 0);
-      when "000111" =>
+      when SRAI =>
         out_buf <= (others => rs(31));
         -- conv_integer accepts array which is shorter than 32
         -- b must be smaller than 32
         assert imm < x"100000" report "shift amount is too large";
         shift_amount := conv_integer(imm(4 downto 0));
         out_buf(31-shift_amount downto 0) <= rs(31 downto shift_amount);
+      when FMOVI | IMOVF =>
+        out_buf <= rs;
+      when FMVLO =>
+        out_buf <= rs(31 downto 16) & imm(15 downto 0);
+      when FMVHI =>
+        out_buf <= imm(15 downto 0) & x"0000";
       when others =>
         out_buf <= (others => 'Z');
     end case;
