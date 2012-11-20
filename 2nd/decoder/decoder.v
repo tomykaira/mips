@@ -18,6 +18,9 @@ module decoder(input clk,
    parameter FLDI = 6'b101010;
    parameter FSTI = 6'b101011;
    parameter FLDR = 6'b101110;
+
+   parameter JR     = 6'b111001;
+   parameter CALLR  = 6'b111011;
    parameter INPUTB = 6'b111101;
 
    wire [5:0] op;
@@ -58,7 +61,10 @@ module decoder(input clk,
 
    // stall reg is defined afterword
    wire [31:0] inst_or_nop;
-   assign inst_or_nop = (stall == 1 ? 32'b0 : inst);
+   assign inst_or_nop = ((stall == 1
+                          || (op == JR && inst_out[31:26] == JR)
+                          || (op == CALLR && inst_out[31:26] == CALLR))
+                         ? 32'b0 : inst);
    flip_reset #(32) inst_ff (.clk(clk), .reset(reset), .d(inst_or_nop), .q(inst_out));
 
 
