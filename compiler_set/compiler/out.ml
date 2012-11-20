@@ -8,6 +8,7 @@ type exp = (* 一つ一つの命令に対応する式 *)
   (* アセンブラが処理するニーモニックやラベル *)
   | Label of string
   | SetL of Id.t * string
+  | Nop
   | Comment of string
 
   | Add of Id.t * Id.t * Id.t
@@ -76,6 +77,7 @@ let print buf = function
 let o oc = function
   | Label l -> Printf.fprintf oc "%s:\n" l
   | SetL (x, l)  -> Printf.fprintf oc "\tsetl\t%s, %s\n" x l
+  | Nop -> Printf.fprintf oc "\tnop\n"
   | Comment s   -> Printf.fprintf oc "#%s\n" s
 
   | Add (x, y, z) -> Printf.fprintf oc "\tadd\t%s, %s, %s\n" x y z
