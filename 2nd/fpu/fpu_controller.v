@@ -31,10 +31,12 @@ module fpu_controller (input clk,
    reg [1:0] source[2:0]; // fadd, fmul, finv, fsqrt
    reg [1:0] current_source;
 
-   fadd fadd_inst (.clk(clk),.i1(rs),.i2(b),.o(fadd_data));
-   fmul fmul_inst (.clk(clk),.a(rs),.b(b),.s(fmul_data));
-   finv finv_inst (.clk(clk),.a(rs),.s(finv_data));
-   fsqrt fsqrt_inst (.clk(clk),.a(rs),.s(fsqrt_data));
+   wire [31:0] rs_or_0;
+   assign rs_or_0 = current_enable == 0 ? 32'b0 : rs;
+   fadd fadd_inst (.clk(clk),.i1(rs_or_0),.i2(b),.o(fadd_data));
+   fmul fmul_inst (.clk(clk),.a(rs_or_0),.b(b),.s(fmul_data));
+   finv finv_inst (.clk(clk),.a(rs_or_0),.s(finv_data));
+   fsqrt fsqrt_inst (.clk(clk),.a(rs_or_0),.s(fsqrt_data));
    fneg b_inverter (.a(rt),.s(neg_b));
 
    assign op = inst[31:26];
@@ -52,10 +54,13 @@ module fpu_controller (input clk,
    end
 
    always @ (*) begin
-      if (op[0] == 1) // b is not used for fsqrt
-        b <= neg_b;
+      if (current_enable == 1)
+        if (op[0] == 1) // b is not used for fsqrt
+          b <= neg_b;
+        else
+          b <= rt;
       else
-        b <= rt;
+         b <= 32'b0;
    end
 
    always @ (*) begin
