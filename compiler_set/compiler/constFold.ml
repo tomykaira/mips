@@ -196,8 +196,8 @@ and g' env envle envne envif = function
   | ExtFunApp("not", [x]) as exp when M.mem x env -> (match M.find x env with
     | ExtFunApp("not", [y]) -> Ans(Var(y))
     | _ -> Ans(exp))
-  | ExtFunApp("lsl", [x;y]) when memi y env -> Ans(Sll(x, findi x env))
-  | ExtFunApp("lsr", [x;y]) when memi y env -> Ans(Sra(x, findi x env))
+  | ExtFunApp("lsl", [x;y]) when memi y env -> Ans(Sll(x, findi y env))
+  | ExtFunApp("lsr", [x;y]) when memi y env -> Ans(Sra(x, findi y env))
   | e -> Ans(e)
 
 let f e = Format.eprintf "Constant Folding...@.";

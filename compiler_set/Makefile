@@ -41,7 +41,7 @@ LOR_PPM_PATH=$(LOR_PATH).ppm
 
 MIN_CAML=BISECT_FILE=compiler/coverage compiler/min-caml
 
-INPUT=  -f $(LOR_PATH)
+INPUT=  -f $(SLD_PATH)
 
 architecture:
 	cd assembler; make

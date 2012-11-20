@@ -160,10 +160,9 @@ let rec fv_int_exp = function
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
   | FMul(_,_) | FDiv(_,_)  | Save(_,_) | SAlloc(_)
     -> []
-  | AddI(x,_) | SubI(x,_)
-  | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
+  | AddI(x,_) | SubI(x,_) | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
   | FStI(_,x,_)   -> [x]
-  | Add(x,y) | Sub(x,y)
+  | Add(x,y) | Sub(x,y) | Xor(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y)  -> [x;y]
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2)
     -> x :: y :: remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
