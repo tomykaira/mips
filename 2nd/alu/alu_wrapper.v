@@ -12,7 +12,7 @@ module alu_wrapper (input clk,
    wire [4:0] i_addr;
    wire [31:0] i_data;
    wire i_float;
-   alu alu_inst(.inst(inst_reg_read), .rs(rs_data), .rt(rt_data), .imm(extended_imm),
+   alu alu_inst(.inst(inst), .rs(rs), .rt(rt), .imm(imm),
                 .enable(i_enable), .addr(i_addr), .data(i_data), .float(i_float));
 
    always @ (posedge(clk)) begin

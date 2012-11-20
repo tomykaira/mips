@@ -47,7 +47,7 @@ architecture top of top is
 
       rx_received_data : in std_logic_vector(7 downto 0);
       rx_waiting       : in STD_LOGIC;
-      rx_fifo_pop      : in STD_LOGIC);
+      rx_fifo_pop      : out STD_LOGIC);
   end component;
 
   component sramc is
@@ -97,7 +97,7 @@ architecture top of top is
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
 
   signal tx_send_enable : STD_LOGIC;
-  signal tx_send_ata : std_logic_vector(7 downto 0);
+  signal tx_send_data : std_logic_vector(7 downto 0);
 
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);

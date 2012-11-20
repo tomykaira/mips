@@ -30,7 +30,7 @@ module program_counter(input clk,
       .address(decoded_addr),
       .push_stack(push_stack));
 
-   wire current_kind_including_decoded;
+   wire [1:0] current_kind_including_decoded;
    assign current_kind_including_decoded = keep_pc == 1 ? 2'b00 : current_kind;
 
    program_counter_calculator calculator_inst

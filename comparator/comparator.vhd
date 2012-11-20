@@ -3,15 +3,15 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.std_logic_arith.ALL;
 
 -- comparator
--- Compare two vectors a, b and return LT (a<b) and EQ(a=b)
+-- Compare two vectors rs, rt and return LT (rs<rt) and EQ(rs=rt)
 -- If is_float flag is high, two vectors are treated as 32-bit float values.
 -- If input is int, treated as signed.
 
--- MEMO: another way: return ILT, IEQ, FLT, FEQ for both patterns 
+-- MEMO: another way: return ILT, IEQ, FLT, FEQ for both patterns
 
 -- TEST
 -- def f { |x| x.include?(".") ? [x.to_f].pack('f').unpack('I').first : x.to_i }
--- a      f | b      f | is_float | lt | eq
+-- rs     f | rt     f | is_float | lt | eq
 --        0 |        0 |        0 | 0  | 1
 --        1 |        0 |        0 | 0  | 0
 --       -1 |        0 |        0 | 1  | 0
@@ -42,36 +42,36 @@ USE ieee.std_logic_arith.ALL;
 
 entity comparator is
   port (
-    a, b : in std_logic_vector(31 downto 0);
+    rs, rt : in std_logic_vector(31 downto 0);
     is_float : in STD_LOGIC;
     lt, eq : out STD_LOGIC
 );
 end comparator;
 
 architecture behave of comparator is
-  
+
 begin
 
-  eq <= '1' when a = b else '0';
+  eq <= '1' when rs = rt else '0';
 
-  process (a, b, is_float)
+  process (rs, rt, is_float)
   begin
-    -- a is negative, b is not
-    if a(31) = '1' and b(31) = '0' then
+    -- rs is negative, rt is not
+    if rs(31) = '1' and rt(31) = '0' then
       lt <= '1';
-    -- a is positive, b is negative
-    elsif a(31) = '0' and b(31) = '1' then
+    -- rs is positive, rt is negative
+    elsif rs(31) = '0' and rt(31) = '1' then
       lt <= '0';
     -- float should compared by exponent and mantissa
-    elsif a(31) = '1' and b(31) = '1' and is_float = '1' then
-      if a(30 downto 0) > b(30 downto 0) then
+    elsif rs(31) = '1' and rt(31) = '1' and is_float = '1' then
+      if rs(30 downto 0) > rt(30 downto 0) then
         lt <= '1';
       else
         lt <= '0';
       end if;
     -- neg-neg and pos-pos are both comparable
     else
-      if a < b then
+      if rs < rt then
         lt <= '1';
       else
         lt <= '0';

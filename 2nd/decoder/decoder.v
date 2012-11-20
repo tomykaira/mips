@@ -60,6 +60,7 @@ module decoder(input clk,
 
 
    // stall reg is defined afterword
+   reg stall;
    wire [31:0] inst_or_nop;
    assign inst_or_nop = ((stall == 1
                           || (op == JR && inst_out[31:26] == JR)
@@ -118,21 +119,20 @@ module decoder(input clk,
    end
 
 
-   reg stall;
    reg [6:0] fpu_history[2:0]; // use + float flag + address(5)
    reg [6:0] mem_history[1:0]; // use + float flag + address(5)
 
    always @ (*) begin
       if (op[5:3] == 3'b110)
-         fpu_history[0] = {2'b11,op[15:11]};
+         fpu_history[0] = {2'b11,inst[15:11]};
       else
          fpu_history[0] = 7'b0;
 
       case (op)
-        LDI:  mem_history[0] = {2'b10,op[20:16]};
-        LDR:  mem_history[0] = {2'b10,op[15:11]};
-        FLDI: mem_history[0] = {2'b11,op[20:16]};
-        FLDR: mem_history[0] = {2'b11,op[15:11]};
+        LDI:  mem_history[0] = {2'b10,inst[20:16]};
+        LDR:  mem_history[0] = {2'b10,inst[15:11]};
+        FLDI: mem_history[0] = {2'b11,inst[20:16]};
+        FLDR: mem_history[0] = {2'b11,inst[15:11]};
         default: mem_history[0] = 7'b0;
       endcase
    end
