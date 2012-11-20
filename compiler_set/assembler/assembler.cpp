@@ -34,8 +34,8 @@ uint32_t getAddr(string label, uint32_t base = 0)
 		exit(-1);
 	}
 	uint32_t addr = labels[label];
-	
-//	cerr << "addr of " << label << " is " << addr << endl; 
+
+//	cerr << "addr of " << label << " is " << addr << endl;
 
 	return  addr - base;
 }
@@ -113,39 +113,31 @@ void resolveLabels()
 		{
 			continue;
 		}
-		
+
 		// 命令の種類を取得
 		string name;
 		switch (binaries[i].instType())
-		{ 
+		{
 			// I形式
 			case BEQ:
-		  case BNE:
 			case BLT:
 			case BLE:
 			case FBEQ:
-			case FBNE:
 			case FBLT:
 			case FBLE:
 				if (labelNames.count(i) <= 0)
 				{
 					cout << i << " is not assigned in labelNames.(" << i << ")" << endl;
 					exit(-1);
-				} 
+				}
 				name = labelNames[i];
 				binaries[i].setImm(getAddr(name, i + 0));
 				break;
 			case ADDI:
 			case SUBI:
-			case MULI:
 			case SLLI:
 			case SRAI:
-			case ANDI:
-			case ORI:
-			case NORI:
 			case XORI:
-			case MVLO:
-			case MVHI:
 			case FMVLO:
 			case FMVHI:
 			case STI:
@@ -156,7 +148,7 @@ void resolveLabels()
 				{
 					cout << i << " is not assigned in labelNames.(" << i << ")" << endl;
 					exit(-1);
-				} 
+				}
 				name = labelNames[i];
 				binaries[i].setImm(getAddr(name));
 				break;
@@ -167,7 +159,7 @@ void resolveLabels()
 				{
 					cout << i << " is not assigned in labelNames.(" << i << ")" << endl;
 					exit(-1);
-				} 
+				}
 				name = labelNames[i];
 				binaries[i].setJumpImm(getAddr(name));
 				break;
@@ -185,7 +177,7 @@ void resolveLabels()
 bool assemble(const char* srcPath, const char* dstPath)
 {
 	bool error = false;
-	
+
 	// 入力ファイルを開く
 	srcFile = fopen(srcPath, "r");
 	if (srcFile == NULL)
@@ -256,9 +248,9 @@ int main(int argc, char** argv)
 	}
 
 	cerr << "<assemble> ";
-	
+
 	bool result = assemble(argv[src], argv[dst]);
-	
+
 	if (result)
 	{
 		cerr << argv[src] << " => " << argv[dst] << endl;
@@ -271,5 +263,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
-
