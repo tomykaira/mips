@@ -57,9 +57,9 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), Int(i) when -0x8000 <= i && i <= 0x7FFF ->
       Out.print buf (Out.AddI(x, reg_0, i))
   | NonTail(x), Int(i) ->
-      Out.print buf (Out.AddI(x, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 16), 0));
+      Out.print buf (Out.AddI(x, reg_0, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 16)));
       Out.print buf (Out.SllI(x, x, 16));
-      Out.print buf (Out.AddI(x, Int32.to_int (Int32.logand (Int32.of_int i) 0xFFFFl), 0))
+      Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0xFFFFl)))
 
   | NonTail(x), Float(i) when i = 0.0 ->
       Out.print buf (Out.IMovF(x, reg_0))
