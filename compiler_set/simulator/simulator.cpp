@@ -217,6 +217,9 @@ int simulate(simulation_options * opt)
 	//記録用
 	RH history;
 	history.pointer = 0;
+	//命令→38種
+	uint s[39];
+	int typins = 0;
 
 	int internal_stack[CALL_STACK_SIZE];
 	vector<int> jump_logger;
@@ -388,24 +391,6 @@ int simulate(simulation_options * opt)
 				IRD = IRS - IRT;
 				//if (IRD==0xc86d0fe){step=true;enable_step();break;}					
 				break;
-			case MUL:
-				D_REGISTER(log_fp, "REG: MUL %02X %08X\n", get_rd(inst), IRS * IRT);
-				
-				IRD = IRS * IRT;
-
-				break;
-			case AND:
-				D_REGISTER(log_fp, "REG: AND %02X %08X\n", get_rd(inst), IRS & IRT);
-				IRD = IRS & IRT;
-				break;
-			case OR:
-				D_REGISTER(log_fp, "REG: OR %02X %08X\n", get_rd(inst), IRS | IRT);
-				IRD = IRS | IRT;
-				break;
-			case NOR:
-				D_REGISTER(log_fp, "REG: NOR %02X %08X\n", get_rd(inst), ~(IRS | IRT));
-				IRD = ~(IRS | IRT);
-				break;
 			case XOR:
 				D_REGISTER(log_fp, "REG: XOR %02X %08X\n", get_rd(inst), IRS ^ IRT);
 				IRD = IRS ^ IRT;
@@ -427,10 +412,6 @@ int simulate(simulation_options * opt)
 				// 	printf("sub\t%d\n", IRT);
 				// }
 				break;
-			case MULI:
-				D_REGISTER(log_fp, "REG: MULI %02X %08X\n", get_rt(inst), IRS * IMM);
-				IRT = IRS * IMM;
-				break;
 			case SLLI:
 				D_REGISTER(log_fp, "REG: SLLI %02X %08X\n", get_rt(inst), IRS << IMM);
 				IRT = IRS << IMM;
@@ -438,18 +419,6 @@ int simulate(simulation_options * opt)
 			case SRAI:
 				D_REGISTER(log_fp, "REG: SRAI %02X %08X\n", get_rt(inst), IRS >> IMM);
 				IRT = IRS >> IMM;
-				break;
-			case ANDI:
-				D_REGISTER(log_fp, "REG: ANDI %02X %08X\n", get_rt(inst), IRS & IMM);
-				IRT = IRS & IMM;
-				break;
-			case ORI:
-				D_REGISTER(log_fp, "REG: ORI %02X %08X\n", get_rt(inst), IRS | IMM);
-				IRT = IRS | IMM;
-				break;
-			case NORI:
-				D_REGISTER(log_fp, "REG: NORI %02X %08X\n", get_rt(inst), ~(IRS | IMM));
-				IRT = ~(IRS | IMM);
 				break;
 			case XORI:
 				D_REGISTER(log_fp, "REG: XORI %02X %08X\n", get_rt(inst), IRS ^ IMM);
@@ -479,6 +448,9 @@ int simulate(simulation_options * opt)
 				D_REGISTER(log_fp, "REG: FSQRT f%02X %08X\n", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
 				break;
+
+				/*
+				  復活するかも?
 			case FMOV:
 				D_REGISTER(log_fp, "REG: FMOV f%02X %08X\n", get_rd(inst), FRS);
 				FRD = FRS;
@@ -487,6 +459,8 @@ int simulate(simulation_options * opt)
 				D_REGISTER(log_fp, "REG: FNEG f%02X %08X\n", get_rd(inst), myfneg(FRS));
 				FRD = myfneg(FRS);
 				break;
+				*/
+
 			case IMOVF:
 				D_REGISTER(log_fp, "REG: IMOVF f%02X %08X\n", get_rt(inst), IRS);
 				memcpy(&FRT, &IRS, 4);
@@ -507,9 +481,11 @@ int simulate(simulation_options * opt)
 				D_REGISTER(log_fp, "REG: FMVLO f%02X %08X\n", get_rt(inst), (FRT & 0xffff0000) | (IMM & 0xffff));
 				FRT = (FRT & 0xffff0000) | (IMM & 0xffff);
 				break;
+
+				//下位16ビットに0をつめる
 			case FMVHI:
-				D_REGISTER(log_fp, "REG: FMVHI f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
-				FRT = ((uint32_t)IMM << 16) | (FRT & 0xffff);
+				D_REGISTER(log_fp, "REG: FMVHI f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0x0000));
+				FRT = ((uint32_t)IMM << 16) | (FRT & 0x0000);
 				break;
 			case J:
 				jump_logger.push_back(pc);
@@ -525,9 +501,6 @@ int simulate(simulation_options * opt)
 			case BLE:
 				if (IRS <= IRT) pc += IMM + (-1);
 				break;
-			case BNE:
-				if (IRS != IRT) pc += IMM + (-1);
-				break;
 			case FBEQ:
 				if (asF(FRS) == asF(FRT)) pc += IMM + (-1);
 				break;
@@ -536,9 +509,6 @@ int simulate(simulation_options * opt)
 				break;
 			case FBLE:
 				if (asF(FRS) <= asF(FRT)) pc += IMM + (-1);
-				break;
-			case FBNE:
-				if (asF(FRS) != asF(FRT)) pc += IMM + (-1);
 				break;
 			case JR:
 				jump_logger.push_back(pc);

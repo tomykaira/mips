@@ -120,11 +120,9 @@ void resolveLabels()
 		{ 
 			// I形式
 			case BEQ:
-		  case BNE:
-			case BLT:
+		case BLT:
 			case BLE:
 			case FBEQ:
-			case FBNE:
 			case FBLT:
 			case FBLE:
 				if (labelNames.count(i) <= 0)
@@ -137,12 +135,8 @@ void resolveLabels()
 				break;
 			case ADDI:
 			case SUBI:
-			case MULI:
 			case SLLI:
 			case SRAI:
-			case ANDI:
-			case ORI:
-			case NORI:
 			case XORI:
 			case MVLO:
 			case MVHI:
