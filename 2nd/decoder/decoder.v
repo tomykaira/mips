@@ -72,7 +72,7 @@ module decoder(input clk,
 
 
    wire keep_inst;
-   assign keep_inst = (op == INPUTB || op == HALT ? 1'b1 : 1'b0);
+   assign keep_inst = ((op == INPUTB && rx_wait == 1'b1) || op == HALT ? 1'b1 : 1'b0);
    assign keep_pc   = (stall == 1 || keep_inst == 1) ? 1'b1 : 1'b0;
 
 

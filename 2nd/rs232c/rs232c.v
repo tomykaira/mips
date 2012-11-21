@@ -24,16 +24,21 @@ module rs232c(input clk,
    assign op = inst[31:26];
    assign float = 1'b0;
 
+   reg prev_rx_wait;
+
    always @ (posedge(clk)) begin
-      if (op == INPUTB && rx_wait == 0) begin
+      prev_rx_wait <= rx_wait;
+      if (rx_wait == 0)
+         rx_pop <= 1'b1;
+      else
+         rx_pop <= 0;
+
+      if (op == INPUTB && prev_rx_wait == 0) begin
          enable <= 1'b1;
          addr <= inst[20:16];
          data <= {24'b0,received_data};
-         rx_pop <= 1'b1;
-
       end else begin
          enable <= 0;
-         rx_pop <= 0;
       end
    end
 
