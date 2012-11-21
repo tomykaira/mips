@@ -99,11 +99,10 @@ begin  -- behave
         assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
       end if;
 
+      sram_data <= mem(conv_integer(internal_address));
 
       if previous_XWA = '0' then
         mem(conv_integer(addr1)) <= write_data;
-      else
-        sram_data <= mem(conv_integer(internal_address));
       end if;
     end if;
   end process sram_mock;
