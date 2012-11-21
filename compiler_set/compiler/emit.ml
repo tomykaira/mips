@@ -316,6 +316,7 @@ let h { name = Id.L(x); args = _; fargs = _; body = e; ret = t } =
 
 let f (Prog(fundefs, e)) =
   Format.eprintf "generating assembly...@.";
+  Out.print buf Out.Nop;
   Out.print buf (Out.J "min_caml_start");
   List.iter (fun fundef -> h fundef) fundefs;
   Out.print buf (Out.Label "min_caml_start");
