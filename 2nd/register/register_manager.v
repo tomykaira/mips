@@ -9,21 +9,6 @@ module register_manager (input clk, input reset,
                          input [31:0]  write_data_misc, write_data_alu, write_data_mem, write_data_fpu,
                          input         write_float_misc, write_float_alu, write_float_mem, write_float_fpu);
 
-   // debug
-   always @ (posedge(clk)) begin
-      if (write_enable_fpu == 1)
-        $display("REG: %d %H", write_addr_fpu, write_data_fpu);
-
-      if (write_enable_mem == 1)
-        $display("REG: %d %H", write_addr_mem, write_data_mem);
-
-      if (write_enable_alu == 1)
-        $display("REG: %d %H", write_addr_alu, write_data_alu);
-
-      if (write_enable_misc == 1)
-        $display("REG: %d %H", write_addr_misc, write_data_misc);
-   end
-
    // array x array does not works good
    wire        write_enable_0;
    wire [4:0]  write_addr_0;
