@@ -23,6 +23,13 @@ module sram_manager (input clk,
                      output [31:0]     data,
                      output            float);
 
+   parameter LDI  = 6'b101000;
+   parameter STI  = 6'b101001;
+   parameter LDR  = 6'b101100;
+   parameter FLDI = 6'b101010;
+   parameter FSTI = 6'b101011;
+   parameter FLDR = 6'b101110;
+
    wire [5:0] op;
    reg [4:0] current_addr;
    reg current_enable;
@@ -34,7 +41,7 @@ module sram_manager (input clk,
    assign op = inst[31:26];
 
    // memory config
-   assign memory_write_enable = op[0];
+   assign memory_write_enable = (op == STI || op == FSTI) ? 1'b1 : 1'b0;
    assign memory_write = rt;
 
    always @ (*) begin
@@ -58,10 +65,10 @@ module sram_manager (input clk,
    always @ (*) begin
       current_enable <= 1;
       case (op)
-        6'b101000: current_addr <= inst[20:16];
-        6'b101100: current_addr <= inst[15:11];
-        6'b101010: current_addr <= inst[20:16];
-        6'b101110: current_addr <= inst[15:11];
+        LDI: current_addr <= inst[20:16];
+        LDR: current_addr <= inst[15:11];
+        FLDI: current_addr <= inst[20:16];
+        FLDR: current_addr <= inst[15:11];
         default: begin
            current_addr <= 0;
            current_enable <= 0;

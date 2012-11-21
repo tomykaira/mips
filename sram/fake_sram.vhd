@@ -51,7 +51,6 @@ architecture behave of fake_sram is
 
   signal sram_data : std_logic_vector(31 downto 0);
 
-  signal read1 : std_logic_vector(31 downto 0);
   signal addr1 : std_logic_vector(19 downto 0);
 
   signal clk : STD_LOGIC;
@@ -98,13 +97,13 @@ begin  -- behave
       if XWA = '0' then
         -- ZA is always connected. problem is in when it is writing
         assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
-      else
-        read1     <= mem(conv_integer(internal_address));
       end if;
-      sram_data <= read1;
+
 
       if previous_XWA = '0' then
         mem(conv_integer(addr1)) <= write_data;
+      else
+        sram_data <= mem(conv_integer(addr1));
       end if;
     end if;
   end process sram_mock;
