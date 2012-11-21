@@ -13,8 +13,8 @@ CREATE_ARRAY_LOOP:
 	blt  $r2, $r5, CREATE_ARRAY_CONTINUE
 	return
 CREATE_ARRAY_CONTINUE:
-	sti $r4, $r2, 0	
-	addi $r2, $r2, 1	
+	sti $r4, $r2, 0
+	addi $r2, $r2, 1
 	j CREATE_ARRAY_LOOP
 
 # * create_float_array
@@ -46,8 +46,8 @@ min_caml_float_tuple_array:
 	j	min_caml_float_tuple_array
 FLOAT_TUPLE_ARRAY_RETURN:
 	return
-	
-	
+
+
 # * floor		$f1 + MAGICF - MAGICF
 min_caml_floor:
 	fadd $f2, $f1, $f0
@@ -97,7 +97,7 @@ FLOOR_NEGATIVE_PRE_RET:
 FLOOR_NEGATIVE_RET:
 	fsub $f1, $f0, $f1
 	return
-	
+
 min_caml_ceil:
 	fsub $f1, $f0, $f1
 	call min_caml_floor
@@ -112,11 +112,11 @@ ITOF_MAIN:
 	fmvhi $f2, 19200
 	fmvlo $f2, 0
 	# $r4 <- 0x4b000000
-	mvhi $r4, 19200
-	mvlo $r4, 0
+	addi $r4, $r0, 19200
+	slli $r4, $r4, 16
 	# $r5 <- 0x00800000
-	mvhi $r5, 128
-	mvlo $r5, 0
+	addi $r5, $r0, 128
+	slli $r5, $r5, 16
 	blt $r3, $r5, ITOF_SMALL
 ITOF_BIG:
 	# $f3 <- 0.0
@@ -141,7 +141,7 @@ ITOF_SMALL:
 ITOF_NEGATIVE_MAIN:
 	sub $r3, $r0, $r3
 	call ITOF_MAIN
-	fsub $f1, $f0, $f1 
+	fsub $f1, $f0, $f1
 	return
 
 # * int_of_float
@@ -153,12 +153,12 @@ FTOI_POSITIVE_MAIN:
 	fmvhi $f2, 19200
 	fmvlo $f2, 0
 	# $r4 <- 0x4b000000
-	mvhi $r4, 19200
-	mvlo $r4, 0
+	addi $r4, $r0, 19200
+	slli $r4, $r4, 16
 	fblt $f1, $f2, FTOI_SMALL		# if (MAGICF <= $f1) goto FTOI_BIG
 	# $r5 <- 0x00800000
-	mvhi $r5, 128
-	mvlo $r5, 0
+	addi $r5, $r0, 128
+	slli $r5, $r5, 16
 	mov $r3, $r0
 FTOI_LOOP:
 	fsub $f1, $f1, $f2
@@ -181,11 +181,11 @@ FTOI_NEGATIVE_MAIN:
 	call FTOI_POSITIVE_MAIN
 	sub $r3, $r0, $r3
 	return
-	
+
 # * truncate
 min_caml_truncate:
 	j min_caml_int_of_float
-	
+
 # ビッグエンディアン
 min_caml_read_int:
 	add $r3, $r0, $r0
@@ -323,7 +323,7 @@ exp_skip:
 	imovf $f4, $r3
 	fble $f0, $f4, exp_cont
 	fsub $f4, $f0, $f4
-exp_cont:	
+exp_cont:
 	fmul $f1, $f3, $f4
 	return
 
@@ -364,7 +364,7 @@ LOG_LOOP_GT_E:
 	fblt $f7, $f1, LOG_LOOP_GT_E
 
 LOG_LOOP_GT_E_END:
-	
+
 	# x = $f1, a = $f3
 	fmvhi $f3, 15438
 	fmvlo $f3, 18672
@@ -428,7 +428,7 @@ min_caml_cosh:
 	fmul $f1, $f2, $f4
 	return
 
-	
+
 min_caml_lsr:
 	ble	$r4, $r0, lsr_return
 	srai	$r3, $r3, 1
@@ -436,9 +436,9 @@ min_caml_lsr:
 	j	min_caml_lsr
 lsr_return:
 	return
-	
 
-#mul_sub for min_caml_mul 
+
+#mul_sub for min_caml_mul
 mul_sub:
 	beq	$r4, $r0, mul_beq_taken.1325
 	nop
@@ -754,9 +754,9 @@ min_caml_mul:
 MUL_GE_ZERO:
 	j	mul_sub
 
-	
+
 #min_caml_div_binary_search
-min_caml_div_binary_search:	
+min_caml_div_binary_search:
 	sti	$r3, $r1, 0
 	add	$r3, $r5, $r6
 	srai	$r3, $r3, 1
@@ -1197,7 +1197,7 @@ div_ble_taken.1899:
 	addi	$r3, $r7, 0
 	return
 
-	
+
 #div_sub for min_caml_div
 div_sub:
 	sti	$r3, $r1, 0
@@ -1591,15 +1591,15 @@ div_ble_taken.2009:
 	addi	$r3, $r7, 0
 	j	div_sub
 
-	
+
 # $r3: devidee $r4: devider
 min_caml_div:
 	beq $r4, $r0, zero_div
 	# when a is larger than 0x40000000, it is possible to overflow
 	# round answer
 	# 0x3fff ffff
-	mvhi $r5, 16384
-	mvlo $r5, 0
+	addi $r5, $r0, 16384
+	slli $r5, $r5, 16
 	blt $r3, $r5, start_div
 	srai $r3, $r3, 1
 	srai $r4, $r4, 1
@@ -1637,4 +1637,3 @@ ans_direct:
 zero_div:
 	addi $r3, $r0, 0
 	return
-
