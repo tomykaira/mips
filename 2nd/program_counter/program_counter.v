@@ -46,7 +46,7 @@ module program_counter(input clk,
       .next_pc(pc),
       .pop_stack(pop_stack));
 
-   call_stack stack_inst (.clk(clk), .do_push(push_stack), .do_pop(pop_stack), .current_pc(pc_clk),
+   call_stack stack_inst (.clk(clk), .do_push(push_stack), .do_pop(pop_stack), .current_pc(pc_clk+1),
                           .stack_top(stack_top));
 
    flip_reset #(32) pc_ff (.clk(clk), .reset(reset), .d(pc), .q(pc_clk));
