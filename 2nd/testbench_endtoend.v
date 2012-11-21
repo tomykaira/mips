@@ -22,7 +22,7 @@ module testbench_endtoend();
    fake_sram fake (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA));
-   
+
    top dut (.ZD(ZD), .ZDP(ZDP), .ZA(ZA), .XE1(XE1), .E2A(E2A), .XE3(XE3),
             .XZBE(XZBE), .XGA(XGA), .XWA(XWA), .XZCKE(XZCKE), .ZCLKMA(ZCLKMA),
             .ADVA(ADVA), .XFT(XFT), .XLBO(XLBO), .ZZA(ZZA),
@@ -83,12 +83,12 @@ module testbench_endtoend();
       #300;
 
       // "10\0"
-      send(0);
-      send(0);
-      send(0);
-      send(10);
+      send(1);
+      send(2);
+      send(3);
+      send(4);
    end
-  
+
    // geenrate clock to sequence tests
    // 14 ns / clock is realistic
    always begin
