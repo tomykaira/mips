@@ -159,15 +159,16 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 	simulator/simulator $(INPUT) $*.bin
 
 # .bin, .sが存在しててもビルドした上で実行する
+# tee が なんかおかしい
 %.run_f:
 	make $*.bin_f
-	simulator/simulator $*.bin | tee /tmp/`basename $*`.out && \
-		ocaml $*.ml | tee /tmp/`basename $*`.ans && \
+	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
+		ocaml $*.ml > /tmp/`basename $*`.ans && \
 		diff /tmp/`basename $*`.out /tmp/`basename $*`.ans
 
 %.run_cmp:
 	make $*.bin_f
-	simulator/simulator $*.bin | tee /tmp/`basename $*`.out && \
+	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
 %.run_large:
@@ -186,7 +187,7 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 
 %.ans:
 	make $*.bin_f
-	simulator/simulator $*.bin 2>/dev/null | tee $*.ans
+	simulator/simulator $*.bin 2>/dev/null > $*.ans
 	ocaml $*.ml
 
 # .bin, .sが存在しないときのみビルド
