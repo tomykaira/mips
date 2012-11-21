@@ -103,7 +103,7 @@ begin  -- behave
       if previous_XWA = '0' then
         mem(conv_integer(addr1)) <= write_data;
       else
-        sram_data <= mem(conv_integer(addr1));
+        sram_data <= mem(conv_integer(internal_address));
       end if;
     end if;
   end process sram_mock;
