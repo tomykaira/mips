@@ -23,6 +23,8 @@ module decoder(input clk,
    parameter CALLR  = 6'b111011;
    parameter INPUTB = 6'b111101;
 
+   parameter HALT   = 6'b111111;
+
    wire [5:0] op;
    assign op = inst[31:26];
 
@@ -70,8 +72,8 @@ module decoder(input clk,
 
 
    wire keep_inst;
-   assign keep_inst = (op == INPUTB ? 1'b1 : 1'b0);
-   FD stall_ff (.C(clk), .D((stall == 1 || keep_inst == 1) ? 1'b1 : 1'b0), .Q(keep_pc));
+   assign keep_inst = (op == INPUTB || op == HALT ? 1'b1 : 1'b0);
+   assign keep_pc   = (stall == 1 || keep_inst == 1) ? 1'b1 : 1'b0;
 
 
    always @ (posedge(clk)) begin

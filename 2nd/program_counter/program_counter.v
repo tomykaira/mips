@@ -10,7 +10,7 @@ module program_counter(input clk,
                        output [31:0] pc);
 
    wire [1:0] current_kind;
-   wire [31:0] next_pc;
+   wire [31:0] pc_clk;
 
    wire push_stack, pop_stack;
    wire [31:0] stack_top;
@@ -23,7 +23,7 @@ module program_counter(input clk,
    wire [31:0] decoded_addr;
 
    program_counter_decoder decoder_inst
-     (.inst(inst), .current_pc(pc),
+     (.inst(inst), .current_pc(pc_clk),
       .kind(current_kind),
       .is_jump_reg(current_is_jump_reg),
       .is_branch(current_is_branch),
@@ -34,7 +34,7 @@ module program_counter(input clk,
    assign current_kind_including_decoded = keep_pc == 1 ? 2'b00 : current_kind;
 
    program_counter_calculator calculator_inst
-     (.current_pc(pc),
+     (.current_pc(pc_clk),
       .current_kind(current_kind_including_decoded),
       .decoded_addr(decoded_addr),
       .prev_is_jump_reg(is_jump_reg[1]),
@@ -43,13 +43,13 @@ module program_counter(input clk,
       .prev_prev_taken(branch_taken),
       .prev_prev_address(branch_addr[2]),
       .stack_top(stack_top),
-      .next_pc(next_pc),
+      .next_pc(pc),
       .pop_stack(pop_stack));
 
-   call_stack stack_inst (.clk(clk), .do_push(push_stack), .do_pop(pop_stack), .current_pc(pc),
+   call_stack stack_inst (.clk(clk), .do_push(push_stack), .do_pop(pop_stack), .current_pc(pc_clk),
                           .stack_top(stack_top));
 
-   flip_reset #(32) pc_ff (.clk(clk), .reset(reset), .d(next_pc), .q(pc));
+   flip_reset #(32) pc_ff (.clk(clk), .reset(reset), .d(pc), .q(pc_clk));
 
    always @ (posedge(clk)) begin
       is_jump_reg[1] <= current_is_jump_reg;
