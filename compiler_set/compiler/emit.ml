@@ -267,6 +267,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
 and g'_tail_if e1 e2 b b_taken =
   let stackset_back = !stackset in
   Out.print buf Out.Nop;
+  Out.print buf Out.Nop;
   g (Tail, e2);
   Out.print buf (Out.Label b_taken);
   stackset := stackset_back;
@@ -274,6 +275,7 @@ and g'_tail_if e1 e2 b b_taken =
 and g'_non_tail_if dest e1 e2 b b_taken =
   let b_cont = Id.genid (b ^ "_cont") in
   let stackset_back = !stackset in
+  Out.print buf Out.Nop;
   Out.print buf Out.Nop;
   g (dest, e2);
   let stackset1 = !stackset in
