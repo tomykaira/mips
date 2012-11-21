@@ -48,10 +48,13 @@ module mimic(input clk,
    wire        rs_float, rt_float;
    wire [15:0] raw_imm;
    wire        cpu_keep_pc;
+   wire        cpu_rx_waiting;
+
+   assign cpu_rx_waiting = in_execution == 1 ? rx_waiting : 1'b1;
    decoder decoder_inst(.clk(clk),
                         .reset(reset),
                         .inst(inst_fetch),
-                        .rx_wait(rx_waiting),
+                        .rx_wait(cpu_rx_waiting),
                         .inst_out(inst_decode),
                         .rs_addr(rs_addr),
                         .rt_addr(rt_addr),
@@ -129,12 +132,10 @@ module mimic(input clk,
    rs232c rs232c_inst
      (.clk(clk), .inst(inst_reg_read), .rt(rt_data),
       .push_send_data(tx_send_enable), .send_data(tx_send_data),
-      .rx_wait(rx_waiting), .received_data(rx_received_data), .rx_pop(cpu_rx_pop),
+      .rx_wait(cpu_rx_waiting), .received_data(rx_received_data), .rx_pop(cpu_rx_pop),
       .enable(write_enable_misc), .addr(write_addr_misc), .data(write_data_misc), .float(write_float_misc));
 
-   wire branch_taken_no_clock;
    branch_condition_checker branch_condition_checker_inst
-      (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken_no_clock));
-   FD branch_taken_ff(.C(clk), .D(branch_taken_no_clock), .Q(branch_taken));
+      (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));
 
 endmodule
