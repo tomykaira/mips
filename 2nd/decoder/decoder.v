@@ -49,8 +49,8 @@ module decoder(input clk,
          i_rs_float <= 1'b1;
          i_rt_float <= 1'b1;
       end else if (op == 6'b101011) begin // fsti
-         i_rs_float <= 1'b1;
-         i_rt_float <= 1'b0;
+         i_rs_float <= 1'b0;
+         i_rt_float <= 1'b1;
       end else begin
          i_rs_float <= 1'b0;
          i_rt_float <= 1'b0;
