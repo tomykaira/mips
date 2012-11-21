@@ -165,9 +165,8 @@ module register_manager (input clk, input reset,
       rt_float_clk <= rt_float;
    end
 
-   // TODO: from here, instantiate forwarding and pass test
    register_forwarding rs_forwarding
-     (.addr(rs_addr_clk), .data(rs_data_clk), .float(rs_float),
+     (.addr(rs_addr_clk), .data(rs_data_clk), .float(rs_float_clk),
       .write_enable_misc(write_enable_misc), .write_enable_alu(write_enable_alu), .write_enable_mem(write_enable_mem), .write_enable_fpu(write_enable_fpu),
       .write_addr_misc(write_addr_misc), .write_addr_alu(write_addr_alu), .write_addr_mem(write_addr_mem), .write_addr_fpu(write_addr_fpu),
       .write_data_misc(write_data_misc), .write_data_alu(write_data_alu), .write_data_mem(write_data_mem), .write_data_fpu(write_data_fpu),
@@ -175,7 +174,7 @@ module register_manager (input clk, input reset,
       .forward_data(rs_data));
 
    register_forwarding rt_forwarding
-     (.addr(rt_addr_clk), .data(rt_data_clk), .float(rt_float),
+     (.addr(rt_addr_clk), .data(rt_data_clk), .float(rt_float_clk),
       .write_enable_misc(write_enable_misc), .write_enable_alu(write_enable_alu), .write_enable_mem(write_enable_mem), .write_enable_fpu(write_enable_fpu),
       .write_addr_misc(write_addr_misc), .write_addr_alu(write_addr_alu), .write_addr_mem(write_addr_mem), .write_addr_fpu(write_addr_fpu),
       .write_data_misc(write_data_misc), .write_data_alu(write_data_alu), .write_data_mem(write_data_mem), .write_data_fpu(write_data_fpu),
