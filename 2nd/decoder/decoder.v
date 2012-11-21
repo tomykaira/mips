@@ -61,14 +61,18 @@ module decoder(input clk,
    FD rt_float_ff (.C(clk), .D(i_rt_float), .Q(rt_float));
 
 
-   // stall reg is defined afterword
    reg stall;
    wire [5:0] prev_op;
    assign inst_out = ((stall == 1
                        || (op == JR && prev_op == JR)
                        || (op == CALLR && prev_op == CALLR))
                       ? 32'b0 : inst);
-   flip_reset #(.width(6)) inst_ff(.clk(clk), .reset(reset), .D(inst[31:26]), .Q(prev_op));
+
+   // currently active op
+   // if once callR or JR is sent, it is active until next inst is loaded
+   wire [5:0] active_op;
+   assign active_op = stall == 1 ? 6'b0 : inst[31:26];
+   flip_reset #(.width(6)) active_op_ff(.clk(clk), .reset(reset), .D(active_op), .Q(prev_op));
 
 
    wire keep_inst;
