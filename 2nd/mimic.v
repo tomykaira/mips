@@ -43,7 +43,7 @@ module mimic(input clk,
 
    ////////////////////////////////////////////////////////////////
    // decode
-   wire [31:0] inst_decode;
+   wire [31:0] raw_inst_decode, inst_decode;
    wire [4:0]  rs_addr, rt_addr;
    wire        rs_float, rt_float;
    wire [15:0] raw_imm;
@@ -55,7 +55,7 @@ module mimic(input clk,
                         .reset(reset),
                         .inst(inst_fetch),
                         .rx_wait(cpu_rx_waiting),
-                        .inst_out(inst_decode),
+                        .inst_out(raw_inst_decode),
                         .rs_addr(rs_addr),
                         .rt_addr(rt_addr),
                         .rs_float(rs_float),
@@ -63,12 +63,14 @@ module mimic(input clk,
                         .raw_imm(raw_imm),
                         .keep_pc(cpu_keep_pc));
 
+   flip_reset inst_decode_ff(.clk(clk), .reset(reset), .d(raw_inst_decode), .q(inst_decode));
+
    wire [31:0] rs_data, rt_data;
    wire branch_taken;
    wire keep_pc;
    assign keep_pc = in_execution == 0 || cpu_keep_pc == 1 ? 1'b1 : 1'b0;
    program_counter pc_inst
-     (.clk(clk), .reset(reset), .inst(inst_fetch), .rs(rs_data), .keep_pc(keep_pc), .branch_taken(branch_taken),
+     (.clk(clk), .reset(reset), .inst(raw_inst_decode), .rs(rs_data), .keep_pc(keep_pc), .branch_taken(branch_taken),
       .pc(pc));
 
 

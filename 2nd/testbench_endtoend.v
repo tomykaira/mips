@@ -33,7 +33,7 @@ module testbench_endtoend();
    i232c #(.wtime(16'h0006)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
 
    // set by instruction loader
-   parameter MEM_SIZE=6;
+   parameter MEM_SIZE=11;
    parameter RS232C_DELAY=84;
    reg [31:0] RAM[MEM_SIZE-1:0];
 

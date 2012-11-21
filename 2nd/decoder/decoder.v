@@ -63,16 +63,16 @@ module decoder(input clk,
 
    // stall reg is defined afterword
    reg stall;
-   wire [31:0] inst_or_nop;
-   assign inst_or_nop = ((stall == 1
-                          || (op == JR && inst_out[31:26] == JR)
-                          || (op == CALLR && inst_out[31:26] == CALLR))
-                         ? 32'b0 : inst);
-   flip_reset #(32) inst_ff (.clk(clk), .reset(reset), .d(inst_or_nop), .q(inst_out));
+   wire [31:0] prev_inst;
+   assign inst_out = ((stall == 1
+                       || (op == JR && prev_inst[31:26] == JR)
+                       || (op == CALLR && prev_inst[31:26] == CALLR))
+                      ? 32'b0 : inst);
+   flip_reset inst_ff(.clk(clk), .reset(reset), .D(inst), .Q(prev_inst));
 
 
    wire keep_inst;
-   assign keep_inst = ((op == INPUTB && rx_wait == 1'b1) || op == HALT ? 1'b1 : 1'b0);
+   assign keep_inst = ((op == INPUTB && rx_wait == 1'b1) || op == HALT || op == CALLR || op == JR ? 1'b1 : 1'b0);
    assign keep_pc   = (stall == 1 || keep_inst == 1) ? 1'b1 : 1'b0;
 
 

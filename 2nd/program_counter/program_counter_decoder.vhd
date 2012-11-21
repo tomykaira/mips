@@ -7,6 +7,9 @@ use IEEE.STD_LOGIC_ARITH.all;
 -- It handle JUMP, JUMP_REG, CALL, CALL_REG, RETURN, BRANCHES, and
 -- parse them into internal representation.
 
+-- This send 0(current) for jr and callr, but it is not important.
+-- keep for register call is decided by decoder.
+
 -- TEST
 -- alias J     11100000000000000000000000110101 # jump to 53
 -- alias JR    11100100010000000000000000000000 # jump to $r2

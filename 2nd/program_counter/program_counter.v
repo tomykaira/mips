@@ -30,6 +30,8 @@ module program_counter(input clk,
       .address(decoded_addr),
       .push_stack(push_stack));
 
+   // current_kind is 0(current) for jr and callr, but it is not important.
+   // keep for register call is decided by decoder.
    wire [1:0] current_kind_including_decoded;
    assign current_kind_including_decoded = keep_pc == 1 ? 2'b00 : current_kind;
 
@@ -52,7 +54,8 @@ module program_counter(input clk,
    flip_reset #(32) pc_ff (.clk(clk), .reset(reset), .d(pc), .q(pc_clk));
 
    always @ (posedge(clk)) begin
-      is_jump_reg[1] <= current_is_jump_reg;
+      is_jump_reg[1] <= is_jump_reg[0];
+      is_jump_reg[0] <= current_is_jump_reg;
 
       is_branch[1] <= current_is_branch;
       is_branch[2] <= is_branch[1];
