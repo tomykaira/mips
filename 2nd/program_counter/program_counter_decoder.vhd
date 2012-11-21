@@ -44,6 +44,7 @@ end program_counter_decoder;
 architecture behave of program_counter_decoder is
   signal op : std_logic_vector(5 downto 0);
   signal is_jump, i_is_jump_reg, i_is_branch : STD_LOGIC;
+  signal imm : std_logic_vector(31 downto 0);
 begin
 
   is_branch <= i_is_branch;
@@ -60,17 +61,20 @@ begin
   i_is_branch <= '1' when op(5 downto 3) = "100" else '0';
   push_stack <= '1' when op = "111010" or op = "111011" else '0';
 
-  process (inst, current_pc, i_is_branch, is_jump)
-    variable imm : std_logic_vector(31 downto 0);
+  process (inst)
+  begin
+    imm <= (others => inst(15));
+    imm(15 downto 0) <= inst(15 downto 0);
+  end process;
+
+  process (inst, imm, current_pc, i_is_branch, is_jump)
   begin
     if is_jump = '1' then
       address <= current_pc(31 downto 26) & inst(25 downto 0);
     elsif i_is_branch = '1' then
-      imm := (others => inst(15));
-      imm(15 downto 0) := inst(15 downto 0);
       address <= current_pc + imm;
     else
-      address <= (others => 'Z');
+      address <= (others => 'X');
     end if;
   end process;
 end behave;

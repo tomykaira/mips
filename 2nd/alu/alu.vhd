@@ -91,6 +91,8 @@ begin  -- behave
         other <= imm;
       when others =>
         enable <= '0';
+        addr   <= (others  => '0');
+        other  <= (others => '0');
     end case;
   end process;
 
@@ -125,7 +127,7 @@ begin  -- behave
       when FMVHI =>
         out_buf <= imm(15 downto 0) & x"0000";
       when others =>
-        out_buf <= (others => 'Z');
+        out_buf <= (others => 'X');
     end case;
   end process;
 

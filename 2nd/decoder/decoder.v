@@ -63,12 +63,12 @@ module decoder(input clk,
 
    // stall reg is defined afterword
    reg stall;
-   wire [31:0] prev_inst;
+   wire [5:0] prev_op;
    assign inst_out = ((stall == 1
-                       || (op == JR && prev_inst[31:26] == JR)
-                       || (op == CALLR && prev_inst[31:26] == CALLR))
+                       || (op == JR && prev_op == JR)
+                       || (op == CALLR && prev_op == CALLR))
                       ? 32'b0 : inst);
-   flip_reset inst_ff(.clk(clk), .reset(reset), .D(inst), .Q(prev_inst));
+   flip_reset #(.width(6)) inst_ff(.clk(clk), .reset(reset), .D(inst[31:26]), .Q(prev_op));
 
 
    wire keep_inst;
@@ -146,10 +146,10 @@ module decoder(input clk,
       mem_history[1] <= mem_history[0];
    end
 
-   reg [6:0] rs_code, rt_code;
-   always @ (fpu_history[0], fpu_history[1], fpu_history[2], mem_history[0], mem_history[1], i_rs_float, i_rs_addr, i_rt_float, i_rt_addr, use_rs, use_rt) begin
-      rs_code = {1'b1, i_rs_float, i_rs_addr};
-      rt_code = {1'b1, i_rt_float, i_rt_addr};
+   wire [6:0] rs_code, rt_code;
+   assign rs_code = {use_rs, i_rs_float, i_rs_addr};
+   assign rt_code = {use_rt, i_rt_float, i_rt_addr};
+   always @ (fpu_history[0], fpu_history[1], fpu_history[2], mem_history[0], mem_history[1], rs_code, rt_code, use_rs, use_rt) begin
       if (use_rs == 1
           && (fpu_history[1] == rs_code
               || fpu_history[2] == rs_code

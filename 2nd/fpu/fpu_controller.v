@@ -75,7 +75,8 @@ module fpu_controller (input clk,
       endcase
    end
 
-   always @ (source[0], source[1], source[2]) begin
+   always @ (source[0], source[1], source[2], fadd_data, fmul_data, finv_data, fsqrt_data) begin
+
       case (source[0])
         0: data <= fadd_data;
         1: data <= fmul_data;

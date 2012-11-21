@@ -183,17 +183,21 @@ module register_manager (input clk, input reset,
 
    always @ (*) begin
       if (write_float_0 == 1) begin
+         int_write_enable <= 0;
+         int_write_addr <= 5'b0;
+         int_write_data <= 32'b0;
+
          float_write_enable <= write_enable_0;
          float_write_addr <= write_addr_0;
          float_write_data <= write_data_0;
-
-         int_write_enable <= 0;
       end else begin
          int_write_enable <= write_enable_0;
          int_write_addr <= write_addr_0;
          int_write_data <= write_data_0;
 
          float_write_enable <= 0;
+         float_write_addr <= 5'b0;
+         float_write_data <= 32'b0;
       end
    end
 
