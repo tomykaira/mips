@@ -267,6 +267,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
 and g'_tail_if e1 e2 b b_taken =
   let stackset_back = !stackset in
   Out.print buf Out.Nop;
+  Out.print buf Out.Nop;
   g (Tail, e2);
   Out.print buf (Out.Label b_taken);
   stackset := stackset_back;
@@ -274,6 +275,7 @@ and g'_tail_if e1 e2 b b_taken =
 and g'_non_tail_if dest e1 e2 b b_taken =
   let b_cont = Id.genid (b ^ "_cont") in
   let stackset_back = !stackset in
+  Out.print buf Out.Nop;
   Out.print buf Out.Nop;
   g (dest, e2);
   let stackset1 = !stackset in
@@ -314,12 +316,14 @@ let h { name = Id.L(x); args = _; fargs = _; body = e; ret = t } =
 
 let f (Prog(fundefs, e)) =
   Format.eprintf "generating assembly...@.";
+  Out.print buf Out.Nop;
   Out.print buf (Out.J "min_caml_start");
   List.iter (fun fundef -> h fundef) fundefs;
   Out.print buf (Out.Label "min_caml_start");
   Out.print buf (Out.AddI(reg_hp, reg_0, 0));
-  Out.print buf (Out.Mvlo(reg_fp, 65535));
-  Out.print buf (Out.Mvhi(reg_fp, 2047));  (* 512MB *)
+  Out.print buf (Out.AddI(reg_fp, reg_0, 2047));
+  Out.print buf (Out.SllI(reg_fp, reg_fp, 16));
+  Out.print buf (Out.AddI(reg_fp, reg_fp, 65535));  (* 512MB *)
   Out.print buf (Out.AddI(reg_1, reg_0, 1));
   Out.print buf (Out.SubI(reg_m1, reg_0, 1));
   stackset := S.empty;

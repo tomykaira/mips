@@ -17,8 +17,6 @@ type exp = (* 一つ一つの命令に対応する式 *)
   | SubI of Id.t * Id.t * int
   | XorI of Id.t * Id.t * int
 
-  | Mvlo of Id.t * int
-  | Mvhi of Id.t * int
   | FMvlo of Id.t * int
   | FMvhi of Id.t * int
 
@@ -75,8 +73,6 @@ let o oc = function
   | SubI (x, y, i) -> Printf.fprintf oc "\tsubi\t%s, %s, %d\n" x y i
   | XorI (x, y, i) -> Printf.fprintf oc "\txori\t%s, %s, %d\n" x y i
 
-  | Mvlo (x, i) -> Printf.fprintf oc "\tmvlo\t%s, %d\n" x i
-  | Mvhi (x, i) -> Printf.fprintf oc "\tmvhi\t%s, %d\n" x i
   | FMvlo (x, i) -> Printf.fprintf oc "\tfmvlo\t%s, %d\n" x i
   | FMvhi (x, i) -> Printf.fprintf oc "\tfmvhi\t%s, %d\n" x i
 
