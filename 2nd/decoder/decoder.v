@@ -125,18 +125,21 @@ module decoder(input clk,
    reg [6:0] mem_history[1:0]; // use + float flag + address(5)
 
    always @ (*) begin
-      if (op[5:3] == 3'b110)
+      if (op[5:3] == 3'b110 && stall == 0)
          fpu_history[0] = {2'b11,inst[15:11]};
       else
          fpu_history[0] = 7'b0;
 
-      case (op)
-        LDI:  mem_history[0] = {2'b10,inst[20:16]};
-        LDR:  mem_history[0] = {2'b10,inst[15:11]};
-        FLDI: mem_history[0] = {2'b11,inst[20:16]};
-        FLDR: mem_history[0] = {2'b11,inst[15:11]};
-        default: mem_history[0] = 7'b0;
-      endcase
+      if (stall == 0)
+        case (op)
+          LDI:  mem_history[0] = {2'b10,inst[20:16]};
+          LDR:  mem_history[0] = {2'b10,inst[15:11]};
+          FLDI: mem_history[0] = {2'b11,inst[20:16]};
+          FLDR: mem_history[0] = {2'b11,inst[15:11]};
+          default: mem_history[0] = 7'b0;
+        endcase
+      else
+        mem_history[0] = 7'b0;
    end
 
    always @ (posedge(clk)) begin
