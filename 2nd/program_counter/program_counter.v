@@ -35,6 +35,8 @@ module program_counter(input clk,
    wire [1:0] current_kind_including_decoded;
    assign current_kind_including_decoded = keep_pc == 1 ? 2'b00 : current_kind;
 
+   wire [31:0] prev_prev_address;
+   assign prev_prev_address = branch_addr[2];
    program_counter_calculator calculator_inst
      (.current_pc(pc_clk),
       .current_kind(current_kind_including_decoded),
@@ -43,7 +45,7 @@ module program_counter(input clk,
       .prev_register(rs),
       .prev_prev_is_branch(is_branch[2]),
       .prev_prev_taken(branch_taken),
-      .prev_prev_address(branch_addr[2]),
+      .prev_prev_address(prev_prev_address),
       .stack_top(stack_top),
       .next_pc(pc),
       .pop_stack(pop_stack));
@@ -51,7 +53,7 @@ module program_counter(input clk,
    call_stack stack_inst (.clk(clk), .do_push(push_stack), .do_pop(pop_stack), .current_pc(pc_clk+1),
                           .stack_top(stack_top));
 
-   flip_reset #(32) pc_ff (.clk(clk), .reset(reset), .d(pc), .q(pc_clk));
+   flip_reset #(.width(32)) pc_ff (.clk(clk), .reset(reset), .d(pc), .q(pc_clk));
 
    always @ (posedge(clk)) begin
       is_jump_reg[1] <= is_jump_reg[0];

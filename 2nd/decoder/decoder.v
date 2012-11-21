@@ -32,8 +32,8 @@ module decoder(input clk,
    wire [4:0] i_rs_addr, i_rt_addr;
    assign i_rs_addr = inst[25:21];
    assign i_rt_addr = inst[20:16];
-   flip_reset #(5) rs_addr_ff (.clk(clk), .reset(reset), .d(i_rs_addr), .q(rs_addr));
-   flip_reset #(5) rt_addr_ff (.clk(clk), .reset(reset), .d(i_rt_addr), .q(rt_addr));
+   flip_reset #(.width(5)) rs_addr_ff (.clk(clk), .reset(reset), .d(i_rs_addr), .q(rs_addr));
+   flip_reset #(.width(5)) rt_addr_ff (.clk(clk), .reset(reset), .d(i_rt_addr), .q(rt_addr));
 
 
    reg i_rs_float, i_rt_float;
@@ -147,7 +147,7 @@ module decoder(input clk,
    end
 
    reg [6:0] rs_code, rt_code;
-   always @ (*) begin
+   always @ (fpu_history[0], fpu_history[1], fpu_history[2], mem_history[0], mem_history[1], i_rs_float, i_rs_addr, i_rt_float, i_rt_addr, use_rs, use_rt) begin
       rs_code = {1'b1, i_rs_float, i_rs_addr};
       rt_code = {1'b1, i_rt_float, i_rt_addr};
       if (use_rs == 1

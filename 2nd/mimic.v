@@ -15,12 +15,14 @@ module mimic(input clk,
              input         rx_waiting,
              output        rx_fifo_pop);
 
+   wire cpu_rx_pop;
+   wire in_execution;
+
    assign rx_fifo_pop = (cpu_rx_pop == 1 || in_execution == 0) ? 1'b1 : 1'b0;
 
    wire [15:0] inst_address, inst_write_address;
    wire [31:0] inst_write_data, inst_fetch;
    wire        inst_write_enable;
-   wire        in_execution;
    instruction_memory instruction_memory_inst(.clk(clk),
                                             .write_enable(inst_write_enable),
                                             .address(inst_address),
@@ -110,7 +112,7 @@ module mimic(input clk,
    sign_extension sign_ext_inst(.clk(clk), .imm_in(raw_imm), .imm_out(extended_imm));
 
    wire [31:0] inst_reg_read;
-   flip_reset #(32) inst_reg_ff(.clk(clk), .reset(reset), .D(inst_decode), .Q(inst_reg_read));
+   flip_reset #(.width(32)) inst_reg_ff(.clk(clk), .reset(reset), .D(inst_decode), .Q(inst_reg_read));
 
 
    ////////////////////////////////////////////////////////////////
