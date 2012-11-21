@@ -18,10 +18,10 @@ module sram_manager (input clk,
                      output reg [31:0] memory_address,
                      output            memory_write_enable,
 
-                     output            enable,
-                     output [4:0]      addr,
-                     output [31:0]     data,
-                     output            float);
+                     output reg        enable,
+                     output reg [4:0]  addr,
+                     output reg [31:0] data,
+                     output reg        float);
 
    parameter LDI  = 6'b101000;
    parameter STI  = 6'b101001;
@@ -34,9 +34,9 @@ module sram_manager (input clk,
    reg [4:0] current_addr;
    reg current_enable;
    wire current_float;
-   reg [1:0] write_enable;
-   reg [1:0] write_float;
-   reg [4:0] write_addr[1:0];
+   reg write_enable_buf;
+   reg write_float_buf;
+   reg [4:0] write_addr_buf;
 
    assign op = inst[31:26];
 
@@ -51,12 +51,6 @@ module sram_manager (input clk,
         memory_address <= rs + imm;
    end
 
-
-   // write-back
-   assign enable = write_enable[0];
-   assign addr   = write_addr[0];
-   assign float  = write_float[0];
-   assign data   = memory_read;
 
    // current status
    assign current_float = op[1];
@@ -77,14 +71,14 @@ module sram_manager (input clk,
    end
 
    always @ (posedge(clk)) begin
-      write_enable[0] <= write_enable[1];
-      write_enable[1] <= current_enable;
+      write_enable_buf <= current_enable;
+      write_addr_buf   <= current_addr;
+      write_float_buf  <= current_float;
 
-      write_addr[0] <= write_addr[1];
-      write_addr[1] <= current_addr;
-
-      write_float[0] <= write_float[1];
-      write_float[1] <= current_float;
+      enable <= write_enable_buf;
+      addr   <= write_addr_buf;
+      float  <= write_float_buf;
+      data   <= memory_read;
    end
 
 endmodule
