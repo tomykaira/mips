@@ -119,13 +119,13 @@ let is_var x = not (is_reg x || x.[0] = '%')
 let rec fv_var_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | SAlloc(_)-> []
 
-  | AddI(x,_) | SubI(x,_) | MulI(x,_) | AndI(x,_) | OrI(x,_) | NorI(x,_)
+  | AddI(x,_) | SubI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_) | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x)
   | IMovF(x) | FMovI(x) | LdI(x,_) | FLdI(x,_) | Restore(x) ->
       if is_var x then [] else [x]
 
-  | Add(x,y) | Sub(x,y) | Mul(x,y) | And(x,y) | Or(x,y) | Nor(x,y) | Xor(x,y)
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y)
+  | Add(x,y) | Sub(x,y) | Xor(x,y)
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FDiv(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) ->
       List.filter is_var [x;y]
 
@@ -160,10 +160,9 @@ let rec fv_int_exp = function
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
   | FMul(_,_) | FDiv(_,_)  | Save(_,_) | SAlloc(_)
     -> []
-  | AddI(x,_) | SubI(x,_)
-  | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
+  | AddI(x,_) | SubI(x,_) | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)  | LdI(x,_) | FLdI(x,_)
   | FStI(_,x,_)   -> [x]
-  | Add(x,y) | Sub(x,y)
+  | Add(x,y) | Sub(x,y) | Xor(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y)  -> [x;y]
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2)
     -> x :: y :: remove_and_uniq S.empty (fv_int e1 @ fv_int e2)
@@ -180,7 +179,7 @@ let fv_int e = List.filter (fun x -> not (is_reg x) || List.mem x allregs) (remo
 let rec fv_float_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_)  | Restore(_)
   | Add(_,_) | Sub(_,_) | Xor(_,_) | AddI(_,_)
-  | SubI(_,_) | MulI(_,_) | AndI(_,_) | OrI(_,_) | NorI(_,_) | XorI(_,_)
+  | SubI(_,_) | XorI(_,_)
   | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
   | StI(_,_,_) | FLdR(_,_)| Save(_,_) | SAlloc(_) -> []
   | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) -> [x]
