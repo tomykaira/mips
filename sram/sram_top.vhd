@@ -157,22 +157,13 @@ begin  -- test
           state <=  WRITING;
         end if;
       else
-        case (counter) is
-          when x"00" => -- write
-            data_addr        <= USE_ADDRESS;
-            mem_write_enable <= '1';
-            data_write       <= x"000000" & rx_data;
-          when x"01" => -- read
-            mem_write_enable <= '0';
-            data_addr        <= USE_ADDRESS;
-            state            <= READING;
-          when x"02" | x"03" | x"04" | x"05" => -- read2
-            state            <= READING;
-            data_addr        <= USE_ADDRESS;
-            mem_write_enable <= '0';
-          when others =>
-            state <=  INPUT;
-        end case;
+        if counter < x"06" then
+          mem_write_enable <= '0';
+          data_addr        <= x"000000" & rx_data;
+          state            <= READING;
+        else
+          state <=  INPUT;
+        end if;
       end if;
     end if;
   end process;
