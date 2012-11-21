@@ -20,10 +20,20 @@ module register_manager (input clk, input reset,
    wire [31:0] write_data_1;
    wire        write_float_1;
 
+   reg         write_enable_1_clk;
+   reg [4:0]   write_addr_1_clk;
+   reg [31:0]  write_data_1_clk;
+   reg         write_float_1_clk;
+
    wire        write_enable_2;
    wire [4:0]  write_addr_2;
    wire [31:0] write_data_2;
    wire        write_float_2;
+
+   reg         write_enable_2_clk;
+   reg [4:0]   write_addr_2_clk;
+   reg [31:0]  write_data_2_clk;
+   reg         write_float_2_clk;
 
    reg int_write_enable;
    reg [4:0] int_write_addr;
@@ -38,9 +48,7 @@ module register_manager (input clk, input reset,
 
    wire [31:0] int_rs_data, int_rt_data, float_rs_data, float_rt_data;
 
-   register_queue_block register_queue_block2(.clk(clk),
-
-                                              .enable_left(write_enable_alu),
+   register_queue_block register_queue_block2(.enable_left(write_enable_alu),
                                               .addr_left(write_addr_alu),
                                               .data_left(write_data_alu),
                                               .float_left(write_float_alu),
@@ -55,34 +63,44 @@ module register_manager (input clk, input reset,
                                               .data_down(write_data_2),
                                               .float_down(write_float_2));
 
-   register_queue_block register_queue_block1(.clk(clk),
+   always @ (posedge(clk)) begin
+      write_enable_2_clk <= write_enable_2;
+      write_addr_2_clk <= write_addr_2;
+      write_data_2_clk <= write_data_2;
+      write_float_2_clk <= write_float_2;
+   end
 
-                                              .enable_left(write_enable_mem),
+   register_queue_block register_queue_block1(.enable_left(write_enable_mem),
                                               .addr_left(write_addr_mem),
                                               .data_left(write_data_mem),
                                               .float_left(write_float_mem),
 
-                                              .enable_up(write_enable_2),
-                                              .addr_up(write_addr_2),
-                                              .data_up(write_data_2),
-                                              .float_up(write_float_2),
+                                              .enable_up(write_enable_2_clk),
+                                              .addr_up(write_addr_2_clk),
+                                              .data_up(write_data_2_clk),
+                                              .float_up(write_float_2_clk),
 
                                               .enable_down(write_enable_1),
                                               .addr_down(write_addr_1),
                                               .data_down(write_data_1),
                                               .float_down(write_float_1));
 
-   register_queue_block register_queue_block0(.clk(clk),
+   always @ (posedge(clk)) begin
+      write_enable_1_clk <= write_enable_1;
+      write_addr_1_clk <= write_addr_1;
+      write_data_1_clk <= write_data_1;
+      write_float_1_clk <= write_float_1;
+   end
 
-                                              .enable_left(write_enable_fpu),
+   register_queue_block register_queue_block0(.enable_left(write_enable_fpu),
                                               .addr_left(write_addr_fpu),
                                               .data_left(write_data_fpu),
                                               .float_left(write_float_fpu),
 
-                                              .enable_up(write_enable_1),
-                                              .addr_up(write_addr_1),
-                                              .data_up(write_data_1),
-                                              .float_up(write_float_1),
+                                              .enable_up(write_enable_1_clk),
+                                              .addr_up(write_addr_1_clk),
+                                              .data_up(write_data_1_clk),
+                                              .float_up(write_float_1_clk),
 
                                               .enable_down(write_enable_0),
                                               .addr_down(write_addr_0),
