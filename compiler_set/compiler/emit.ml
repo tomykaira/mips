@@ -318,8 +318,9 @@ let f (Prog(fundefs, e)) =
   List.iter (fun fundef -> h fundef) fundefs;
   Out.print buf (Out.Label "min_caml_start");
   Out.print buf (Out.AddI(reg_hp, reg_0, 0));
-  Out.print buf (Out.Mvlo(reg_fp, 65535));
-  Out.print buf (Out.Mvhi(reg_fp, 2047));  (* 512MB *)
+  Out.print buf (Out.AddI(reg_fp, reg_0, 2047));
+  Out.print buf (Out.SllI(reg_fp, reg_fp, 16));
+  Out.print buf (Out.AddI(reg_fp, reg_fp, 65535));  (* 512MB *)
   Out.print buf (Out.AddI(reg_1, reg_0, 1));
   Out.print buf (Out.SubI(reg_m1, reg_0, 1));
   stackset := S.empty;
