@@ -46,7 +46,7 @@ INPUT=  -f $(SLD_PATH)
 architecture:
 	cd assembler; make
 	cd simulator; make
-	cd compiler; make br
+	cd compiler; make native-code
 
 tools:
 	cd assembler; make

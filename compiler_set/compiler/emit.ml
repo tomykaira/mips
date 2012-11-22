@@ -57,12 +57,16 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), Int(i) when -0x8000 <= i && i <= 0x7FFF ->
       Out.print buf (Out.AddI(x, reg_0, i))
   | NonTail(x), Int(i) when i > 0 ->
-      Out.print buf (Out.AddI(x, reg_0, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15)));
+      let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
+      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
+      Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)))
   | NonTail(x), Int(i) when i < 0 ->
       let i = -i in
-      Out.print buf (Out.AddI(x, reg_0, Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15)));
+      let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
+      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
+      Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)));
       Out.print buf (Out.Sub(x, reg_0, x))
