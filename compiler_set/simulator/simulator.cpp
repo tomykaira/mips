@@ -297,50 +297,52 @@ int simulate(simulation_options * opt)
 
 		D_INSTRUCTION(log_fp, "INST: %8d %08x\n", pc, inst);
 
-		if (!step && !(cnt % (1000000)) && !(opt->lib_test_mode)) {
-			if (read(0, command, 1) != -1) {
-				enable_step();
-			} else {
-				if (errno != EAGAIN && errno != EWOULDBLOCK) {
-					perror("read");
-					exit(1);
+		if (! opt->lib_test_mode) {
+			if (!step && !(cnt % (1000000))) {
+				if (read(0, command, 1) != -1) {
+					enable_step();
+				} else {
+					if (errno != EAGAIN && errno != EWOULDBLOCK) {
+						perror("read");
+						exit(1);
+					}
 				}
 			}
-		}
-		if (print_count > 0) {
-			printf("%8d: %08x\n", pc, inst);
-		  print_count --;
-		} else if (print_count == 0) {
-			print_count = -1;
-			enable_step();
-		}
-		if (step) {
-			printf("%8d: %08x\n", pc, inst);
-			printf("> ");
-			scanf("%s", command);
-			switch (command[0]) {
-			case 's':
-				break;
-			case '1':
-				print_count = 100;
-				disable_step();
-				break;
-			case 'r':
-				for (int i = 0; i < INTREG_NUM; i ++) {
-					printf("\t%02d: %08x\n", i, ireg[i]);
+			if (print_count > 0) {
+				printf("%8d: %08x\n", pc, inst);
+				print_count --;
+			} else if (print_count == 0) {
+				print_count = -1;
+				enable_step();
+			}
+			if (step) {
+				printf("%8d: %08x\n", pc, inst);
+				printf("> ");
+				scanf("%s", command);
+				switch (command[0]) {
+				case 's':
+					break;
+				case '1':
+					print_count = 100;
+					disable_step();
+					break;
+				case 'r':
+					for (int i = 0; i < INTREG_NUM; i ++) {
+						printf("\t%02d: %08x\n", i, ireg[i]);
+					}
+					break;
+				case 'f':
+					for (int i = 0; i < INTREG_NUM; i ++) {
+						printf("\t%02d: %08x %f\n", i, freg[i], asF(freg[i]));
+					}
+					break;
+				case 'c':
+					disable_step();
+					break;
+				case 'b':
+					DUMP_STACK
+						break;
 				}
-				break;
-			case 'f':
-				for (int i = 0; i < INTREG_NUM; i ++) {
-					printf("\t%02d: %08x %f\n", i, freg[i], asF(freg[i]));
-				}
-				break;
-			case 'c':
-				disable_step();
-				break;
-			case 'b':
-				DUMP_STACK
-				break;
 			}
 		}
 
@@ -555,7 +557,6 @@ int simulate(simulation_options * opt)
 				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {
-					printf("%f\n", asF(freg[0]));
 					break;
 				}
 				switch(IMM) {
