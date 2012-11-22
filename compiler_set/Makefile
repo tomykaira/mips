@@ -179,7 +179,8 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 	../core_runner/run_fpga $*.bin > $*.core
 
 %.ocaml: %.ml
-	ocaml $*.ml > $*.ocaml
+	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > /tmp/`basename $*`.ml
+	ocaml /tmp/`basename $*`.ml > $*.ocaml
 
 %.sim: %.bin
 	simulator/simulator -t $*.bin > $*.sim
