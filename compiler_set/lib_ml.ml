@@ -91,6 +91,23 @@ let rec cos x =
 
 let rec mul10 x = x * 8 + x * 2 in
 
+(* mul *)
+let rec mul_sub a b =
+  if b = 0 then 0
+  else (
+    let b_mod_2 = b - (b / 2) * 2 in
+    if b_mod_2 = 0 then
+      (mul_sub (a * 2) (b / 2))
+    else
+      (mul_sub (a * 2) (b / 2)) + a
+   ) in
+let rec mul a b =
+  if b < 0 then
+    mul_sub (-a) (-b)
+  else
+    mul_sub a b in
+
+
 (* read_int *)
 let read_int_ans = Array.create 1 0 in
 let read_int_s = Array.create 1 0 in
@@ -163,6 +180,23 @@ let rec read_float _ =
   else
     -. ans in
 
+
+(* div_binary_search *)
+let rec div_binary_search a b left right =
+	let mid = (left + right) / 2 in
+	let x = mid * b in
+	if right - left <= 1 then
+		left
+	else
+		if x < a then
+			div_binary_search a b mid right
+		else if x = a then
+			mid
+		else
+			div_binary_search a b left mid in
+
+
+(* print_int *)
 let rec print_int_10000 x flg =
 
     (* 1000の位を表示 *)
@@ -177,6 +211,7 @@ let rec print_int_10000 x flg =
           false)
       else
         (print_char (48 + tx); true) in
+
     (* 100の位を表示 *)
     let tx = div_binary_search x 100 0 10 in
     let dx = tx * 100 in
@@ -189,6 +224,7 @@ let rec print_int_10000 x flg =
           false)
       else
         (print_char (48 + tx); true) in
+
     (* 10の位を表示 *)
     let tx = div_binary_search x 10 0 10 in
     let dx = tx * 10 in
@@ -201,6 +237,7 @@ let rec print_int_10000 x flg =
           false)
       else
         (print_char (48 + tx); true) in
+
     (* 1の位を表示 *)
     print_char (48 + x)
 in
@@ -213,6 +250,7 @@ let rec print_int x =
     if x < 10000 then
       print_int_10000 x false
     else
+
     (* 100000000の位を表示 *)
     let tx = div_binary_search x 100000000 0 3 in
     let dx = tx * 100000000 in
@@ -277,9 +315,29 @@ in
 
 let rec mod a b =
   let d = div a b in
-  a - (b * d)
+  a - (mul b d)
 in
 
 let abs x =
   if x < 0 then 0-x else x
 in
+
+
+let rec land_sub x y ret n =
+  if n < 0 then ret
+  else
+    let ret = (lsl) ret 1 in
+    let x1 = (lsr) x n in
+    let y1 = (lsr) y n in
+    let x2 = (lsl) x1 31 in
+    let y2 = (lsl) y1 31 in
+    let an = (if x2 = 0 then 0 else if y2 = 0 then 0 else 1) in
+    land_sub x y (ret+an) (n-1) in
+
+let rec land x y =
+  if x < 0 then
+    if y < 0 then land_sub (-x) (-y) 1 30
+    else land_sub (-x) y 0 30
+  else
+    if y < 0 then land_sub x (-y) 0 30
+    else land_sub x y 0 30 in

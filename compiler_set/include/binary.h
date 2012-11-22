@@ -54,13 +54,13 @@ class Binary {
 		code = (code & 0xfc000000) | (immediate & 0x3FFffFF);
 	}
 
-  uint32_t getCode() {
-    return code;
-  }
+	uint32_t getCode() {
+		return code;
+	}
 
-  string getInst() {
-    return original;
-  }
+	string getInst() {
+		return original;
+	}
 };
 
 #endif /* _BINARY_H_ */

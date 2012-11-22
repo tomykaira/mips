@@ -3,7 +3,7 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.STD_LOGIC_ARITH.all;
 
 entity flip_reset is
-  
+
   generic (
     width : integer := 32);
 
@@ -21,7 +21,7 @@ begin  -- asynchronous
   flip: process (clk, reset)
   begin  -- process flip
     if reset = '1' then
-      q <=  conv_std_logic_vector(0, width);
+      q <= (others => '0');
     elsif clk'event and clk = '1' then
       q <= d;
     end if;

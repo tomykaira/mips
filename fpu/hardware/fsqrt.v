@@ -34,8 +34,7 @@ module fsqrt (input clk,
 
        // stage 3
       sum = const_part + lower[27:14]; // >> 14
-      s <= {0, exponent2, sum[22:0]};
+      s <= {1'b0, exponent2, sum[22:0]};
    end
 
 endmodule
-  

@@ -29,8 +29,9 @@ class linker
 			OutputStreamWriter dst = new OutputStreamWriter(dstStream, "UTF-8");
 
 			// メイン関数へジャンプ
+			dst.write("\tnop\n");
 			dst.write("\tj\tmin_caml_start\n");
-			
+
 			// その他の部分を書き込んでファイルを閉じる
 			Pattern gotoMainPat = Pattern.compile("j[ \t]+min[_]caml[_]start");
 			for (int i = 0; i < cnt - 1; i++)
@@ -48,7 +49,7 @@ class linker
 				srcs[i].close();
 			}
 			dst.close();
-	
+
 			for (int i = 0; i < cnt - 1; i++)
 			{
 				System.err.print(args[i] + " ");
@@ -63,5 +64,3 @@ class linker
 		}
 	}
 }
-
-

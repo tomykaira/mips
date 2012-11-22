@@ -4,7 +4,7 @@ LIB_ML = lib_ml.ml
 # アセンブリのライブラリファイル
 LIB_ASM = lib_asm.s
 
-OPTION = 
+OPTION =
 # 入力ファイルをテキストとして扱う
 # min-rtで、test/min-rt/sld以下の.sldファイルを入力ファイルとしたいときは
 # 普通はこっちにしとけば大体間違いはない
@@ -36,17 +36,17 @@ SLD_PATH = test/min-rt/sld/contest.sld
 # min-rtを実行するときの出力ファイル
 PPM_PATH = test/min-rt/contest.ppm
 
-LOR_PATH=$(LORELEY_DIR)/Simple/simple2.lor
+LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
 LOR_PPM_PATH=$(LOR_PATH).ppm
 
 MIN_CAML=BISECT_FILE=compiler/coverage compiler/min-caml
 
-INPUT= # -f $(LOR_PATH)
+INPUT=  -f $(SLD_PATH)
 
 architecture:
 	cd assembler; make
 	cd simulator; make
-	cd compiler; make br
+	cd compiler; make native-code
 
 tools:
 	cd assembler; make
@@ -161,13 +161,13 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 # .bin, .sが存在しててもビルドした上で実行する
 %.run_f:
 	make $*.bin_f
-	simulator/simulator $*.bin | tee /tmp/`basename $*`.out && \
-		ocaml $*.ml | tee /tmp/`basename $*`.ans && \
+	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
+		ocaml $*.ml > /tmp/`basename $*`.ans && \
 		diff /tmp/`basename $*`.out /tmp/`basename $*`.ans
 
 %.run_cmp:
 	make $*.bin_f
-	simulator/simulator $*.bin | tee /tmp/`basename $*`.out && \
+	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
 %.run_large:
@@ -186,7 +186,7 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 
 %.ans:
 	make $*.bin_f
-	simulator/simulator $*.bin 2>/dev/null | tee $*.ans
+	simulator/simulator $*.bin 2>/dev/null > $*.ans
 	ocaml $*.ml
 
 # .bin, .sが存在しないときのみビルド
@@ -223,6 +223,6 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 
 .PHONY: cur
 
-cur: 
+cur:
 	make tools
 	assembler/assembler test/Loreley/main.s test/Loreley/main.bin

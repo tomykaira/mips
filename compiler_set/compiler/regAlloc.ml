@@ -5,6 +5,7 @@ let counter = ref 0
 
 let pg0 = ("%g0", Type.Unit)
 
+
 (* コンパイラで出力するライブラリ関数。emit.mlでインラインに展開され,退避不要 *)
 let inl = ["min_caml_print_char" ; "min_caml_input_char" ; "min_caml_read_char"]
 
@@ -87,7 +88,7 @@ and ecall' = function
 (* 本体 *)
 let rec simple dest = function
   | Ans(exp) -> simple' pg0 (Ans(Nop)) exp
-  | Let((x,t) as xt, exp, e) ->
+  | Let(xt, exp, e) ->
       let (a1, e1', p1) = simple' xt e exp in
       if a1 then (a1, e1', p1)
       else let (a2, e2', p2) = simple dest e in
@@ -209,18 +210,10 @@ let rec gc dest cont regenv ifprefer e =
       | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | SAlloc _ as exp -> (Ans(exp), regenv, graph)
       | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
       | Sub(x, y) -> (Ans(Sub(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-      | Mul(x, y) -> (Ans(Mul(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-      | And(x, y) -> (Ans(And(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-      | Or (x, y) -> (Ans(Or (find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
-      | Nor(x, y) -> (Ans(Nor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
       | Xor(x, y) -> (Ans(Xor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
 
       | AddI(x, y) -> (Ans(AddI(find x Type.Int regenv, y)), regenv, graph)
       | SubI(x, y) -> (Ans(SubI(find x Type.Int regenv, y)), regenv, graph)
-      | MulI(x, y) -> (Ans(MulI(find x Type.Int regenv, y)), regenv, graph)
-      | AndI(x, y) -> (Ans(AndI(find x Type.Int regenv, y)), regenv, graph)
-      | OrI (x, y) -> (Ans(OrI (find x Type.Int regenv, y)), regenv, graph)
-      | NorI(x, y) -> (Ans(NorI(find x Type.Int regenv, y)), regenv, graph)
       | XorI(x, y) -> (Ans(XorI(find x Type.Int regenv, y)), regenv, graph)
 
       | SllI(x, y) -> (Ans(SllI(find x Type.Int regenv, y)), regenv, graph)
@@ -233,9 +226,7 @@ let rec gc dest cont regenv ifprefer e =
       | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FSub(x, y) -> (Ans(FSub(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FMul(x, y) -> (Ans(FMul(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-      | FMulN(x, y) -> (Ans(FMulN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FDiv(x, y) -> (Ans(FDiv(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
-      | FDivN(x, y) -> (Ans(FDivN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FInv(x) -> (Ans(FInv(find x Type.Float regenv)), regenv, graph)
       | FSqrt(x) -> (Ans(FSqrt(find x Type.Float regenv)), regenv, graph)
 
