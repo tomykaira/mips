@@ -7,7 +7,7 @@ AUXLIB_DIRS = +deriving +/usr/local/lib/ocaml/3.12.1/bisect
 OCAMLFLAGS = -w Aef
 
 RESULT = min-caml
-NCSUFFIX = .opt
+NCSUFFIX = 
 CC = gcc
 CFLAGS = -g -O2 -Wall
 
@@ -16,6 +16,9 @@ CLIBS=
 
 INCDIRS = $(AUXLIB_DIRS)
 LIBDIRS = $(AUXLIB_DIRS)
+
+OCAMLC = ocamlc.opt
+OCAMLOPT = ocamlopt.opt
 
 #default: debug-code top $(RESULT) do_test
 $(RESULT): debug-code top

@@ -58,14 +58,14 @@ and g' = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.AddI(x, reg_0, i))
   | NonTail(x), Int(i) when i > 0 ->
       let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
-      (if j > 0x7FFF then Format.eprintf "too large immediate"; assert false);
+      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
       Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)))
   | NonTail(x), Int(i) when i < 0 ->
       let i = -i in
       let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
-      (if j > 0x7FFF then Format.eprintf "too large immediate"; assert false);
+      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
       Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)));
