@@ -33,17 +33,21 @@ end top;
 
 architecture top of top is
 
-  component mips
+  component mimic
     port (
       clk, reset       : in  STD_LOGIC;
-      mem_write        : out STD_LOGIC;
-      send_enable      : out STD_LOGIC;
-      mem_addr         : out STD_LOGIC_VECTOR(31 downto 0);
-      write_data       : out std_logic_vector(31 downto 0);
-      memory_data      : in  STD_LOGIC_VECTOR(31 downto 0);
+
+      mem_write_enable : out STD_LOGIC;
+      mem_addr         : out std_logic_vector(31 downto 0);
+      mem_write_data   : out std_logic_vector(31 downto 0);
+      mem_read_data    : in std_logic_vector(31 downto 0);
+
+      tx_send_enable   : out STD_LOGIC;
+      tx_send_data     : out std_logic_vector(7 downto 0);
+
       rx_received_data : in std_logic_vector(7 downto 0);
-      rx_waiting       : in  STD_LOGIC;
-      rx_pop           : out STD_LOGIC);
+      rx_waiting       : in STD_LOGIC;
+      rx_fifo_pop      : out STD_LOGIC);
   end component;
 
   component sramc is
@@ -74,7 +78,7 @@ architecture top of top is
   end component;
 
   component i232c_buffer is
-    
+
     generic (wtime : std_logic_vector(15 downto 0) := x"0005");
 
     port (
@@ -87,16 +91,16 @@ architecture top of top is
 
   end component;
 
-  signal data_from_bus, memory_data : std_logic_vector(31 downto 0);
-
-  signal write_data, data_addr : std_logic_vector(31 downto 0);
-  signal mem_write : STD_LOGIC;
-
-  signal rx_data : std_logic_vector(7 downto 0);
-
   signal mclk, iclk : std_logic;
 
-  signal rx_waiting, rx_pop, send_enable : STD_LOGIC;
+  signal memory_write : STD_LOGIC;
+  signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
+
+  signal tx_send_enable : STD_LOGIC;
+  signal tx_send_data : std_logic_vector(7 downto 0);
+
+  signal rx_pop, rx_waiting : STD_LOGIC;
+  signal rx_data : std_logic_vector(7 downto 0);
 
 begin  -- test
 
@@ -108,42 +112,45 @@ begin  -- test
     o=>iclk);
 
   data_memory : sramc port map (
-    ZD  => ZD, 
+    ZD  => ZD,
     ZDP => ZDP,
     ZA  => ZA,
     XWA => XWA,
 
     clk          => iclk,
     data_read    => memory_data,
-    data_write   => write_data,
-    address      => data_addr(19 downto 0),
-    write_enable => mem_write);
+    data_write   => memory_write_data,
+    address      => memory_data_addr(19 downto 0),
+    write_enable => memory_write);
 
-  mips1 : mips port map (
+  mimic_inst : mimic port map (
     clk              => iclk,
     reset            => not xrst,
-    mem_write        => mem_write,
-    send_enable      => send_enable,
-    mem_addr         => data_addr,
-    write_data       => write_data,
-    memory_data      => memory_data,
+    mem_write_enable => memory_write,
+    mem_addr         => memory_data_addr,
+    mem_write_data   => memory_write_data,
+    mem_read_data    => memory_data,
+
+    tx_send_enable   => tx_send_enable,
+    tx_send_data     => tx_send_data,
+
     rx_received_data => rx_data,
     rx_waiting       => rx_waiting,
-    rx_pop           => rx_pop);
+    rx_fifo_pop      => rx_pop);
 
   i232c_buffer_inst : i232c_buffer port map (
-    clk => iclk,
-    reset => not xrst,
-    rx => RS_RX,
-    do_pop => rx_pop,
-    waiting => rx_waiting,
+    clk      => iclk,
+    reset    => not xrst,
+    rx       => RS_RX,
+    do_pop   => rx_pop,
+    waiting  => rx_waiting,
     pop_data => rx_data);
 
   sender : rs232c_buffer port map (
     clk       => iclk,
     reset     => not xrst,
-    push      => send_enable,
-    push_data => write_data(7 downto 0),
+    push      => tx_send_enable,
+    push_data => tx_send_data,
     tx        => RS_TX);
 
   XZBE<= "0000";
@@ -155,7 +162,7 @@ begin  -- test
   ZCLKMA(0) <= iclk;
   ZCLKMA(1) <= iclk;
   ADVA <= '0';
-  XFT <= '1';
+  XFT <= '0';
   XLBO <= '1';
   ZZA <= '0';
   ZDP <=  (others => 'Z');

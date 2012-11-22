@@ -4,8 +4,6 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity register_file is
 
-  generic (zero_register : STD_LOGIC := '0');
-  
   port (
     clk                                 : in  std_logic;
     write_enable3                       : in  std_logic;
@@ -33,13 +31,13 @@ begin  -- behave
 
   process (mem, read_addr1, read_addr2)
   begin
-    if conv_integer(read_addr1) = 0 and zero_register = '1' then
+    if conv_integer(read_addr1) = 0 then
       read_data1 <=  x"00000000";
     else
       read_data1 <= mem(conv_integer(read_addr1));
     end if;
 
-    if conv_integer(read_addr2) = 0 and zero_register = '1' then
+    if conv_integer(read_addr2) = 0 then
       read_data2 <=  x"00000000";
     else
       read_data2 <= mem(conv_integer(read_addr2));

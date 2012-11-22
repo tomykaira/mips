@@ -6,7 +6,7 @@ use IEEE.STD_LOGIC_UNSIGNED.all;
 -- it needs more configuration to match with actual SRAM
 
 entity fake_sram is
-  
+
   port (
     -- data and parity
     ZD:  inout std_logic_vector(31 downto 0);
@@ -51,14 +51,17 @@ architecture behave of fake_sram is
 
   signal sram_data : std_logic_vector(31 downto 0);
 
-  signal read1, write1, write2 : std_logic_vector(31 downto 0);
-  signal addr1, addr2 : std_logic_vector(19 downto 0);
+  signal addr1 : std_logic_vector(19 downto 0);
 
   signal clk : STD_LOGIC;
+  signal previous_XWA : STD_LOGIC;
+  signal internal_address : std_logic_vector(19 downto 0);
+
+  signal write_data : std_logic_vector(31 downto 0);
 
 begin  -- behave
 
-  ZD  <= sram_data when XWA='1' else (others => 'Z');
+  ZD  <= sram_data when previous_XWA='1' else (others => 'Z');
   ZDP <= (others => 'Z'); -- not available
 
   clk <= ZCLKMA(0);
@@ -69,31 +72,37 @@ begin  -- behave
   assert XGA   = '0' report "Fake SRAM: XGA";
   assert XZCKE = '0' report "Fake SRAM: XZCKE";
   assert ADVA  = '0' report "Fake SRAM: ADVA";
-  assert XFT   = '1' report "Fake SRAM: XFT";
+  assert XFT   = '0' report "Fake SRAM: XFT";
   assert XLBO  = '1' report "Fake SRAM: XLBO";
   assert ZZA   = '0' report "Fake SRAM: ZZA";
 
   assert XZBE  = "0000" report "Fake SRAM: XZBE";
 
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      previous_XWA <= XWA;
+      addr1 <= internal_address;
+    end if;
+  end process;
+
+  internal_address <= "0000000000" & ZA(9 downto 0);
+
   sram_mock: process (clk, ZD, ZA, XWA)
   begin  -- process sram_mock
+    if falling_edge(clk) then
+      write_data <= ZD;
+    end if;
     if rising_edge(clk) then
       if XWA = '0' then
         -- ZA is always connected. problem is in when it is writing
         assert ZA <= MEM_SIZE report "Writing.. ZA is greater than 1024.";
-        if ZA <= MEM_SIZE then
-          write1     <= ZD;
-          addr1      <= ZA;
-          write2 <= write1;
-          addr2 <= addr1;
-          -- not essential, for safety
-          mem(conv_integer(addr2)) <= write2;
-        end if;
-      else
-        if ZA <= MEM_SIZE then
-          read1     <= mem(conv_integer(ZA));
-          sram_data <= read1;
-        end if;
+      end if;
+
+      sram_data <= mem(conv_integer(internal_address));
+
+      if previous_XWA = '0' then
+        mem(conv_integer(addr1)) <= write_data;
       end if;
     end if;
   end process sram_mock;

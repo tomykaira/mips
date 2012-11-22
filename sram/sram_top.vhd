@@ -33,8 +33,10 @@ end sram_top;
 
 architecture sram_top of sram_top is
 
-  constant WRITE_LIMIT : integer := 2;
-  constant READ_LIMIT  : integer := 2;
+  constant WRITE_LIMIT : integer := 1;
+  constant READ_LIMIT  : integer := 1;
+
+  constant USE_ADDRESS  : std_logic_vector(31 downto 0) := x"00ffffff";
 
   component sramc is
   Port (
@@ -65,7 +67,6 @@ architecture sram_top of sram_top is
 
   component i232c
     port ( clk    : in  STD_LOGIC;
-           enable : in  STD_LOGIC;
            rx     : in  STD_LOGIC;
            data   : out STD_LOGIC_VECTOR (7 downto 0);
            changed: out STD_LOGIC);
@@ -82,11 +83,11 @@ architecture sram_top of sram_top is
 
   signal mclk, iclk : std_logic;
 
-  signal rx_enable, rx_done, push_enable : STD_LOGIC;
+  signal rx_done, push_enable : STD_LOGIC;
 
-  signal counter : std_logic_vector(9 downto 0) := (others => '0');
+  signal counter : std_logic_vector(7 downto 0) := (others => '0');
 
-  type statetype is (INPUT, READING, WRITING);
+  type statetype is (INPUT, READING, WRITING, WRITING2);
   signal state : statetype := INPUT;
 
 begin  -- test
@@ -99,7 +100,7 @@ begin  -- test
     o=>iclk);
 
   data_memory : sramc port map (
-    ZD  => ZD, 
+    ZD  => ZD,
     ZDP => ZDP,
     ZA  => ZA,
     XWA => XWA,
@@ -110,8 +111,6 @@ begin  -- test
     address      => data_addr(19 downto 0),
     write_enable => mem_write_enable);
 
-  mem_write_enable <= '1' when state = WRITING else '0';
-
   sender : rs232c_buffer port map (
     clk       => iclk,
     reset     => not xrst,
@@ -120,16 +119,12 @@ begin  -- test
     tx        => RS_TX);
 
   push_enable <= '1' when state = READING else '0';
-  
+
   receiver : i232c port map (
     clk     => iclk,
-    enable  => rx_enable,
     rx      => RS_RX,
     data    => rx_data,
     changed => rx_done);
-
-  rx_enable <= '1' when state = INPUT else '0';
-  data_write <= x"000000" & rx_data;
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -140,7 +135,7 @@ begin  -- test
   ZCLKMA(0) <= iclk;
   ZCLKMA(1) <= iclk;
   ADVA <= '0';
-  XFT <= '1';
+  XFT <= '0';
   XLBO <= '1';
   ZZA <= '0';
   ZDP <=  (others => 'Z');
@@ -152,15 +147,23 @@ begin  -- test
       counter <= (others => '0');
     elsif rising_edge(iclk) then
       counter <= counter + 1;
-      if state = INPUT and rx_done = '1' then
+      mem_write_enable <= '0';
+      data_addr <= (others => '0');
+      data_write <= (others => '0');
+
+      if state = INPUT then
         counter <= (others => '0');
-        state <= WRITING;
-      elsif state = WRITING and counter >= WRITE_LIMIT then
-        counter <= (others => '0');
-        state <= READING;
-      elsif state = READING and counter >= READ_LIMIT then
-        counter <= (others => '0');
-        state <= INPUT;
+        if rx_done = '1' then
+          state <=  WRITING;
+        end if;
+      else
+        if counter < x"06" then
+          mem_write_enable <= '0';
+          data_addr        <= x"000000" & rx_data;
+          state            <= READING;
+        else
+          state <=  INPUT;
+        end if;
       end if;
     end if;
   end process;
