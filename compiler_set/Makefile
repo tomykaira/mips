@@ -156,23 +156,23 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 # .bin, .sが存在しないときのみビルドして実行
 %.run:
 	make $*.bin
-	simulator/simulator $(INPUT) $*.bin
+	simulator/simulator -t $(INPUT) $*.bin
 
 # .bin, .sが存在しててもビルドした上で実行する
 %.run_f:
 	make $*.bin_f
-	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
+	simulator/simulator -t $*.bin > /tmp/`basename $*`.out && \
 		ocaml $*.ml > /tmp/`basename $*`.ans && \
 		diff /tmp/`basename $*`.out /tmp/`basename $*`.ans
 
 %.run_cmp:
 	make $*.bin_f
-	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
+	simulator/simulator -t $*.bin > /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
 %.run_large:
 	make $*.bin_f
-	simulator/simulator $*.bin > /tmp/`basename $*`.out && \
+	simulator/simulator -t $*.bin > /tmp/`basename $*`.out && \
 		diff /tmp/`basename $*`.out $*.ans
 
 %.core: %.bin
@@ -182,11 +182,11 @@ test-core: $(TESTS:%=test/%.run_core) $(MEMOIZE_TESTS:%=test/%.run_core_cmp) $(L
 	ocaml $*.ml > $*.ocaml
 
 %.sim: %.bin
-	simulator/simulator $*.bin > $*.sim
+	simulator/simulator -t $*.bin > $*.sim
 
 %.ans:
 	make $*.bin_f
-	simulator/simulator $*.bin 2>/dev/null > $*.ans
+	simulator/simulator -t $*.bin 2>/dev/null > $*.ans
 	ocaml $*.ml
 
 # .bin, .sが存在しないときのみビルド
