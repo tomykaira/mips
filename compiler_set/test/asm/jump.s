@@ -1,3 +1,4 @@
+#EXPECTED: 8
 	nop
 	addi $r3, $r0, 4
 	j start

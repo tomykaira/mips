@@ -1,3 +1,4 @@
+# TODO: implement delay slot
 	nop
 	addi $r3, $r0, 4
 	blt $r3, $r0, start # not taken
