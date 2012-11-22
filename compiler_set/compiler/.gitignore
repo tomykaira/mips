@@ -1,6 +1,7 @@
 *.cmi
 *.cmo
 *.cma
+*.cmx
 /._bcdi/
 /._d/
 *.o
