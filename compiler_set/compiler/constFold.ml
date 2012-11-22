@@ -102,7 +102,7 @@ and g' env envle envne envif = function
   | FDiv(x, y) when memf x env && memf y env -> Ans(Float(findf x env /. findf y env))
   | FDiv(x, y) when memf y env && findf y env = 1.0 -> Ans(Var(x))
   | FDiv(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x))
-(*
+
   | IfEq(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
       (match M.find x envif with
       | (con, Int(i), Int(j)) ->
@@ -187,7 +187,7 @@ and g' env envle envne envif = function
 
   | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2
   | IfNil(x, e1, e2) -> Ans(IfNil(x, g env envle envne envif e1, g env envle envne envif e2))
-*)
+
 (*  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
       Ans(Int((findi x env) lxor (findi y env))) *)
   | ExtFunApp("xor", [x;y]) when memi x env && findi x env = 0 -> Ans(Var(y))
