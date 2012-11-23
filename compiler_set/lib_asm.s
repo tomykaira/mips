@@ -1827,3 +1827,14 @@ min_caml_display:
 min_caml_readkbd:
 	inputb $r3
 	return
+
+min_caml_clear_display:
+	addi $r3, $r0, 0
+	addi $r4, $r0, 2400
+clear_display_start:
+	display $r3, $r0
+	addi $r3, $r3, 1
+	blt $r3, $r4, clear_display_start
+	nop
+	nop
+	return

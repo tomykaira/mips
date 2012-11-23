@@ -29,16 +29,6 @@ let rec read_line input  =
   (y, x, len)  in
 
 
-(* 画面のクリア *)
-let rec cls_sub2 y x =
-  if x < 0 then ()
-  else (*display y x 0;*) cls_sub2 y (x-1) in
-let rec cls_sub1 y =
-  if y < 0 then ()
-  else cls_sub2 y 79; cls_sub1 (y-1) in
-let rec cls _ = cls_sub1 23 in
-
-
 (* 文字列,行番号,列番号,文字数を受け取り,出力 *)
 let rec print_line_sub str y x n i =
   if i >= n then ()
@@ -56,7 +46,7 @@ let str = Array.create 80 0 in
 let rec main _ =
   let (y, x, len) = read_line str in
   if y = -2 then ()
-  else if y = -1 then (readkbd (); cls (); main ())
+  else if y = -1 then (readkbd (); clear_display (); main ())
   else (print_line str y x len; main ()) in
 
 main ()
