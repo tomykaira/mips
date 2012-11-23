@@ -1,5 +1,8 @@
 #include "../include/common.h"
 #include "../include/binary.h"
+#include "simulator.h"
+#include "logger.h"
+
 #include <cmath>
 #include <cassert>
 #include <fcntl.h>
@@ -123,22 +126,6 @@ float asF(uint32_t r)
 	return a.f;
 }
 
-typedef struct _options {
-	bool enable_stdout;
-	bool enable_record_instruction;
-	bool enable_record_mem;
-	bool enable_record_register;
-	bool enable_record_io;
-	bool lib_test_mode;
-	char * input_file;
-	char * target_binary;
-} simulation_options;
-
-#define D_INSTRUCTION if (log_fp && opt->enable_record_instruction) fprintf
-#define D_REGISTER if (log_fp && opt->enable_record_register) fprintf
-#define D_MEMORY if (log_fp && opt->enable_record_mem) fprintf
-#define D_IO if (log_fp && opt->enable_record_io) fprintf
-
 #define DUMP_PC { printf("\tcurrent_pc: %d %s\n", pc, ROM[pc-1].getInst().c_str()); }
 #define DUMP_STACK { for (int i = 1; i < stack_pointer; i ++) {printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());} }
 
@@ -252,21 +239,7 @@ int simulate(simulation_options * opt)
 	if (load_program(opt) == 1)
 		return 1;
 
-	// create output files
-	FILE * log_fp = NULL;
-	if (opt->enable_record_io
-	    || opt->enable_record_register
-	    || opt->enable_record_instruction
-	    || opt->enable_record_mem) {
-		int id = getpid();
-		char log_path[255];
-		sprintf(log_path, "%s.%d.log", opt->target_binary, id);
-		log_fp = fopen(log_path, "w");
-		if (!log_fp) {
-			cerr << "log is enabled, but failed to open log file: " << log_path << endl;
-			return 1;
-		}
-	}
+	Logger logger = Logger(opt);
 
 	FILE * input_fp = NULL;
 	if (opt->input_file) {
@@ -302,7 +275,7 @@ int simulate(simulation_options * opt)
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)].getCode();
 
-		D_INSTRUCTION(log_fp, "INST: %8d %08x\n", pc, inst);
+		logger.instruction(pc, inst);
 
 		if (! opt->lib_test_mode) {
 			if (!step && !(cnt % (1000000))) {
@@ -388,78 +361,78 @@ int simulate(simulation_options * opt)
 		switch(opcode)
 		{
 			case ADD:
-				D_REGISTER(log_fp, "REG: ADD %02X %08X\n", get_rd(inst), IRS + IRT);
+				logger.reg("ADD", get_rd(inst), IRS + IRT);
 				IRD = IRS + IRT;
 				break;
 			case SUB:
-				D_REGISTER(log_fp, "REG: SUB %02X %08X\n", get_rd(inst), IRS - IRT);
+				logger.reg("SUB", get_rd(inst), IRS - IRT);
 
 				IRD = IRS - IRT;
 				break;
 			case XOR:
-				D_REGISTER(log_fp, "REG: XOR %02X %08X\n", get_rd(inst), IRS ^ IRT);
+				logger.reg("XOR", get_rd(inst), IRS ^ IRT);
 				IRD = IRS ^ IRT;
 				break;
 			case ADDI:
-				D_REGISTER(log_fp, "REG: ADDI %02X %08X\n", get_rt(inst), IRS + IMM);
+				logger.reg("ADDI", get_rt(inst), IRS + IMM);
 				IRT = IRS + IMM;
 				break;
 			case SUBI:
-				D_REGISTER(log_fp, "REG: SUBI %02X %08X\n", get_rt(inst), IRS - IMM);
+				logger.reg("SUBI", get_rt(inst), IRS - IMM);
 				IRT = IRS - IMM;
 				break;
 			case SLLI:
 				assert(0 <= IMM && IMM < 32);
-				D_REGISTER(log_fp, "REG: SLLI %02X %08X\n", get_rt(inst), IRS << IMM);
+				logger.reg("SLLI", get_rt(inst), IRS << IMM);
 				IRT = IRS << IMM;
 				break;
 			case SRAI:
 				assert(0 <= IMM && IMM < 32);
-				D_REGISTER(log_fp, "REG: SRAI %02X %08X\n", get_rt(inst), IRS >> IMM);
+				logger.reg("SRAI", get_rt(inst), IRS >> IMM);
 				IRT = IRS >> IMM;
 				break;
 			case XORI:
-				D_REGISTER(log_fp, "REG: XORI %02X %08X\n", get_rt(inst), IRS ^ IMM);
+				logger.reg("XORI", get_rt(inst), IRS ^ IMM);
 				IRT = IRS ^ IMM;
 				break;
 			case FADD:
-				D_REGISTER(log_fp, "REG: FADD f%02X %08X\n", get_rd(inst), myfadd(FRS, FRT));
+				logger.reg("FADD", get_rd(inst), myfadd(FRS, FRT));
 				FRD = myfadd(FRS, FRT);
 				break;
 			case FSUB:
-				D_REGISTER(log_fp, "REG: FSUB f%02X %08X\n", get_rd(inst), myfsub(FRS, FRT));
+				logger.reg("FSUB", get_rd(inst), myfsub(FRS, FRT));
 				FRD = myfsub(FRS, FRT);
 				break;
 			case FMUL:
-				D_REGISTER(log_fp, "REG: FMUL f%02X %08X\n", get_rd(inst), myfmul(FRS, FRT));
+				logger.reg("FMUL", get_rd(inst), myfmul(FRS, FRT));
 				FRD = myfmul(FRS, FRT);
 				break;
 			case FMULN:
-				D_REGISTER(log_fp, "REG: FMULN f%02X %08X\n", get_rd(inst), myfmul(FRS, FRT));
+				logger.reg("FMULN", get_rd(inst), myfmul(FRS, FRT));
 				FRD = myfneg(myfmul(FRS, FRT));
 				break;
 			case FINV:
-				D_REGISTER(log_fp, "REG: FINV f%02X %08X\n", get_rd(inst), myfinv(FRS));
+				logger.reg("FINV", get_rd(inst), myfinv(FRS));
 				FRD = myfinv(FRS);
 				break;
 			case FSQRT:
-				D_REGISTER(log_fp, "REG: FSQRT f%02X %08X\n", get_rd(inst), myfsqrt(FRS));
+				logger.reg("FSQRT", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
 				break;
 			case IMOVF:
-				D_REGISTER(log_fp, "REG: IMOVF f%02X %08X\n", get_rt(inst), IRS);
+				logger.reg("IMOVF", get_rt(inst), IRS);
 				memcpy(&FRT, &IRS, 4);
 				break;
 			case FMOVI:
-				D_REGISTER(log_fp, "REG: FMOVI %02X %08X\n", get_rt(inst), FRS);
+				logger.reg("FMOVI", get_rt(inst), FRS);
 				memcpy(&IRT, &FRS, 4);
 				break;
 			case FMVLO:
-				D_REGISTER(log_fp, "REG: FMVLO f%02X %08X\n", get_rt(inst), (FRT & 0xffff0000) | (IMM & 0xffff));
+				logger.reg("FMVLO", get_rt(inst), (FRT & 0xffff0000) | (IMM & 0xffff));
 				FRT = (FRT & 0xffff0000) | (IMM & 0xffff);
 				break;
 			case FMVHI:
-				D_REGISTER(log_fp, "REG: FMVHI f%02X %08X\n", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
+				logger.reg("FMVHI", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
 				FRT = ((uint32_t)IMM << 16);
 				break;
 			case J:
@@ -506,20 +479,20 @@ int simulate(simulation_options * opt)
 				pc = internal_stack[stack_pointer--];
 				break;
 			case LDR:
-				D_REGISTER(log_fp, "REG: LDR %02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				logger.reg("LDR", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
 				IRD = RAM[(IRS + IRT)];
 
 				break;
 			case FLDR:
-				D_REGISTER(log_fp, "REG: FLDR f%02X %08X\n", get_rd(inst), RAM[(IRS + IRT)]);
+				logger.reg("FLDR", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
-				D_MEMORY(log_fp, "MEM: STI %d %d\n", IRS+IMM, IRT);
+				logger.memory("STI", IRS+IMM, IRT);
 				assert(IRS + IMM >= 0);
 				if (IRS + IMM >= RAM_SIZE) {
 					DUMP_PC
@@ -529,38 +502,34 @@ int simulate(simulation_options * opt)
 				RAM[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
-				D_REGISTER(log_fp, "REG: LDI %02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+				logger.reg("LDI", get_rt(inst), RAM[(IRS + IMM)]);
 
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
-				D_MEMORY(log_fp, "MEM: FSTI RAM[r%d + %d] <- f%d\n", get_rs(inst), get_imm(inst), get_rt(inst));
+				logger.memory("STI", IRS + IMM, FRT);
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
-				D_REGISTER(log_fp, "REG: FLDI f%02X %08X\n", get_rt(inst), RAM[(IRS + IMM)]);
+				logger.reg("FLDI", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:
-				if (!input_fp) {
-					fprintf(stderr, "Specify input file with -f");
-					return 1;
-				}
-				IRT = fgetc(input_fp) & 0xff;
-				D_REGISTER(log_fp, "REG: INPUTB %02X %08X\n", get_rt(inst), IRT);
+				IRT = input_file.read();
+				logger.reg("INPUTB", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
 				if (opt->enable_stdout &&
 				    IRT != 231 && IRT != 181 && IRT != 130) { // 終了マーカは無視。ログには出す
 					printf("%c", (char)IRT);
 				}
-				D_IO(log_fp, "IO: %c\n", (char)IRT);
+				logger.io((char)IRT);
 				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {
