@@ -203,6 +203,31 @@ void updateH(RH& h, uint8_t opcode, int32_t ireg[], uint32_t freg[]) {
 	}
 }
 
+// プログラムのバイナリを読み込んで ROM に格納する
+int load_program(simulation_options *opt)
+{
+	// バイナリを読み込む
+	FILE* srcFile = fopen(opt->target_binary, "rb");
+	if (srcFile == NULL)
+	{
+		cerr << "couldn't open " << opt->target_binary << endl;
+		return 1;
+	}
+
+	char *buf;
+	size_t size;
+	buf = (char *)calloc(1024, sizeof(char));
+	while (getline(&buf, &size, srcFile) > 0) {
+		uint32_t code;
+		char * inst;
+		sscanf(buf, "%x", &code);
+		inst = strchr(buf, '\t') + 1; // skip tab
+		Binary b(inst, code, false);
+		ROM.push_back(b);
+	}
+	fclose(srcFile);
+}
+
 //-----------------------------------------------------------------------------
 //
 // シミュレート
@@ -224,26 +249,8 @@ int simulate(simulation_options * opt)
 	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
 
-	// バイナリを読み込む
-	FILE* srcFile = fopen(opt->target_binary, "rb");
-	if (srcFile == NULL)
-	{
-		cerr << "couldn't open " << opt->target_binary << endl;
+	if (load_program(opt) == 1)
 		return 1;
-	}
-
-	char *buf;
-	size_t size;
-	buf = (char *)calloc(1024, sizeof(char));
-	while (getline(&buf, &size, srcFile) > 0) {
-		uint32_t code;
-		char * inst;
-		sscanf(buf, "%x", &code);
-		inst = strchr(buf, '\t') + 1; // skip tab
-		Binary b(inst, code, false);
-		ROM.push_back(b);
-	}
-	fclose(srcFile);
 
 	// create output files
 	FILE * log_fp = NULL;
