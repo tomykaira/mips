@@ -36,12 +36,6 @@ begin
   process (hcount)
   begin
     videoh <= '1';
-    
---    column <= hcount;   
---    if hcount > 639
---    then videoh <= '0';
---         column <= (others => '0');
---    end if;
 
     if hcount > 639 then
       videoh <= '0';
@@ -51,6 +45,10 @@ begin
       column <= hcount - 797;
     elsif hcount < 637 then
       column <= hcount + 3;
+    else
+      -- this is to remove latches
+      -- if something wrong, remove this
+      column <= hcount;
     end if;
 --    if hcount < 3
 --    then videoh <= '0';
@@ -81,7 +79,7 @@ begin
          row <= (others => '0');
     end if;
   end process;
-  
+
   sync: process (clk, reset)
   begin
     if reset='1'

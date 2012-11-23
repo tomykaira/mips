@@ -137,11 +137,6 @@ architecture top of top is
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);
 
-  -- vga clock generation
-  signal locked_out : STD_LOGIC;
-  signal vga_reset : STD_LOGIC := '1';
-  signal counter : std_logic_vector(1 downto 0) := (others => '0');
-
   -- display
   signal display_buffer_write_enable : STD_LOGIC;
   signal display_position            : std_logic_vector(11 downto 0);
@@ -201,7 +196,7 @@ begin  -- test
 		CLKFX_OUT       => clk100,
 		CLKIN_IBUFG_OUT => open,
 		CLK0_OUT        => iclk,
-    LOCKED_OUT      => locked_out);
+    LOCKED_OUT      => open);
 
   display_inst : display port map(
     clk     => iclk,
