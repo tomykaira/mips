@@ -1,8 +1,8 @@
 	nop
-start:
 	addi $r3, $r0, 0
 	addi $r4, $r0, 2400
 	addi $r5, $r0, 65
+start:
 	blt $r4, $r3, end
 	nop
 	nop
