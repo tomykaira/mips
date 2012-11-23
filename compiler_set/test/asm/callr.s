@@ -1,3 +1,4 @@
+#EXPECTED: 8 0
 	nop
 	setl $r2, start
 	addi $r3, $r0, 4

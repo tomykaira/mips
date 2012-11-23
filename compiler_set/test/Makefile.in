@@ -1,0 +1,51 @@
+PROJECT_ROOT = `git rev-parse --show-toplevel`
+COMPILER_SET = $(PROJECT_ROOT)/compiler_set
+
+# min-camlのライブラリファイル
+LIB_ML = $(COMPILER_SET)/lib_ml.ml
+
+# アセンブリのライブラリファイル
+LIB_ASM = $(COMPILER_SET)/lib_asm.s
+
+MIN_CAML=BISECT_FILE=$(COMPILER_SET)/compiler/coverage $(COMPILER_SET)/compiler/min-caml
+OPTION= -b -inline 50
+
+LINKER=groovy $(COMPILER_SET)/linker/linker.groovy
+
+SIMULATOR=$(COMPILER_SET)/simulator/simulator -t
+ASSEMBLER=$(COMPILER_SET)/assembler/assembler
+CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
+
+ARTIFACTS=*.bin *.s
+
+%.test: %.ocaml %.sim
+	diff $*.ocaml $*.sim
+
+%.test_core: %.sim %.core
+	diff $*.sim $*.core
+
+%.s: %.ml
+	cat $(LIB_ML) $*.ml > /tmp/`basename $*`.ml
+	$(MIN_CAML) $(OPTION) /tmp/`basename $*`
+	$(LINKER) $(LIB_ASM) /tmp/`basename $*`.s ${abspath $*.s}
+
+%.bin: %.s
+	$(ASSEMBLER) $*.s $*.bin
+
+%.ans: %.ocaml %.sim
+	cp $*.sim $*.ans
+	cat $*.ans
+	diff $*.ocaml $*.ans
+
+%.sim: %.bin
+	$(SIMULATOR) $*.bin > $*.sim
+
+%.core: %.bin
+	$(CORE_RUNNER) $*.bin > $*.core
+
+%.ocaml: %.ml
+	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > /tmp/`basename $*`.ml
+	ocaml /tmp/`basename $*`.ml > $*.ocaml
+
+clean:
+	rm -f *.ocaml *.sim *.core $(ARTIFACTS)

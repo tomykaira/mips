@@ -1,3 +1,4 @@
+#EXPECTED: 41 42
 # 関係のないメモリに連続で load -> store したとき動作するか
 	nop
   addi $r3, $r0, 65

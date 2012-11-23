@@ -36,6 +36,3 @@ let read_int () =
   with
       Failure _ -> failwith ((Buffer.contents buf) ^ ": int conversion failed.")
 in
-
-(* round *)
-let int_of_float x = Pervasives.int_of_float (floor (x +. 0.5)) in

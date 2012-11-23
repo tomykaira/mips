@@ -1,3 +1,4 @@
+#EXPECTED: 5
 	nop
 	setl $r3, here
 	addi $r5, $r0, 1
