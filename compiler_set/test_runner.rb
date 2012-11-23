@@ -1,4 +1,10 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
 require 'timeout'
+
+# 最長で実行を待つ時間。これを越えたら失敗する
+# min-rt の実行がかなり時間かかる
+TIMEOUT = 300
 
 if ARGV.size == 0
   STDERR.puts "Specify test group you want to run"
@@ -29,7 +35,7 @@ def make_with_timeout(task, timeout)
 
   success =
     begin
-      Timeout::timeout(300) do
+      Timeout::timeout(TIMEOUT) do
       Process.waitpid(pid)
       $?.success?
     end
@@ -64,4 +70,10 @@ end
 NG.each do |file, reason|
   puts file
   puts reason
+end
+
+if NG.empty?
+  exit 0
+else
+  exit 1
 end
