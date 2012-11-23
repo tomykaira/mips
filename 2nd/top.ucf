@@ -230,3 +230,41 @@ TIMESPEC "TS_SYS_CLK" = PERIOD "SYS_CLK" 15.00 ns HIGH 50 %;
 # Define multicycle paths - these paths may take longer because additional
 # time allowed for logic to settle in calibration/initialization FSM
 ###############################################################################
+
+################################################################
+# VGA
+# from @h013
+
+# VGA OUT Red
+NET "R_DATA<7>" LOC = "C34" | IOSTANDARD = LVTTL; # P<1>
+NET "R_DATA<6>" LOC = "J31" | IOSTANDARD = LVTTL; # P<4>
+NET "R_DATA<5>" LOC = "E32" | IOSTANDARD = LVTTL; # P<7>
+NET "R_DATA<4>" LOC = "B33" | IOSTANDARD = LVTTL; # P<10>
+NET "R_DATA<3>" LOC = "F33" | IOSTANDARD = LVTTL; # P<13>
+NET "R_DATA<2>" LOC = "J30" | IOSTANDARD = LVTTL; # P<16>
+NET "R_DATA<1>" LOC = "C32" | IOSTANDARD = LVTTL; # P<19>
+NET "R_DATA<0>" LOC = "K29" | IOSTANDARD = LVTTL; # P<22>
+
+# VGA OUT Green
+NET "G_DATA<7>" LOC = "E33" | IOSTANDARD = LVTTL; # P<2>
+NET "G_DATA<6>" LOC = "K31" | IOSTANDARD = LVTTL; # P<5>
+NET "G_DATA<5>" LOC = "C33" | IOSTANDARD = LVTTL; # P<8>
+NET "G_DATA<4>" LOC = "G33" | IOSTANDARD = LVTTL; # P<11>
+NET "G_DATA<3>" LOC = "L29" | IOSTANDARD = LVTTL; # P<14>
+NET "G_DATA<2>" LOC = "G32" | IOSTANDARD = LVTTL; # P<17>
+NET "G_DATA<1>" LOC = "F29" | IOSTANDARD = LVTTL; # P<20>
+NET "G_DATA<0>" LOC = "E31" | IOSTANDARD = LVTTL; # P<23>
+
+# VGA OUT Blue
+NET "B_DATA<7>" LOC = "D34" | IOSTANDARD = LVTTL; # P<3>
+NET "B_DATA<6>" LOC = "J32" | IOSTANDARD = LVTTL; # P<6>
+NET "B_DATA<5>" LOC = "F34" | IOSTANDARD = LVTTL; # P<9>
+NET "B_DATA<4>" LOC = "D32" | IOSTANDARD = LVTTL; # P<12>
+NET "B_DATA<3>" LOC = "A33" | IOSTANDARD = LVTTL; # P<15>
+NET "B_DATA<2>" LOC = "H32" | IOSTANDARD = LVTTL; # P<18>
+NET "B_DATA<1>" LOC = "H30" | IOSTANDARD = LVTTL; # P<21>
+NET "B_DATA<0>" LOC = "B32" | IOSTANDARD = LVTTL; # P<24>
+
+# VGA VS, HS
+NET "VS_DATA" LOC = "J29" | IOSTANDARD = LVTTL; # P<25>
+NET "HS_DATA" LOC = "G28" | IOSTANDARD = LVTTL; # P<28>
