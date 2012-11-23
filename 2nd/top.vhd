@@ -91,7 +91,27 @@ architecture top of top is
 
   end component;
 
-  signal mclk, iclk : std_logic;
+  COMPONENT dcm100
+    PORT(
+      CLKIN_IN : IN std_logic;
+      RST_IN : IN std_logic;
+      CLKFX_OUT : OUT std_logic;
+      CLKIN_IBUFG_OUT : OUT std_logic;
+      CLK0_OUT : OUT std_logic;
+      LOCKED_OUT : OUT std_logic
+      );
+	END COMPONENT;
+
+  component display is
+    port (
+      clk : in STD_LOGIC;
+      clk100 : in STD_LOGIC;
+      reset : in STD_LOGIC;
+      r_data, g_data, b_data : out std_logic_vector(7 downto 0);
+      vs_data, hs_data : out STD_LOGIC);
+  end component;
+
+  signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
@@ -102,14 +122,12 @@ architecture top of top is
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);
 
-begin  -- test
+  -- vga clock generation
+  signal locked_out : STD_LOGIC;
+  signal vga_reset : STD_LOGIC := '1';
+  signal counter : std_logic_vector(1 downto 0) := (others => '0');
 
-  ib: IBUFG port map (
-    i=>CLK,
-    o=>mclk);
-  bg: BUFG port map (
-    i=>mclk,
-    o=>iclk);
+begin  -- test
 
   data_memory : sramc port map (
     ZD  => ZD,
@@ -152,6 +170,25 @@ begin  -- test
     push      => tx_send_enable,
     push_data => tx_send_data,
     tx        => RS_TX);
+
+	Inst_dcm100: dcm100 PORT MAP(
+		CLKIN_IN       => CLK,
+		RST_IN          => not xrst,
+		CLKFX_OUT       => clk100,
+		CLKIN_IBUFG_OUT => open,
+		CLK0_OUT        => iclk,
+    LOCKED_OUT      => locked_out);
+
+  display_inst : display port map(
+    clk     => iclk,
+    clk100  => clk100,
+    reset   => not xrst,
+    r_data  => r_data,
+    g_data  => g_data
+    b_data  => b_data,
+    vs_data => vs_data,
+    hs_data => hs_data);
+
 
   XZBE<= "0000";
   XE1 <= '0';
