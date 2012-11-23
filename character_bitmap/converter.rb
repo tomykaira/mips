@@ -6,7 +6,7 @@
 file = File.readlines("bitmap.txt").select { |l| ! l.strip.empty? }
 
 def write(bytes, comment)
-  puts %q{%s /* %s */} % [bytes.rjust(32, "0"), comment]
+  puts %q{%s} % [bytes.rjust(32, "0")]
 end
 
 bitmap_hash = {}

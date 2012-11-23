@@ -2,9 +2,9 @@ module display(input clk,
                input        clk100,
                input        reset,
 
-               input        buffer_write_enable
+               input        buffer_write_enable,
                input [11:0] position,
-               input [6:0]  char_code
+               input [6:0]  char_code,
 
                output [7:0] r_data,g_data,b_data,
                output       vs_data, hs_data);
@@ -40,10 +40,10 @@ module display(input clk,
        .buffer_write_enable(buffer_write_enable), .position(position), .char_code(char_code));
 
    vga vga_inst
-     (.clk(clk25)),
-     .reset(vga_reset),
-     .red(red), .green(green), .blue(blue),
-     .r(r_data), .g(g_data), .b(b_data),
-     .hsync(hs_data), .vsync(vs_data), .row(row), .column(column));
+      (.clk(clk25),
+       .reset(vga_reset),
+       .red(red), .green(green), .blue(blue),
+       .r(r_data), .g(g_data), .b(b_data),
+       .hsync(hs_data), .vsync(vs_data), .row(row), .column(column));
 
 endmodule

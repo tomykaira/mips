@@ -27,7 +27,13 @@ entity top is
     ZZA    : out std_logic;
 
     CLK, XRST, RS_RX       : in  std_logic;
-    RS_TX                  : out std_logic);
+    RS_TX                  : out std_logic;
+
+		r_data : out std_logic_vector(7 downto 0);
+		g_data : out std_logic_vector(7 downto 0);
+		b_data : out std_logic_vector(7 downto 0);
+		vs_data: out std_logic;
+		hs_data: out std_logic);
 
 end top;
 
@@ -49,9 +55,9 @@ architecture top of top is
       rx_waiting       : in STD_LOGIC;
       rx_fifo_pop      : out STD_LOGIC;
 
-      buffer_write_enable : in STD_LOGIC;
-      position : out std_logic_vector(11 downto 0);
-      char_code : out std_logic_vector(6 downto 0));
+      display_buffer_write_enable : out STD_LOGIC;
+      display_position : out std_logic_vector(11 downto 0);
+      display_char_code : out std_logic_vector(6 downto 0));
   end component;
 
   component sramc is
@@ -112,9 +118,9 @@ architecture top of top is
       clk100 : in STD_LOGIC;
       reset : in STD_LOGIC;
 
-      buffer_write_enable : in STD_LOGIC;
-      position : out std_logic_vector(11 downto 0);
-      char_code : out std_logic_vector(6 downto 0);
+			buffer_write_enable : in STD_LOGIC;
+      position            : in std_logic_vector(11 downto 0);
+      char_code           : in std_logic_vector(6 downto 0);
 
       r_data, g_data, b_data : out std_logic_vector(7 downto 0);
       vs_data, hs_data : out STD_LOGIC);
@@ -137,9 +143,9 @@ architecture top of top is
   signal counter : std_logic_vector(1 downto 0) := (others => '0');
 
   -- display
-  signal buffer_write_enable : STD_LOGIC;
-  signal position            : std_logic_vector(11 downto 0);
-  signal char_code           : std_logic_vector(6 downto 0);
+  signal display_buffer_write_enable : STD_LOGIC;
+  signal display_position            : std_logic_vector(11 downto 0);
+  signal display_char_code           : std_logic_vector(6 downto 0);
 
 begin  -- test
 
@@ -170,9 +176,9 @@ begin  -- test
     rx_waiting       => rx_waiting,
     rx_fifo_pop      => rx_pop,
 
-    buffer_write_enable => buffer_write_enable,
-    position            => position,
-    char_code           => char_code);
+    display_buffer_write_enable => display_buffer_write_enable,
+    display_position            => display_position,
+    display_char_code           => display_char_code);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -202,12 +208,12 @@ begin  -- test
     clk100  => clk100,
     reset   => not xrst,
 
-    buffer_write_enable => buffer_write_enable,
-    position            => position,
-    char_code           => char_code,
+    buffer_write_enable => display_buffer_write_enable,
+    position            => display_position,
+    char_code           => display_char_code,
 
     r_data  => r_data,
-    g_data  => g_data
+    g_data  => g_data,
     b_data  => b_data,
     vs_data => vs_data,
     hs_data => hs_data);

@@ -15,9 +15,9 @@ module mimic(input clk,
              input         rx_waiting,
              output        rx_fifo_pop,
 
-             output        buffer_write_enable
-             output [11:0] position,
-             output [6:0]  char_code);
+             output        display_buffer_write_enable,
+             output [11:0] display_position,
+             output [6:0]  display_char_code);
 
    wire cpu_rx_pop;
    wire in_execution;
@@ -144,8 +144,8 @@ module mimic(input clk,
       .enable(write_enable_misc), .addr(write_addr_misc), .data(write_data_misc), .float(write_float_misc));
 
    display_instruction_dispatcher display_inst
-     (.clk(clk), .inst(inst_reg_read), .rs(rs_data), rt(rt_data),
-      .buffer_write_enable(buffer_write_enable), .position(position), .char_code(char_code));
+     (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
+      .buffer_write_enable(display_buffer_write_enable), .position(display_position), .char_code(display_char_code));
 
    branch_condition_checker branch_condition_checker_inst
       (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));

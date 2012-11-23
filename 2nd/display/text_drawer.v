@@ -5,7 +5,7 @@ module text_drawer(input clk,
                    input [8:0]  row,
                    input [9:0]  column,
 
-                   input        buffer_write_enable
+                   input        buffer_write_enable,
                    input [11:0] position,
                    input [6:0]  char_code);
 
@@ -13,13 +13,16 @@ module text_drawer(input clk,
 
    // bitmap ファイルは converter で都度生成する
    initial
-     $readmemb ("bitmap.dat", BITMAP);
+     $readmemh ("bitmap.dat", BITMAP);
+
+   wire [11:0] display_address;
+   assign display_address = {1'b0,row[8:4],6'b0} + {3'b0,row[8:4],4'b0} + {5'b0,column[9:3]};
 
    wire [6:0] char_to_show;
    display_buffer display_buffer_inst
      (.clk(clk),
       .write_enable(buffer_write_enable),
-      .address(position),
+      .address(buffer_write_enable == 1'b1 ? position : display_address),
       .write_data(char_code),
       .read_data(char_to_show));
 
@@ -32,7 +35,6 @@ module text_drawer(input clk,
    wire pixel_on;
    assign pixel_on = char_bitmap[index];
 
-   assign display_address = {1'b0,row[8:4],6'b0} + {3'b0,row[8:4],4'b0} + {5'b0,column[9:3]};
    assign red   = 8'h0;
    assign green = pixel_on == 1 ? 8'hff : 8'h0;
    assign blue  = 8'h0;
