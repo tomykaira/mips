@@ -44,6 +44,7 @@ DEFINE_R(_inputb, INPUTB, 0, 0);
 DEFINE_R(_outputb, OUTPUTB, 0, 0);
 DEFINE_R(_halt, HALT, 0, 0);
 DEFINE_I(_debug, DEBUG);
+DEFINE_R(_display, DISPLAY, 0, 0);
 
 typedef union
 {
@@ -446,6 +447,15 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	  if (n == 2)
 	    {
 	      code = _debug(rs, rt, imm);
+	      return true;
+	    }
+	}
+	if (eq(instName, "display"))
+	{
+	  int n = sscanf(buffer, formRR, dummy, &rs, &rt);
+	  if (n == 3)
+	    {
+	      code = _display(rs, rt, rd);
 	      return true;
 	    }
 	}
