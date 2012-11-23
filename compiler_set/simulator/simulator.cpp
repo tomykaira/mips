@@ -2,6 +2,7 @@
 #include "../include/binary.h"
 #include "simulator.h"
 #include "logger.h"
+#include "InputFile.h"
 
 #include <cmath>
 #include <cassert>
@@ -240,15 +241,7 @@ int simulate(simulation_options * opt)
 		return 1;
 
 	Logger logger = Logger(opt);
-
-	FILE * input_fp = NULL;
-	if (opt->input_file) {
-		input_fp = fopen(opt->input_file, "r");
-		if (input_fp == NULL) {
-			cerr << "input file is enabled, but failed to open: " << opt->input_file << endl;
-			return 1;
-		}
-	}
+	InputFile input_file = InputFile(opt);
 
 	bool debug_flag = false;
 

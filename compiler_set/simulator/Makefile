@@ -3,10 +3,11 @@ include ../Makefile.in
 HEADER = ../include/common.h fpu.h logger.h simulator.h
 
 all:simulator
-simulator: simulator.o fpu.o logger.o
+simulator: simulator.o fpu.o logger.o InputFile.o
 simulator.o: $(HEADER)
 fpu.o: fpu.h
 logger.o: logger.h simulator.h
+InputFile.o: InputFile.h simulator.h
 
 clean:
 	rm *.o
