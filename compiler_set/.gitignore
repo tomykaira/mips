@@ -5,6 +5,7 @@ compiler/min-caml
 ._d/
 ._ncdi
 *.bin
+*.input
 *.class
 __tmp__.*
 *.s
