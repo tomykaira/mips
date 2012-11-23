@@ -1,4 +1,3 @@
-(*NOMINCAML let Array.init = Array.init in *)
 let rec f x = x + x in
 let rec g x = if x > 0 then 0.5 +. g (x-1) else 0.0 in
 let a = Array.init 10 f in

@@ -1,7 +1,7 @@
 SLD_PATH = sldbin/contest.sldbin
 
 targets:
-	min-rt-new.ml
+	@echo min-rt-new.ml
 
 %.test: %.ans %.sim
 	diff $*.ans $*.sim

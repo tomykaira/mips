@@ -8,7 +8,7 @@ end
 
 case ARGV[0]
 when 'test'
-  target_directories = ['small', 'compare', 'io', 'large', 'min-rt', 'Loreley/test']
+  target_directories = ['small', 'compare', 'io', 'large', 'min-rt', 'Loreley/test/with-ocaml', 'Loreley/test/with-answer']
   task_suffix = 'test'
 when 'core'
   target_directories = ['asm', 'small', 'compare', 'io', 'large', 'min-rt']
@@ -26,7 +26,7 @@ def make_with_timeout(task, timeout)
 
   success =
     begin
-      Timeout::timeout(5) do
+      Timeout::timeout(300) do
       Process.waitpid(pid)
       $?.success?
     end
