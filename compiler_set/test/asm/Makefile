@@ -1,6 +1,3 @@
-# files to be deleted by clean
-ARTIFACTS=*.bin
-
 targets:
 	@ls -1 *.s | grep -v "\(callback\|sequential\)"
 
@@ -15,3 +12,5 @@ targets:
 	diff $*.exp $*.sim_bytes
 
 include ../Makefile.in
+
+ARTIFACTS=*.bin *.exp *.sim_bytes

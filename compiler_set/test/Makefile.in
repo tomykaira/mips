@@ -16,6 +16,8 @@ SIMULATOR=$(COMPILER_SET)/simulator/simulator -t
 ASSEMBLER=$(COMPILER_SET)/assembler/assembler
 CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
 
+ARTIFACTS=*.bin *.s
+
 %.test: %.ocaml %.sim
 	diff $*.ocaml $*.sim
 
@@ -44,3 +46,6 @@ CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
 %.ocaml: %.ml
 	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > /tmp/`basename $*`.ml
 	ocaml /tmp/`basename $*`.ml > $*.ocaml
+
+clean:
+	rm -f *.ocaml *.sim *.core $(ARTIFACTS)
