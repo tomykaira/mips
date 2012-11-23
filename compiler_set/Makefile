@@ -77,3 +77,8 @@ lor-clean:
 	cat $(LIB_ML) $*.ml > __tmp__.ml
 	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
+
+%.s: %.ml
+	cat $(LIB_ML) $*.ml > __tmp__.ml
+	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
+	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
