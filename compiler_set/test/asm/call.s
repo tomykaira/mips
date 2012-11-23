@@ -1,3 +1,4 @@
+#EXPECTED: 8 0
 	nop
 	addi $r3, $r0, 4
 	call start

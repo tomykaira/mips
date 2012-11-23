@@ -171,7 +171,8 @@ min_caml_int_of_float:
 	nop
 	nop
 FTOI_POSITIVE_MAIN:
-	call min_caml_floor # ここをコメントアウトしないとocaml仕様になる
+	# ここを有効にするとocaml仕様になる
+	#LORELEY call min_caml_floor
 	# $f2 <- 8388608.0(0x4b000000)
 	fmvhi $f2, 19200
 	fmvlo $f2, 0

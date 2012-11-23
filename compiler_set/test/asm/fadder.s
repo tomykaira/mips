@@ -1,3 +1,5 @@
+#EXPECTED: 1 0 0 41
+	nop
 	j min_caml_start
 min_caml_start:
 	fmvhi $f3, 16384	# 2.0
