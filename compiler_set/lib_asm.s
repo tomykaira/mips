@@ -1811,3 +1811,19 @@ ans_direct:
 zero_div:
 	addi $r3, $r0, 0
 	return
+
+# display 命令を呼び直す
+# display y x char
+min_caml_display:
+	# 80 = 64 + 16
+	slli $r6, $r3, 6
+	slli $r7, $r3, 4
+	add $r6, $r6, $r7
+	add $r6, $r6, $r4
+	display $r6, $r5
+	return
+
+# readkbd の仮実装
+min_caml_readkbd:
+	inputb $r3
+	return

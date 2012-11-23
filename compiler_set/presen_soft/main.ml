@@ -1,22 +1,22 @@
 (* テスト用 *)
-let rec display y x c =
-  print_int y;
-  print_char 44;
-  print_int x;
-  print_char 44;
-  print_char c;
-  print_char 32 in
-let rec readkbd _ =
-  print_newline () in
+(*NOMINCAML let rec display y x c = *)
+(*NOMINCAML   print_int y; *)
+(*NOMINCAML   print_char 44; *)
+(*NOMINCAML   print_int x; *)
+(*NOMINCAML   print_char 44; *)
+(*NOMINCAML   print_char c; *)
+(*NOMINCAML   print_char 32 in *)
+(*NOMINCAML let rec readkbd _ = *)
+(*NOMINCAML   print_newline () in *)
 
 
 (* 1行読み取り配列に格納し,行番号、列番号、長さを返す.
    先頭の空白類文字は読み飛ばし *)
 let rec read_line_sub input n state =
   let c = input_char () in
-  if c = 10 then input.(n) <- 0; n
-  else if n >= 80 then input.(n) <- 0; n
-  else if state = 0 then 
+  if c = 10 then (input.(n) <- 0; n)
+  else if n >= 80 then (input.(n) <- 0; n)
+  else if state = 0 then
     if c < 33 then read_line_sub input n 0
     else if c > 126 then read_line_sub input n 0
     else (input.(n) <- c; read_line_sub input (n+1) 1)
@@ -24,7 +24,7 @@ let rec read_line_sub input n state =
 let rec read_line input  =
   let y = read_int () in
   if y < 0 then (y, 0, 0) else
-  let x = read_int () in  
+  let x = read_int () in
   let len = read_line_sub input 0 0 in
   (y, x, len)  in
 
