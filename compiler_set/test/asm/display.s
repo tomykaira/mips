@@ -3,7 +3,7 @@
 	addi $r4, $r0, 2400
 	addi $r5, $r0, 65
 start:
-	blt $r4, $r3, end
+	ble $r4, $r3, end
 	nop
 	nop
 	display $r3, $r5
