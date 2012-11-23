@@ -13,6 +13,9 @@ when 'test'
 when 'core'
   target_directories = ['asm', 'small', 'compare', 'io', 'large', 'min-rt']
   task_suffix = 'test_core'
+when 'min-rt'
+  target_directories = ['min-rt']
+  task_suffix = 'test'
 else
   STDERR.puts "Unknown test mode.  \"test\" or \"core\""
 end
