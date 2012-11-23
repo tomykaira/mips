@@ -1829,6 +1829,7 @@ min_caml_readkbd:
 	return
 
 min_caml_clear_display:
+	debug 8
 	addi $r3, $r0, 0
 	addi $r4, $r0, 2400
 clear_display_start:

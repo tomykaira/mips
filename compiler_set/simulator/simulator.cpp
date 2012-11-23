@@ -564,6 +564,9 @@ int simulate(simulation_options * opt)
 						printf("%d: %08x\n", j, ireg[j]);
 					}
 					break;
+				case 8:
+					display.preview();
+					break;
 				default:
 					break;
 				}
