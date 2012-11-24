@@ -5,6 +5,7 @@ module keyboard_reader(input clk,
 
                        // for extension
                        // 0: is_break
+                       // 1: this is new break input
                        input [7:0]       key_status,
                        input [7:0]       keycode,
 
@@ -21,7 +22,7 @@ module keyboard_reader(input clk,
    assign float = 1'b0;
 
    always @ (posedge(clk)) begin
-      if (op == READKEY && key_status[0] == 1'b1) begin
+      if (op == READKEY && key_status[1] == 1'b1) begin
          enable <= 1'b1;
          addr <= inst[20:16];
          data <= {24'b0, keycode};
