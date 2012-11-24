@@ -1,17 +1,17 @@
 // read keyboard input when instruction received
 
 module keyboard_reader(input clk,
-                       input [31:0]     inst,
+                       input [31:0]      inst,
 
                        // for extension
                        // 0: is_break
-                       input [7:0]      key_status,
-                       input [7:0]      keycode,
+                       input [7:0]       key_status,
+                       input [7:0]       keycode,
 
-                       output reg       enable,
-                       output           float, // always false
-                       output reg [4:0] addr,
-                       output [31:0]    data);
+                       output reg        enable,
+                       output            float, // always false
+                       output reg [4:0]  addr,
+                       output reg [31:0] data);
 
    parameter READKEY = 6'b001001;
 
@@ -21,7 +21,7 @@ module keyboard_reader(input clk,
    assign float = 1'b0;
 
    always @ (posedge(clk)) begin
-      if (op == readkey && key_status[0] == 1'b1) begin
+      if (op == READKEY && key_status[0] == 1'b1) begin
          enable <= 1'b1;
          addr <= inst[20:16];
          data <= {24'b0, keycode};
@@ -29,4 +29,4 @@ module keyboard_reader(input clk,
         enable <= 1'b0;
    end
 
-endmodule;
+endmodule

@@ -17,7 +17,7 @@ module mimic(input clk,
 
              output        display_buffer_write_enable,
              output [11:0] display_position,
-             output [6:0]  display_char_code
+             output [6:0]  display_char_code,
 
              input [7:0]   key_status,
              input [7:0]   keycode);
@@ -161,7 +161,7 @@ module mimic(input clk,
    wire [4:0] write_addr_keyboard;
    wire [31:0] write_data_keyboard;
    keyboard_reader keyboard_inst
-      (.clk(clk), .inst(inst_reg_read), .rt(rt_data),
+      (.clk(clk), .inst(inst_reg_read),
       .key_status(key_status), .keycode(keycode),
       .enable(write_enable_keyboard), .addr(write_addr_keyboard), .data(write_data_keyboard), .float(write_float_keyboard));
 

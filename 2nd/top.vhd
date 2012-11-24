@@ -60,9 +60,9 @@ architecture top of top is
 
       display_buffer_write_enable : out STD_LOGIC;
       display_position : out std_logic_vector(11 downto 0);
-      display_char_code : out std_logic_vector(6 downto 0)
+      display_char_code : out std_logic_vector(6 downto 0);
 
-			key_status : in std_logic_vector(7 downto 0)
+			key_status : in std_logic_vector(7 downto 0);
 			keycode    : in std_logic_vector(7 downto 0));
   end component;
 
@@ -192,7 +192,7 @@ begin  -- test
 
     display_buffer_write_enable => display_buffer_write_enable,
     display_position            => display_position,
-    display_char_code           => display_char_code
+    display_char_code           => display_char_code,
 
 		key_status => key_status,
 		keycode    => keycode);
