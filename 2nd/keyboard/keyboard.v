@@ -10,7 +10,8 @@ module keyboard(input clk,
    keyboard_driver driver_inst
      (.clk(clk),
       .key_clk(key_clk),
-      .key_code(keycode)
+      .key_data(key_data),
+      .keycode(keycode),
       .is_break(is_break));
 
    assign key_status = {7'b0, is_break};
