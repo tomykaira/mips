@@ -20,6 +20,3 @@ fi
 
 echo "file copy"
 cut -f1 $bin > ../instruction.dat
-size=`wc $bin | awk '{ print $1 }'`
-sed ../2nd/testbench_endtoend.v -e "s/MEM_SIZE=.*;/MEM_SIZE=$size;/" > inst.v
-mv inst.v ../2nd/testbench_endtoend.v
