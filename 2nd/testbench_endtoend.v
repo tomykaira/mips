@@ -72,7 +72,7 @@ module testbench_endtoend();
    initial begin
       xreset <= 0;
       rs_rx  <= 1;
-      #22;
+      #92;
       xreset <= 1;
       #100;
 

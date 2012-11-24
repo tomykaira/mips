@@ -27,7 +27,13 @@ entity top is
     ZZA    : out std_logic;
 
     CLK, XRST, RS_RX       : in  std_logic;
-    RS_TX                  : out std_logic);
+    RS_TX                  : out std_logic;
+
+		r_data : out std_logic_vector(7 downto 0);
+		g_data : out std_logic_vector(7 downto 0);
+		b_data : out std_logic_vector(7 downto 0);
+		vs_data: out std_logic;
+		hs_data: out std_logic);
 
 end top;
 
@@ -47,7 +53,11 @@ architecture top of top is
 
       rx_received_data : in std_logic_vector(7 downto 0);
       rx_waiting       : in STD_LOGIC;
-      rx_fifo_pop      : out STD_LOGIC);
+      rx_fifo_pop      : out STD_LOGIC;
+
+      display_buffer_write_enable : out STD_LOGIC;
+      display_position : out std_logic_vector(11 downto 0);
+      display_char_code : out std_logic_vector(6 downto 0));
   end component;
 
   component sramc is
@@ -91,7 +101,32 @@ architecture top of top is
 
   end component;
 
-  signal mclk, iclk : std_logic;
+  COMPONENT dcm100
+    PORT(
+      CLKIN_IN : IN std_logic;
+      RST_IN : IN std_logic;
+      CLKFX_OUT : OUT std_logic;
+      CLKIN_IBUFG_OUT : OUT std_logic;
+      CLK0_OUT : OUT std_logic;
+      LOCKED_OUT : OUT std_logic
+      );
+	END COMPONENT;
+
+  component display is
+    port (
+      clk : in STD_LOGIC;
+      clk100 : in STD_LOGIC;
+      reset : in STD_LOGIC;
+
+			buffer_write_enable : in STD_LOGIC;
+      position            : in std_logic_vector(11 downto 0);
+      char_code           : in std_logic_vector(6 downto 0);
+
+      r_data, g_data, b_data : out std_logic_vector(7 downto 0);
+      vs_data, hs_data : out STD_LOGIC);
+  end component;
+
+  signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
@@ -102,14 +137,12 @@ architecture top of top is
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);
 
-begin  -- test
+  -- display
+  signal display_buffer_write_enable : STD_LOGIC;
+  signal display_position            : std_logic_vector(11 downto 0);
+  signal display_char_code           : std_logic_vector(6 downto 0);
 
-  ib: IBUFG port map (
-    i=>CLK,
-    o=>mclk);
-  bg: BUFG port map (
-    i=>mclk,
-    o=>iclk);
+begin  -- test
 
   data_memory : sramc port map (
     ZD  => ZD,
@@ -136,7 +169,11 @@ begin  -- test
 
     rx_received_data => rx_data,
     rx_waiting       => rx_waiting,
-    rx_fifo_pop      => rx_pop);
+    rx_fifo_pop      => rx_pop,
+
+    display_buffer_write_enable => display_buffer_write_enable,
+    display_position            => display_position,
+    display_char_code           => display_char_code);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -152,6 +189,30 @@ begin  -- test
     push      => tx_send_enable,
     push_data => tx_send_data,
     tx        => RS_TX);
+
+	Inst_dcm100: dcm100 PORT MAP(
+		CLKIN_IN       => CLK,
+		RST_IN          => not xrst,
+		CLKFX_OUT       => clk100,
+		CLKIN_IBUFG_OUT => open,
+		CLK0_OUT        => iclk,
+    LOCKED_OUT      => open);
+
+  display_inst : display port map(
+    clk     => iclk,
+    clk100  => clk100,
+    reset   => not xrst,
+
+    buffer_write_enable => display_buffer_write_enable,
+    position            => display_position,
+    char_code           => display_char_code,
+
+    r_data  => r_data,
+    g_data  => g_data,
+    b_data  => b_data,
+    vs_data => vs_data,
+    hs_data => hs_data);
+
 
   XZBE<= "0000";
   XE1 <= '0';
