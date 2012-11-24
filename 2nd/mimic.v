@@ -78,6 +78,7 @@ module mimic(input clk,
    waiting_signal_watcher watcher_inst
      (.inst(inst_fetch),
       .rx_wait(cpu_rx_waiting),
+      .key_status(key_status),
       .freeze(freeze));
 
    wire [31:0] rs_data, rt_data;
