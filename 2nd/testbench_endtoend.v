@@ -75,7 +75,8 @@ module testbench_endtoend();
       end
    endtask
 
-   parameter KEY_CLK_LENGTH=30;
+   // clk より十分長ければ、適当でよい
+   parameter KEY_CLK_LENGTH=105;
    task send_key_signal;
       input data;
       begin
@@ -90,14 +91,14 @@ module testbench_endtoend();
 
    integer k;
    task send_key;
-      input [7:0] data;
+      input [7:0] keycode;
       begin
 
          // input 0_????????_p_1
 
          send_key_signal(0);
          for (k=0; k < 8; k = k+1) begin
-            send_key_signal(data[i]);
+            send_key_signal(keycode[k]);
          end
          send_key_signal(1);  // fake parity
          send_key_signal(1);
@@ -110,8 +111,11 @@ module testbench_endtoend();
    integer j;
    // initialize test by xresetting
    initial begin
-      xreset <= 0;
       rs_rx  <= 1;
+      key_clk <= 1;
+      key_data <= 1;
+
+      xreset <= 0;
       #92;
       xreset <= 1;
       #100;
@@ -129,9 +133,9 @@ module testbench_endtoend();
       send(4);
 
       #100;
-      send(8'h14); // press ctrl
-      send(8'hf0);
-      send(8'h14); // release ctrl
+      send_key(8'h14); // press ctrl
+      send_key(8'hf0);
+      send_key(8'h14); // release ctrl
    end
 
    // geenrate clock to sequence tests
