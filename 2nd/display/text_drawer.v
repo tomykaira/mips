@@ -26,7 +26,7 @@ module text_drawer(input clk,
       .write_data(char_code),
       .read_data(char_to_show));
 
-   wire [6:0] char_bitmap;
+   wire [127:0] char_bitmap;
    assign char_bitmap = BITMAP[char_to_show];
 
    wire [6:0] index;
