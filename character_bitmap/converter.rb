@@ -14,7 +14,7 @@ bitmap_hash = {}
 until file.empty?
   set = file.slice!(0, 17)
   letter = set[0].strip
-  byte = set[1..16].map { |line| line[0..7].gsub(' ', '0').to_i(2).to_s(16) }.join('')
+  byte = set[1..16].map { |line| line[0..7].gsub(' ', '0').to_i(2).to_s(16).rjust(2, '0') }.join('')
 
   bitmap_hash[letter] = byte
 end
