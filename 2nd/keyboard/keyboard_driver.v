@@ -46,18 +46,11 @@ module keyboard_driver(input clk,
 
       // positive edge of key_clk
       if (prev_clk == 8'b11110000) begin
-         // if (counter == 0)
-         //   if (key_data == 0)
-         //     counter <= 4'b1;
-         //   else
-         //     counter <= 4'b0;
-         // else begin
-            counter <= counter + 1;
-            if ((counter >= 1 && counter <= 8)) begin
-               data_buffer[6:0] <= data_buffer[7:1];
-               data_buffer[7] <= key_data;
-            end
-         // end
+         counter <= counter + 1;
+         if ((counter >= 1 && counter <= 8)) begin
+            data_buffer[6:0] <= data_buffer[7:1];
+            data_buffer[7] <= key_data;
+         end
       end
 
       if (counter == 11) begin
