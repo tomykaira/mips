@@ -48,4 +48,4 @@ ARTIFACTS=*.bin *.s
 	ocaml /tmp/`basename $*`.ml > $*.ocaml
 
 clean:
-	rm -f *.ocaml *.sim *.core $(ARTIFACTS)
+	rm -f *.ocaml *.sim *.core *.log $(ARTIFACTS)

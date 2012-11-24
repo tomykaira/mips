@@ -68,5 +68,7 @@
 #define HALT    (0b111111)
 #define DEBUG   (0b101111)
 
+#define DISPLAY (0b001000)
+
 using namespace std;
 #endif

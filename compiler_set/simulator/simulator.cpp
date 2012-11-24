@@ -3,6 +3,7 @@
 #include "simulator.h"
 #include "logger.h"
 #include "InputFile.h"
+#include "Display.h"
 
 #include <cmath>
 #include <cassert>
@@ -236,6 +237,8 @@ int simulate(simulation_options * opt)
 	int stack_pointer = 0;
 	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
+
+	Display display = Display();
 
 	if (load_program(opt) == 1)
 		return 1;
@@ -524,6 +527,9 @@ int simulate(simulation_options * opt)
 				}
 				logger.io((char)IRT);
 				break;
+			case DISPLAY:
+				display.set(IRS, IRT);
+				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {
 					break;
@@ -558,6 +564,9 @@ int simulate(simulation_options * opt)
 						printf("%d: %08x\n", j, ireg[j]);
 					}
 					break;
+				case 8:
+					display.preview();
+					break;
 				default:
 					break;
 				}
@@ -573,6 +582,7 @@ int simulate(simulation_options * opt)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
+	display.preview();
 	return 0;
 }
 

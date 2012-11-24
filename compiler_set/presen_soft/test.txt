@@ -1,8 +1,7 @@
 10 24 test
 3 3 print
 5 6 jsidfjsoif
--1
+-1 0
 3 4 fdjsiof
 4 6 sjdif
 -2
-
