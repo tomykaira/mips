@@ -30,7 +30,7 @@ module text_drawer(input clk,
    assign char_bitmap = BITMAP[char_to_show];
 
    wire [6:0] index;
-   assign index = {row[3:0],column[2:0]};
+   assign index = 7'h7f - {row[3:0],column[2:0]}; // reverse order
 
    wire pixel_on;
    assign pixel_on = char_bitmap[index];
