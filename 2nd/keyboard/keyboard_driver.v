@@ -1,18 +1,12 @@
-// Simple keyboard driver
-// It does not handle special keys, starts with E0
+// Wrap keyboard driver, translate signals, add metadata
 
-// input
-//   clk : system clock
-//   key_clk : clock sent from keyboard
-//   key_data : data from keyboard
-// output :
-//   keycode : read key code
-//   is_break : 1, if the code is break code, 0 if it is make code
 module keyboard_driver(input clk,
                        input        key_clk,
                        input        key_data,
-                       output [7:0] keycode,
-                       output       is_break);
+                       output [7:0] key_status,
+                       output [7:0] keycode);
+
+   wire is_break;
 
    reg [7:0] recent_data[2:0];
    reg [7:0] data_buffer;
@@ -40,11 +34,13 @@ module keyboard_driver(input clk,
    // 10: parity
    // 11: end bit
    reg [7:0] prev_clk;
+   reg changed;
    always @ (posedge(clk)) begin
       prev_clk[7:1] <= prev_clk[6:0];
       prev_clk[0] <= key_clk;
+      changed <= 0;
 
-      // positive edge of key_clk
+      // negative edge of key_clk
       if (prev_clk == 8'b11110000) begin
          counter <= counter + 1;
          if ((counter >= 1 && counter <= 8)) begin
@@ -58,11 +54,13 @@ module keyboard_driver(input clk,
          recent_data[2] <= recent_data[1];
          recent_data[1] <= recent_data[0];
          recent_data[0] <= data_buffer;
+         changed <= 1;
       end
    end
 
    reg [7:0] prev_code, next_code;
-   reg prev_break, next_break;
+   reg       prev_break, next_break;
+   reg       new_break_code;
 
    assign keycode = next_code;
    assign is_break = next_break;
@@ -73,19 +71,24 @@ module keyboard_driver(input clk,
 
       // special key or in the middle of data set
       if ((recent_data[2] == 8'hE0 && recent_data[1] == 8'hf0) || recent_data[1] == 8'hE0
-           || recent_data[0] == 8'hF0 || recent_data[0] == 8'hE0) begin
+          || recent_data[0] == 8'hF0 || recent_data[0] == 8'hE0) begin
          next_code <= prev_code;
          next_break <= prev_break;
+         new_break_code <= 0;
 
-      // break
+         // break
       end else if (recent_data[1] == 8'hF0) begin
          next_code <= recent_data[0];
          next_break <= 1'b1;
+         new_break_code <= changed;
 
-      // make
+         // make
       end else begin
          next_code <= recent_data[0];
          next_break <= 1'b0;
+         new_break_code <= 0;
       end
    end
+
+   assign key_status = {6'b0, new_break_code, is_break};
 endmodule

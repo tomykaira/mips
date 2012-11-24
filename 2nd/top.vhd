@@ -132,7 +132,7 @@ architecture top of top is
       vs_data, hs_data : out STD_LOGIC);
   end component;
 
-	component keyboard is
+	component keyboard_driver is
 		port (
 			clk        : in STD_LOGIC;
 			key_clk    : in STD_LOGIC;
@@ -235,7 +235,7 @@ begin  -- test
     vs_data => vs_data,
     hs_data => hs_data);
 
-	keyboard_inst : keyboard port map
+	keyboard_inst : keyboard_driver port map
 		(clk        => iclk,
 		 key_clk    => KEY_CLK,
 		 key_data   => KEY_DATA,
