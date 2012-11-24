@@ -257,4 +257,7 @@ begin  -- test
   ZZA <= '0';
   ZDP <=  (others => 'Z');
 
+	KEY_CLK <= 'Z';
+	KEY_DATA <= 'Z';
+
 end top;
