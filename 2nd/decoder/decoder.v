@@ -5,7 +5,7 @@
 module decoder(input clk,
                 input             reset,
                 input [31:0]      inst,
-                input             rx_wait,
+                input             freeze,
                 output [31:0]     inst_out,
                 output [4:0]      rs_addr, rt_addr,
                 output            rs_float, rt_float,
@@ -107,7 +107,7 @@ module decoder(input clk,
 
 
    wire keep_inst;
-   assign keep_inst = ((op == INPUTB && rx_wait == 1'b1) || op == HALT || op == CALLR || op == JR ? 1'b1 : 1'b0);
+   assign keep_inst = (freeze == 1'b1 || op == HALT || op == CALLR || op == JR ? 1'b1 : 1'b0);
    assign keep_pc   = (stall == 1 || keep_inst == 1) ? 1'b1 : 1'b0;
 
 
