@@ -55,12 +55,13 @@ module mimic(input clk,
    wire [15:0] raw_imm;
    wire        cpu_keep_pc;
    wire        cpu_rx_waiting;
+   wire        freeze;
 
    assign cpu_rx_waiting = in_execution == 1 ? rx_waiting : 1'b1;
    decoder decoder_inst(.clk(clk),
                         .reset(reset),
                         .inst(inst_fetch),
-                        .rx_wait(cpu_rx_waiting),
+                        .freeze(freeze),
                         .inst_out(raw_inst_decode),
                         .rs_addr(rs_addr),
                         .rt_addr(rt_addr),
@@ -70,6 +71,11 @@ module mimic(input clk,
                         .keep_pc(cpu_keep_pc));
 
    flip_reset inst_decode_ff(.clk(clk), .reset(reset), .d(raw_inst_decode), .q(inst_decode));
+
+   waiting_signal_watcher watcher_inst
+     (.inst(inst_fetch),
+      .rx_wait(cpu_rx_waiting),
+      .freeze(freeze));
 
    wire [31:0] rs_data, rt_data;
    wire branch_taken;
