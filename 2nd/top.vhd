@@ -33,7 +33,10 @@ entity top is
 		g_data : out std_logic_vector(7 downto 0);
 		b_data : out std_logic_vector(7 downto 0);
 		vs_data: out std_logic;
-		hs_data: out std_logic);
+		hs_data: out std_logic;
+
+		KEY_CLK : inout STD_LOGIC;
+		KEY_DATA : inout STD_LOGIC);
 
 end top;
 
@@ -57,7 +60,10 @@ architecture top of top is
 
       display_buffer_write_enable : out STD_LOGIC;
       display_position : out std_logic_vector(11 downto 0);
-      display_char_code : out std_logic_vector(6 downto 0));
+      display_char_code : out std_logic_vector(6 downto 0)
+
+			key_status : in std_logic_vector(7 downto 0)
+			keycode    : in std_logic_vector(7 downto 0));
   end component;
 
   component sramc is
@@ -126,6 +132,15 @@ architecture top of top is
       vs_data, hs_data : out STD_LOGIC);
   end component;
 
+	component keyboard is
+		port (
+			clk        : in STD_LOGIC;
+			key_clk    : in STD_LOGIC;
+			key_data   : in STD_LOGIC;
+			key_status : out std_logic_vector(7 downto 0);
+			keycode    : out std_logic_vector(7 downto 0));
+	end component;
+
   signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
@@ -141,6 +156,10 @@ architecture top of top is
   signal display_buffer_write_enable : STD_LOGIC;
   signal display_position            : std_logic_vector(11 downto 0);
   signal display_char_code           : std_logic_vector(6 downto 0);
+
+	-- keyboard
+	signal key_status : std_logic_vector(7 downto 0);
+	signal keycode    : std_logic_vector(7 downto 0);
 
 begin  -- test
 
@@ -173,7 +192,10 @@ begin  -- test
 
     display_buffer_write_enable => display_buffer_write_enable,
     display_position            => display_position,
-    display_char_code           => display_char_code);
+    display_char_code           => display_char_code
+
+		key_status => key_status,
+		keycode    => keycode);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -212,6 +234,13 @@ begin  -- test
     b_data  => b_data,
     vs_data => vs_data,
     hs_data => hs_data);
+
+	keyboard_inst : keyboard port map
+		(clk        => iclk,
+		 key_clk    => KEY_CLK,
+		 key_data   => KEY_DATA,
+		 key_status => key_status,
+		 keycode    => keycode);
 
 
   XZBE<= "0000";
