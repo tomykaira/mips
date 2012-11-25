@@ -3,6 +3,8 @@ SLD_PATH = sldbin/contest.sldbin
 targets:
 	@echo min-rt-new.ml
 
+include ../Makefile.in
+
 %.test: %.ans %.sim
 	diff $*.ans $*.sim
 
@@ -12,8 +14,6 @@ targets:
 %.ans: %.sim
 	cp $*.sim $*.ans
 
-include ../Makefile.in
-
 %.s: %.ml
 	cat $(LIB_ML) globals.ml $*.ml > /tmp/`basename $*`.ml
 	$(MIN_CAML) $(OPTION) /tmp/`basename $*`
@@ -21,3 +21,6 @@ include ../Makefile.in
 
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim
+
+%.core: %.bin
+	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
