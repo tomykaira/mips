@@ -4,11 +4,9 @@ compiler/min-caml
 *.o
 ._d/
 ._ncdi
-*.bin
 *.input
 *.class
 __tmp__.*
-*.s
 *.cmi
 *.cmo
 *.log
@@ -16,3 +14,9 @@ continuous_commit
 *.cmp
 compiler/coverage*.out
 compiler/report/
+*.ocaml
+*.input
+*.sim
+*.bin
+*.s
+*_tmp.ml
