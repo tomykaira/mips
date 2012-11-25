@@ -146,8 +146,8 @@ architecture top of top is
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
 
-  signal tx_send_enable : STD_LOGIC;
-  signal tx_send_data : std_logic_vector(7 downto 0);
+  signal tx_send_enable, core_tx_send_enable : STD_LOGIC;
+  signal tx_send_data, core_tx_send_data : std_logic_vector(7 downto 0);
 
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);
@@ -183,8 +183,8 @@ begin  -- test
     mem_write_data   => memory_write_data,
     mem_read_data    => memory_data,
 
-    tx_send_enable   => tx_send_enable,
-    tx_send_data     => tx_send_data,
+    tx_send_enable   => core_tx_send_enable,
+    tx_send_data     => core_tx_send_data,
 
     rx_received_data => rx_data,
     rx_waiting       => rx_waiting,
@@ -211,6 +211,10 @@ begin  -- test
     push      => tx_send_enable,
     push_data => tx_send_data,
     tx        => RS_TX);
+
+	-- workaround for not-stable VGA signal
+	tx_send_enable <= '1'               when core_tx_send_enable = '1' else display_buffer_write_enable;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else "0"&display_char_code;
 
 	Inst_dcm100: dcm100 PORT MAP(
 		CLKIN_IN       => CLK,
