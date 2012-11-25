@@ -17,9 +17,9 @@ include ../Makefile.in
 	cp $*.sim $*.ans
 
 %.s: %.ml
-	cat $(LIB_ML) globals.ml $*.ml > /tmp/`basename $*`.ml
-	$(MIN_CAML) $(OPTION) /tmp/`basename $*`
-	$(LINKER) $(LIB_ASM) /tmp/`basename $*`.s ${abspath $*.s}
+	cat $(LIB_ML) globals.ml $*.ml > $(call tmp,$*).ml
+	$(MIN_CAML) $(OPTION) $(call tmp,$*)
+	$(LINKER) $(LIB_ASM) $(call tmp,$*).s ${abspath $*.s}
 
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim

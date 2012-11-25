@@ -4,10 +4,10 @@
 # 専用のライブラリを使用
 # 入力はテキストモード
 %.s: %.ml ../common_header.ml
-	cat $(LIB_ML) ../common_header.ml $*.ml > /tmp/`basename $*`.ml
-	$(MIN_CAML) -inline 50 /tmp/`basename $*`
-	sed $(LIB_ASM) -e 's/#LORELEY //' > /tmp/lib_asm.s
-	$(LINKER) /tmp/lib_asm.s /tmp/`basename $*`.s ${abspath $*.s}
+	cat $(LIB_ML) ../common_header.ml $*.ml > $(call tmp,$*).ml
+	$(MIN_CAML) -inline 50 $(call tmp,$*)
+	sed $(LIB_ASM) -e 's/#LORELEY //' > $(call tmp,lib_asm).s
+	$(LINKER) $(call tmp,lib_asm).s $(call tmp,$*).s ${abspath $*.s}
 
 %.sim: %.input %.bin
 	$(SIMULATOR) -f $*.input $*.bin > $*.sim
@@ -15,8 +15,8 @@
 # なぜか %.input を指定できない
 %.ocaml: %.ml ../ocaml_header.ml ../common_header.ml
 	make -s $*.input
-	cat ../ocaml_header.ml ../common_header.ml $*.ml > /tmp/ocaml.ml
-	ocaml /tmp/ocaml.ml < $*.input > $*.ocaml
+	cat ../ocaml_header.ml ../common_header.ml $*.ml > $(call tmp,ocaml).ml
+	ocaml $(call tmp,ocaml).ml < $*.input > $*.ocaml
 	rm $*.input
 
 ARTIFACTS=*.bin *.s *.input

@@ -4,7 +4,7 @@
 BIN=$1
 shift
 
-tmpfile=/tmp/`basename $BIN`
+tmpfile=/tmp/`basename $BIN`_$UID
 IMPACT=$HOME/Xilinx/ISE_DS/ISE/bin/lin64/impact
 
 runner_dir=$(dirname $0)

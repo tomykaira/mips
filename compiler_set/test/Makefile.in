@@ -18,6 +18,10 @@ CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
 
 ARTIFACTS=*.bin *.s
 
+# Get user-unique temporary file path
+# $(call tmp filepath)
+tmp = /tmp/$(basename $(1))_$(notdir $(HOME))
+
 %.test: %.ocaml %.sim
 	diff $*.ocaml $*.sim
 
@@ -25,9 +29,9 @@ ARTIFACTS=*.bin *.s
 	diff $*.sim $*.core
 
 %.s: %.ml
-	cat $(LIB_ML) $*.ml > /tmp/`basename $*`.ml
-	$(MIN_CAML) $(OPTION) /tmp/`basename $*`
-	$(LINKER) $(LIB_ASM) /tmp/`basename $*`.s ${abspath $*.s}
+	cat $(LIB_ML) $*.ml > $(call tmp,$*).ml
+	$(MIN_CAML) $(OPTION) $(call tmp,$*)
+	$(LINKER) $(LIB_ASM) $(call tmp,$*).s ${abspath $*.s}
 
 %.bin: %.s
 	$(ASSEMBLER) $*.s $*.bin
@@ -44,8 +48,8 @@ ARTIFACTS=*.bin *.s
 	$(CORE_RUNNER) $*.bin > $*.core
 
 %.ocaml: %.ml
-	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > /tmp/`basename $*`.ml
-	ocaml /tmp/`basename $*`.ml > $*.ocaml
+	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > $(call tmp,$*).ml
+	ocaml $(call tmp,$*).ml > $*.ocaml
 
 clean:
 	rm -f *.ocaml *.sim *.core *.log $(ARTIFACTS)
