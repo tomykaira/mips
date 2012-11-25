@@ -579,7 +579,8 @@ int simulate(simulation_options * opt)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
-	display.preview();
+	if (!opt->lib_test_mode)
+		display.preview();
 	return 0;
 }
 
