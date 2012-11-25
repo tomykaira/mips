@@ -65,4 +65,5 @@ let pages = Array.create pn page_dummy in
 (* 続いて各ページを読み取る *)
 read_pages pn pn pages;
 readkbd ();
+clear_display ();
 print_pages pn pn pages
