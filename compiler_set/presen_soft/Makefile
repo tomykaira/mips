@@ -7,3 +7,6 @@ SIMULATOR := $(COMPILER_SET)/simulator/simulator
 
 test: main.bin
 	$(SIMULATOR) -f test.txt main.bin
+
+test_core: main.bin
+	$(CORE_RUNNER) main.bin -i test.txt

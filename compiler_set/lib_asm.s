@@ -1823,9 +1823,8 @@ min_caml_display:
 	display $r6, $r5
 	return
 
-# readkbd の仮実装
 min_caml_readkbd:
-	inputb $r3
+	readkey $r3
 	return
 
 min_caml_clear_display:

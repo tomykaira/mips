@@ -69,6 +69,7 @@
 #define DEBUG   (0b101111)
 
 #define DISPLAY (0b001000)
+#define READKEY (0b001001)
 
 using namespace std;
 #endif
