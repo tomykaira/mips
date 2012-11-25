@@ -3,15 +3,17 @@ SLD_PATH = sldbin/contest.sldbin
 targets:
 	@echo min-rt-new.ml
 
-include ../Makefile.in
-
 %.test: %.ans %.sim
 	diff $*.ans $*.sim
 
 %.test_core: %.ans %.core
 	diff $*.ans $*.core
 
-%.ans: %.sim
+include ../Makefile.in
+
+# It should not depend on %.sim, because this is not updated after sim is updated.
+%.ans:
+	make $*.sim
 	cp $*.sim $*.ans
 
 %.s: %.ml
