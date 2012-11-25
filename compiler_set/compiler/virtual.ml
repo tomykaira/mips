@@ -2,13 +2,13 @@
 
 open Asm
 
-(* ¤½¤Î¿ô¤¬2¤Î²¿¾è¤«ÊÖ¤¹ *)
+(* ãã®æ•°ãŒ2ã®ä½•ä¹—ã‹è¿”ã™ *)
 let rec log2_sub n i =
   if 1 lsl (i+1) > n then i
   else log2_sub n (i+1)
 let log2 n = log2_sub n 0
 
-(* ÊÑ¿ô¤È·¿¤ÎÁÈ¤òint¤Èfloat¤ËÊ¬Îà¤¹¤ë´Ø¿ô *)
+(* å¤‰æ•°ã¨å‹ã®çµ„ã‚’intã¨floatã«åˆ†é¡ã™ã‚‹é–¢æ•° *)
 let classify xts ini addf addi =
   List.fold_left
     (fun acc (x, t) ->
@@ -19,7 +19,7 @@ let classify xts ini addf addi =
     ini
     xts
 
-(* ÊÑ¿ô¤È·¿¤ÎÁÈ¤Î¥ê¥¹¥È¤òint¤Èfloat¤ËÊ¬¤±¤ë´Ø¿ô *)
+(* å¤‰æ•°ã¨å‹ã®çµ„ã®ãƒªã‚¹ãƒˆã‚’intã¨floatã«åˆ†ã‘ã‚‹é–¢æ•° *)
 let separate xts =
   classify
     xts
@@ -56,7 +56,7 @@ let expand_let_list (variables:Id.t list) typ root_list_var rest =
   in
   iter root_list_var variables
 
-(* ¥í¡¼¥ÉÌ¿Îá¤ò,¤½¤ÎÊÑ¿ô¤ò»È¤¦Ä¾Á°¤Ë¶´¤ß¹ş¤à´Ø¿ô *)
+(* ãƒ­ãƒ¼ãƒ‰å‘½ä»¤ã‚’,ãã®å¤‰æ•°ã‚’ä½¿ã†ç›´å‰ã«æŒŸã¿è¾¼ã‚€é–¢æ•° *)
 let rec insert_load x load = function
   | Let(xt, exp, e) as e' ->
       if List.mem x (fv_exp exp) then
@@ -87,14 +87,14 @@ and insert_load' x load = function
       else Ans(IfFLT(y, z, insert_load x load e1, insert_load x load e2))
   | exp -> load (Ans(exp))
 
-(* ¼°¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* å¼ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let rec g tail env = function 
   | Closure.Let((x, t1), exp, e) ->
       let exp' = g' false env exp in
       let e' = g tail (M.add x t1 env) e in
       concat exp' (x, t1) e'
-  | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* ¥¯¥í¡¼¥¸¥ã¤ÎÀ¸À® *)
-      (* Closure¤Î¥¢¥É¥ì¥¹¤ò¥»¥Ã¥È¤·¤Æ¤«¤é¡¢¼«Í³ÊÑ¿ô¤ÎÃÍ¤ò¥¹¥È¥¢ *)
+  | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£ã®ç”Ÿæˆ *)
+      (* Closureã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’ã‚»ãƒƒãƒˆã—ã¦ã‹ã‚‰ã€è‡ªç”±å¤‰æ•°ã®å€¤ã‚’ã‚¹ãƒˆã‚¢ *)
       let e2' = g tail (M.add x t env) e2 in
       let offset, store_fv =
 	expand
@@ -194,7 +194,7 @@ and g' tail env = function
   | Closure.AppDir(Id.L(x), ays) ->
       let ayts = List.map (fun y -> (y, M.find y env)) ays in
       let (int, float) = separate ayts in
-      (* xorÅù¤òÊÑ´¹ *)
+      (* xorç­‰ã‚’å¤‰æ› *)
       (match x with
       | "min_caml_xor" -> Ans(Xor(List.nth int 0, List.nth int 1))
       | "min_caml_sqrt" -> Ans(FSqrt(List.hd float))
@@ -235,7 +235,7 @@ and g' tail env = function
 	      constr (Let((reg_hp, Type.Int), Add(reg_hp, t),
 		  	  store)))
       | _ -> Ans(CallDir(Id.L(x), int, float)))
-  | Closure.Tuple(xs) -> (* ÁÈ¤ÎÀ¸À® *)
+  | Closure.Tuple(xs) -> (* çµ„ã®ç”Ÿæˆ *)
       let y = Id.genid "t" in
       let (offset, store) =
 	expand
@@ -249,7 +249,7 @@ and g' tail env = function
 	Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), AddI(reg_hp, 0),
 	    Let((reg_hp, Type.Int), AddI(reg_hp, offset),
 		store))
-  | Closure.Get(x, y) -> (* ÇÛÎó¤ÎÆÉ¤ß½Ğ¤· *)
+  | Closure.Get(x, y) -> (* é…åˆ—ã®èª­ã¿å‡ºã— *)
       (match M.find x env with
       | Type.Array(Type.Unit) -> Ans(Nop)
       | Type.Array(Type.Float) -> Ans(FLdR(x, y))
@@ -266,7 +266,7 @@ and g' tail env = function
 	  Let((offset, Type.Int), Add(x, y),
 	      Ans(StI(z, offset, 0)))
       | _ -> assert false)
-	(* ¥¿¥×¥ë¤òÇÛÎó¤«¤éÆÉ¤ß½Ğ¤¹»ş¤Ë»È¤¦Ì¿Îá *)
+	(* ã‚¿ãƒ—ãƒ«ã‚’é…åˆ—ã‹ã‚‰èª­ã¿å‡ºã™æ™‚ã«ä½¿ã†å‘½ä»¤ *)
   | Closure.GetTuple(x, y) ->
       (match M.find x env with
       | Type.Array(Type.Tuple(ts)) ->
@@ -284,7 +284,7 @@ and g' tail env = function
 	  in
 	  constr (Ans(Add(x, ind)))
       | _ -> assert false)
-	(* ¥¿¥×¥ë¤òÇÛÎó¤ËËä¤á¹ş¤à»ş¤Ë»È¤¦Ì¿Îá *)
+	(* ã‚¿ãƒ—ãƒ«ã‚’é…åˆ—ã«åŸ‹ã‚è¾¼ã‚€æ™‚ã«ä½¿ã†å‘½ä»¤ *)
   | Closure.PutTuple(x, y, zs) ->
       (match M.find x env with
       | Type.Array(Type.Tuple(ts)) ->
@@ -327,7 +327,7 @@ and g' tail env = function
               seq (typed_store x new_list 0, seq (StI(y, new_list, 1), Ans(AddI(new_list, 0))))))
 
 
-(* ¥È¥Ã¥×¥ì¥Ù¥ë¤Î´Ø¿ô¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«ã®é–¢æ•°ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
   let (int, float) = separate yts in
   let tail = if S.mem x !CollectDanger.danger then false else true in
@@ -344,7 +344,7 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
       { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
   | _ -> assert false
 
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ¤Î²¾ÁÛ¥Ş¥·¥ó¥³¡¼¥ÉÀ¸À® *)
+(* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ã®ä»®æƒ³ãƒã‚·ãƒ³ã‚³ãƒ¼ãƒ‰ç”Ÿæˆ *)
 let f (Closure.Prog(fundefs, e)) =
   Format.eprintf "generating virtual assembly...@.";
   let fundefs = List.map h fundefs in
