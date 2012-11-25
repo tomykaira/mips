@@ -215,6 +215,7 @@ int load_program(simulation_options *opt)
 		ROM.push_back(b);
 	}
 	fclose(srcFile);
+	return 0;
 }
 
 //-----------------------------------------------------------------------------
