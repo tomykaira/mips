@@ -678,7 +678,12 @@ int main(int argc, char** argv)
 
 	cerr << "<simulate> " << endl;
 
-	ret = simulate(&opt);
+	try {
+		ret = simulate(&opt);
+	} catch (string exception) {
+		cerr << "Exception: " << exception << endl;
+		return 1;
+	}
 
 	cerr << endl;
         cerr << "issued instructions : " << cnt <<endl;

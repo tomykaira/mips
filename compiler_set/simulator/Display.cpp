@@ -36,4 +36,5 @@ void Display::preview() {
 		cout << "-";
 	}
 	cout << endl;
+	cout.flush();
 }
