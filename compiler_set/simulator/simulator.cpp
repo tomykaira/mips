@@ -530,6 +530,12 @@ int simulate(simulation_options * opt)
 			case DISPLAY:
 				display.set(IRS, IRT);
 				break;
+			case READKEY:
+				if (! opt->lib_test_mode) {
+					fprintf(stderr, "Send 0x1C(A) for READKEY\n");
+				}
+				IRT = 0x1c;
+				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {
 					break;
