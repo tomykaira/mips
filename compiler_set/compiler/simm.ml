@@ -6,15 +6,15 @@ let co env x = if M.mem x env && M.find x env = 0 then reg_0
 
 let fco env x = if M.mem x env && M.find x env = 0 then reg_f0 else x
 
-(* ¤½¤Î¿ô¤¬2¤Î²¿¾è¤«ÊÖ¤¹ *)
+(* ãã®æ•°ãŒ2ã®ä½•ä¹—ã‹è¿”ã™ *)
 let rec log2_sub n i =
   if 1 lsl (i+1) > n then i
   else log2_sub n (i+1)
 let log2 n = log2_sub n 0
-(* ¤½¤Î¿ô¤¬2¤Î¤Ù¤­¾è¤«ÊÖ¤¹ *)
+(* ãã®æ•°ãŒ2ã®ã¹ãä¹—ã‹è¿”ã™ *)
 let is_bin n = 1 lsl (log2 n) = n
 
-let rec g env = function (* Ì¿ÎáÎó¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+let rec g env = function (* å‘½ä»¤åˆ—ã®16bitå³å€¤æœ€é©åŒ– *)
   | Ans(exp) -> Ans(g' env exp)
   | Let((x, t), Int(i), e) when -0x8000 <= i && i < 0x7FFF ->
       let e' = g (M.add x i env) e in
@@ -25,7 +25,7 @@ let rec g env = function (* Ì¿ÎáÎó¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
       if List.mem x (fv e') then Let((x, t), Float(0.0), e') else
       e'      
   | Let(xt, exp, e) -> Let(xt, g' env exp, g env e)
-and g' env = function (* ³ÆÌ¿Îá¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+and g' env = function (* å„å‘½ä»¤ã®16bitå³å€¤æœ€é©åŒ– *)
   | Add(x, y) when M.mem y env -> AddI(x, M.find y env)
   | Add(x, y) when M.mem x env -> AddI(y, M.find x env)
   | Sub(x, y) when M.mem y env -> SubI(x, M.find y env)
@@ -63,10 +63,10 @@ and g' env = function (* ³ÆÌ¿Îá¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
 
   | e -> e
 
-(* ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+(* ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«é–¢æ•°ã®16bitå³å€¤æœ€é©åŒ– *)
 let h { name = l; args = xs; fargs = ys; body = e; ret = t } = 
   { name = l; args = xs; fargs = ys; body = g M.empty e; ret = t }
 
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ¤Î16bitÂ¨ÃÍºÇÅ¬²½ *)
+(* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ã®16bitå³å€¤æœ€é©åŒ– *)
 let f (Prog(fundefs, e)) = 
   Prog(List.map h fundefs, g M.empty e)

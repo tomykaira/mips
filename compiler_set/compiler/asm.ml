@@ -1,10 +1,10 @@
 (*pp deriving *)
 (* mimic assembly with a few virtual instructions *)
 
-type t = (* Ì¿Îá¤ÎÎó *)
+type t = (* å‘½ä»¤ã®åˆ— *)
   | Ans of exp
   | Let of (Id.t * Type.t) * exp * t
-and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂÐ±þ¤¹¤ë¼° *)
+and exp = (* ä¸€ã¤ä¸€ã¤ã®å‘½ä»¤ã«å¯¾å¿œã™ã‚‹å¼ *)
   | Nop (* virtual instruction *)
 
   | Add of Id.t * Id.t
@@ -17,7 +17,7 @@ and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂÐ±þ¤¹¤ë¼° *)
 
   | Int of int      (* virtual instruction *)
   | Float of float  (* virtual instruction *)
-  | SetL of Id.l    (* virtual instruction, ¥é¥Ù¥ël¤Î¥¢¥É¥ì¥¹¤òÊÖ¤¹ *)
+  | SetL of Id.l    (* virtual instruction, ãƒ©ãƒ™ãƒ«lã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’è¿”ã™ *)
   | SllI of Id.t * int
   | SraI of Id.t * int
   | IMovF of Id.t
@@ -51,15 +51,15 @@ and exp = (* °ì¤Ä°ì¤Ä¤ÎÌ¿Îá¤ËÂÐ±þ¤¹¤ë¼° *)
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.l * Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t (* ¥ì¥¸¥¹¥¿ÊÑ¿ô¤ÎÃÍ¤ò¥¹¥¿¥Ã¥¯ÊÑ¿ô¤ØÊÝÂ¸ *)
-  | Restore of Id.t (* ¥¹¥¿¥Ã¥¯ÊÑ¿ô¤«¤éÃÍ¤òÉü¸µ *)
+  | Save of Id.t * Id.t (* ãƒ¬ã‚¸ã‚¹ã‚¿å¤‰æ•°ã®å€¤ã‚’ã‚¹ã‚¿ãƒƒã‚¯å¤‰æ•°ã¸ä¿å­˜ *)
+  | Restore of Id.t (* ã‚¹ã‚¿ãƒƒã‚¯å¤‰æ•°ã‹ã‚‰å€¤ã‚’å¾©å…ƒ *)
   | SAlloc of int
       deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
       deriving (Show)
 
-(* ¥×¥í¥°¥é¥àÁ´ÂÎ = ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô + ¥á¥¤¥ó¤Î¼° *)
+(* ãƒ—ãƒ­ã‚°ãƒ©ãƒ å…¨ä½“ = ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«é–¢æ•° + ãƒ¡ã‚¤ãƒ³ã®å¼ *)
 type prog = Prog of fundef list * t
       deriving (Show)
 
@@ -139,7 +139,7 @@ and fv_var = function
   | Let((x, t), exp, e) ->
       fv_var_exp exp @ remove_and_uniq (S.singleton x) (fv_var e)
 
-(* ¤½¤Î¥×¥í¥°¥é¥à¤Î»È¤¦¥¹¥¿¥Ã¥¯¤ÎÂç¤­¤µ¤òµá¤á¤ë *)
+(* ãã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã®ä½¿ã†ã‚¹ã‚¿ãƒƒã‚¯ã®å¤§ãã•ã‚’æ±‚ã‚ã‚‹ *)
 let rec st = function
   | Ans(exp) -> st' exp
   | Let(_,exp,e) -> st' exp + st e
