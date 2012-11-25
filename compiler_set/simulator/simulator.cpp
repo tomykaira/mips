@@ -215,6 +215,7 @@ int load_program(simulation_options *opt)
 		ROM.push_back(b);
 	}
 	fclose(srcFile);
+	return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -227,10 +228,6 @@ int simulate(simulation_options * opt)
 	uint32_t inst;
 	int print_count=-1;
 	uint8_t opcode, funct;
-
-	//記録用
-	RH history;
-	history.pointer = 0;
 
 	int internal_stack[CALL_STACK_SIZE];
 	vector<int> jump_logger;
@@ -582,7 +579,8 @@ int simulate(simulation_options * opt)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
-	display.preview();
+	if (!opt->lib_test_mode)
+		display.preview();
 	return 0;
 }
 
