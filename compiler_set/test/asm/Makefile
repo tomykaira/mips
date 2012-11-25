@@ -13,4 +13,8 @@ targets:
 
 include ../Makefile.in
 
+%.core: %.bin
+	@echo "check the result with your own eyes"
+	$(CORE_RUNNER) $*.bin -h1
+
 ARTIFACTS=*.bin *.exp *.sim_bytes
