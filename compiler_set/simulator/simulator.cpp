@@ -229,10 +229,6 @@ int simulate(simulation_options * opt)
 	int print_count=-1;
 	uint8_t opcode, funct;
 
-	//記録用
-	RH history;
-	history.pointer = 0;
-
 	int internal_stack[CALL_STACK_SIZE];
 	vector<int> jump_logger;
 	int stack_pointer = 0;
