@@ -12,7 +12,13 @@ UCF=$PROJECT_DIR/2nd/top.ucf
 
 if [ $# = 0 ]; then
 
-  echo $BITNAME | ruby -e 'chars=STDIN.read.strip.split(//); chars.each{|c| puts c.ord.to_s(2).rjust(7,"0") }; (2400-chars.size).times{puts "0000000"}' > initial_text.dat
+  ruby > initial_text.dat <<EOF
+lines=[" "*80]*30
+lines[0]="Waiting program...".ljust(80)
+lines[28]="Kandouhan #{Time.now.month}/#{Time.now.day}".rjust(80)
+lines[29]="$BITNAME".rjust(80)
+lines.join.gsub(' ',  "\0").each_char{|c| puts c.ord.to_s(2).rjust(7,"0") }
+EOF
 
   xst -intstyle ise -filter "iseconfig/filter.filter" -ifn "$TOP.xst" -ofn "$TOP.syr"
   ngdbuild -filter "iseconfig/filter.filter" -intstyle ise -dd _ngo -sd ipcore_dir -nt timestamp -uc $UCF -p xc5vlx50t-ff1136-1 $TOP.ngc $TOP.ngd
