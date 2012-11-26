@@ -3,8 +3,8 @@ module display_buffer (input clk,
                            input [11:0]     address,
                            input [6:0]      write_data,
                            output reg [6:0] read_data);
-   // display size: 80x30
-   parameter MEM_SIZE=2400;
+   // display size: 40x15
+   parameter MEM_SIZE=600;
 
    reg [6:0] RAM[MEM_SIZE-1:0];
 

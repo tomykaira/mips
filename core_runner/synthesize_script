@@ -13,8 +13,8 @@ UCF=$PROJECT_DIR/2nd/top.ucf
 if [ $# = 0 ]; then
 
   ruby > initial_text.dat <<EOF
-WIDTH=80
-HEIGHT=30
+WIDTH=40
+HEIGHT=15
 lines=[" "*WIDTH]*HEIGHT
 lines[0]="Waiting program...".ljust(WIDTH)
 lines[HEIGHT-2]="Kandouhan #{Time.now.month}/#{Time.now.day}".rjust(WIDTH)

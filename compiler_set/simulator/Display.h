@@ -1,8 +1,8 @@
 #ifndef _DISPLAY_H_
 #define _DISPLAY_H_
 
-#define COLUMNS 80
-#define ROWS 30
+#define COLUMNS 40
+#define ROWS 15
 #define DISPLAY_SIZE COLUMNS*ROWS
 
 #include <stdint.h>

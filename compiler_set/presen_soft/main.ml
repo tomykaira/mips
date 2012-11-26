@@ -1,5 +1,5 @@
-let width = 80 in
-let height = 30 in
+let width = 40 in
+let height = 15 in
 
 (* 1行読み取り配列に格納し,行番号、列番号、長さを返す.
    先頭の空白類文字は読み飛ばし *)

@@ -1815,9 +1815,9 @@ zero_div:
 # display 命令を呼び直す
 # display y x char
 min_caml_display:
-	# 80 = 64 + 16
-	slli $r6, $r3, 6
-	slli $r7, $r3, 4
+  # 40 = 32(<<5) + 8(<<3)
+	slli $r6, $r3, 5
+	slli $r7, $r3, 3
 	add $r6, $r6, $r7
 	add $r6, $r6, $r4
 	display $r6, $r5
@@ -1830,7 +1830,7 @@ min_caml_readkbd:
 min_caml_clear_display:
 	debug 8
 	addi $r3, $r0, 0
-	addi $r4, $r0, 2400
+	addi $r4, $r0, 600
 clear_display_start:
 	display $r3, $r0
 	addi $r3, $r3, 1
