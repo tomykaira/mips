@@ -1,10 +1,13 @@
+let width = 80 in
+let height = 30 in
+
 (* 1行読み取り配列に格納し,行番号、列番号、長さを返す.
    先頭の空白類文字は読み飛ばし *)
 let rec read_line_sub input n state =
   let c = input_char () in
-  if c = 10 then input.(n) <- 0; n
-  else if n >= 80 then input.(n) <- 0; n
-  else if state = 0 then 
+  if c = 10 then (input.(n) <- 0; n)
+  else if n >= width then (input.(n) <- 0; n)
+  else if state = 0 then
     if c < 33 then read_line_sub input n 0
     else if c > 126 then read_line_sub input n 0
     else (input.(n) <- c; read_line_sub input (n+1) 1)
@@ -12,14 +15,14 @@ let rec read_line_sub input n state =
 let rec read_line _  =
   let y = read_int () in
   if y < 0 then (y, 0, 0, Array.create 0 0) else
-  let x = read_int () in  
-  let str = Array.create 80 0 in
+  let x = read_int () in
+  let str = Array.create width 0 in
   let len = read_line_sub str 0 0 in
   (y, x, len, str)  in
 
 (* ファイルの読み込み.-1でページ切り替え *)
 let rec read_page m page =
-  if m > 24 then () else
+  if m >= height then () else
   let (y, x, len, str) = read_line () in
   page.(m) <- (y, x, len, str);
   if y = -1 then ()
@@ -27,7 +30,7 @@ let rec read_page m page =
 let rec read_pages pn n pages =
   if n <= 0 then () else
   let str_dummy = Array.create 0 0 in
-  pages.(pn-n) <- Array.create 24 (0, 0, 0, str_dummy);
+  pages.(pn-n) <- Array.create height (0, 0, 0, str_dummy);
   read_page 0 (pages.(pn-n));
   read_pages pn (n-1) pages in
 
@@ -47,7 +50,7 @@ let rec print_line str y x n =
 
 (* 各ページの出力 *)
 let rec print_page n page =
-  if n > 24 then () else
+  if n >= height then () else
   let (y, x, len, str) = page.(n) in
   if y < 0 then ()
   else (print_line str y x len; print_page (n+1) page) in

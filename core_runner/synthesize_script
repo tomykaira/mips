@@ -13,10 +13,12 @@ UCF=$PROJECT_DIR/2nd/top.ucf
 if [ $# = 0 ]; then
 
   ruby > initial_text.dat <<EOF
-lines=[" "*80]*30
-lines[0]="Waiting program...".ljust(80)
-lines[28]="Kandouhan #{Time.now.month}/#{Time.now.day}".rjust(80)
-lines[29]="$BITNAME".rjust(80)
+WIDTH=80
+HEIGHT=30
+lines=[" "*WIDTH]*HEIGHT
+lines[0]="Waiting program...".ljust(WIDTH)
+lines[HEIGHT-2]="Kandouhan #{Time.now.month}/#{Time.now.day}".rjust(WIDTH)
+lines[HEIGHT-1]="$BITNAME".rjust(WIDTH)
 lines.join.gsub(' ',  "\0").each_char{|c| puts c.ord.to_s(2).rjust(7,"0") }
 EOF
 
