@@ -16,8 +16,7 @@ module rs232c(input clk,
               output reg [4:0] addr,
               output [31:0]    data);
 
-   parameter INPUTB  = 6'b111101;
-   parameter OUTPUTB = 6'b111110;
+   `include "../opcode.h"
 
    wire [5:0] op;
 

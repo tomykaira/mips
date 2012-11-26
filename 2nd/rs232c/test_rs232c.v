@@ -1,7 +1,6 @@
 module test_rs232c ();
 
-   parameter INPUTB  = 6'b111101;
-   parameter OUTPUTB = 6'b111110;
+   `include "../opcode.h"
 
    reg clk;
    reg reset;

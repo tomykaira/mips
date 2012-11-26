@@ -14,7 +14,7 @@ module keyboard_reader(input clk,
                        output reg [4:0]  addr,
                        output reg [31:0] data);
 
-   parameter READKEY = 6'b001001;
+   `include "../opcode.h"
 
    wire [5:0] op;
 

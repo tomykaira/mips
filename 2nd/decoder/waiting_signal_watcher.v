@@ -5,8 +5,7 @@ module waiting_signal_watcher (input [31:0] inst,
 
                                output freeze);
 
-   parameter INPUTB  = 6'b111101;
-   parameter READKEY = 6'b001001;
+   `include "../opcode.h"
 
    wire [5:0] op;
    assign op = inst[31:26];
