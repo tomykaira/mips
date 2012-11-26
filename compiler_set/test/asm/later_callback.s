@@ -1,8 +1,10 @@
-  addi $r3, $r0, 10000
-loop_10000:
+  addi $r3, $r0, 100
+loop:
   subi $r3, $r3, 1
   ble $r3, $r0, start
-  j loop_10000
+  nop
+  nop
+  j loop
 start:
   inputb $r3
   outputb $r3

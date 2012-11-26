@@ -33,7 +33,10 @@ entity top is
 		g_data : out std_logic_vector(7 downto 0);
 		b_data : out std_logic_vector(7 downto 0);
 		vs_data: out std_logic;
-		hs_data: out std_logic);
+		hs_data: out std_logic;
+
+		KEY_CLK : inout STD_LOGIC;
+		KEY_DATA : inout STD_LOGIC);
 
 end top;
 
@@ -57,7 +60,10 @@ architecture top of top is
 
       display_buffer_write_enable : out STD_LOGIC;
       display_position : out std_logic_vector(11 downto 0);
-      display_char_code : out std_logic_vector(6 downto 0));
+      display_char_code : out std_logic_vector(6 downto 0);
+
+			key_status : in std_logic_vector(7 downto 0);
+			keycode    : in std_logic_vector(7 downto 0));
   end component;
 
   component sramc is
@@ -126,13 +132,22 @@ architecture top of top is
       vs_data, hs_data : out STD_LOGIC);
   end component;
 
+	component keyboard_driver is
+		port (
+			clk        : in STD_LOGIC;
+			key_clk    : in STD_LOGIC;
+			key_data   : in STD_LOGIC;
+			key_status : out std_logic_vector(7 downto 0);
+			keycode    : out std_logic_vector(7 downto 0));
+	end component;
+
   signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
 
-  signal tx_send_enable : STD_LOGIC;
-  signal tx_send_data : std_logic_vector(7 downto 0);
+  signal tx_send_enable, core_tx_send_enable : STD_LOGIC;
+  signal tx_send_data, core_tx_send_data : std_logic_vector(7 downto 0);
 
   signal rx_pop, rx_waiting : STD_LOGIC;
   signal rx_data : std_logic_vector(7 downto 0);
@@ -141,6 +156,10 @@ architecture top of top is
   signal display_buffer_write_enable : STD_LOGIC;
   signal display_position            : std_logic_vector(11 downto 0);
   signal display_char_code           : std_logic_vector(6 downto 0);
+
+	-- keyboard
+	signal key_status : std_logic_vector(7 downto 0);
+	signal keycode    : std_logic_vector(7 downto 0);
 
 begin  -- test
 
@@ -164,8 +183,8 @@ begin  -- test
     mem_write_data   => memory_write_data,
     mem_read_data    => memory_data,
 
-    tx_send_enable   => tx_send_enable,
-    tx_send_data     => tx_send_data,
+    tx_send_enable   => core_tx_send_enable,
+    tx_send_data     => core_tx_send_data,
 
     rx_received_data => rx_data,
     rx_waiting       => rx_waiting,
@@ -173,7 +192,10 @@ begin  -- test
 
     display_buffer_write_enable => display_buffer_write_enable,
     display_position            => display_position,
-    display_char_code           => display_char_code);
+    display_char_code           => display_char_code,
+
+		key_status => key_status,
+		keycode    => keycode);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -189,6 +211,10 @@ begin  -- test
     push      => tx_send_enable,
     push_data => tx_send_data,
     tx        => RS_TX);
+
+	-- workaround for not-stable VGA signal
+	tx_send_enable <= '1'               when core_tx_send_enable = '1' else display_buffer_write_enable;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else "0"&display_char_code;
 
 	Inst_dcm100: dcm100 PORT MAP(
 		CLKIN_IN       => CLK,
@@ -213,6 +239,13 @@ begin  -- test
     vs_data => vs_data,
     hs_data => hs_data);
 
+	keyboard_inst : keyboard_driver port map
+		(clk        => iclk,
+		 key_clk    => KEY_CLK,
+		 key_data   => KEY_DATA,
+		 key_status => key_status,
+		 keycode    => keycode);
+
 
   XZBE<= "0000";
   XE1 <= '0';
@@ -227,5 +260,8 @@ begin  -- test
   XLBO <= '1';
   ZZA <= '0';
   ZDP <=  (others => 'Z');
+
+	KEY_CLK <= 'Z';
+	KEY_DATA <= 'Z';
 
 end top;

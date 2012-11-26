@@ -17,7 +17,10 @@ module mimic(input clk,
 
              output        display_buffer_write_enable,
              output [11:0] display_position,
-             output [6:0]  display_char_code);
+             output [6:0]  display_char_code,
+
+             input [7:0]   key_status,
+             input [7:0]   keycode);
 
    wire cpu_rx_pop;
    wire in_execution;
@@ -55,12 +58,13 @@ module mimic(input clk,
    wire [15:0] raw_imm;
    wire        cpu_keep_pc;
    wire        cpu_rx_waiting;
+   wire        freeze;
 
    assign cpu_rx_waiting = in_execution == 1 ? rx_waiting : 1'b1;
    decoder decoder_inst(.clk(clk),
                         .reset(reset),
                         .inst(inst_fetch),
-                        .rx_wait(cpu_rx_waiting),
+                        .freeze(freeze),
                         .inst_out(raw_inst_decode),
                         .rs_addr(rs_addr),
                         .rt_addr(rt_addr),
@@ -70,6 +74,12 @@ module mimic(input clk,
                         .keep_pc(cpu_keep_pc));
 
    flip_reset inst_decode_ff(.clk(clk), .reset(reset), .d(raw_inst_decode), .q(inst_decode));
+
+   waiting_signal_watcher watcher_inst
+     (.inst(inst_fetch),
+      .rx_wait(cpu_rx_waiting),
+      .key_status(key_status),
+      .freeze(freeze));
 
    wire [31:0] rs_data, rt_data;
    wire branch_taken;
@@ -137,11 +147,28 @@ module mimic(input clk,
       .memory_address(mem_addr), .memory_write_enable(mem_write_enable),
       .enable(write_enable_mem), .addr(write_addr_mem), .data(write_data_mem), .float(write_float_mem));
 
+   // FIXME: this will get rotten...
+   wire write_enable_rs, write_float_rs;
+   wire [4:0] write_addr_rs;
+   wire [31:0] write_data_rs;
    rs232c rs232c_inst
      (.clk(clk), .inst(inst_reg_read), .rt(rt_data),
       .push_send_data(tx_send_enable), .send_data(tx_send_data),
       .rx_wait(cpu_rx_waiting), .received_data(rx_received_data), .rx_pop(cpu_rx_pop),
-      .enable(write_enable_misc), .addr(write_addr_misc), .data(write_data_misc), .float(write_float_misc));
+      .enable(write_enable_rs), .addr(write_addr_rs), .data(write_data_rs), .float(write_float_rs));
+
+   wire write_enable_keyboard, write_float_keyboard;
+   wire [4:0] write_addr_keyboard;
+   wire [31:0] write_data_keyboard;
+   keyboard_reader keyboard_inst
+      (.clk(clk), .inst(inst_reg_read),
+      .key_status(key_status), .keycode(keycode),
+      .enable(write_enable_keyboard), .addr(write_addr_keyboard), .data(write_data_keyboard), .float(write_float_keyboard));
+
+   assign write_enable_misc = write_enable_rs == 1'b1 ? write_enable_rs : write_enable_keyboard;
+   assign write_addr_misc   = write_enable_rs == 1'b1 ? write_addr_rs   : write_addr_keyboard;
+   assign write_data_misc   = write_enable_rs == 1'b1 ? write_data_rs   : write_data_keyboard;
+   assign write_float_misc  = write_enable_rs == 1'b1 ? write_float_rs  : write_float_keyboard;
 
    display_instruction_dispatcher display_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),

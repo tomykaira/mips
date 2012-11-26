@@ -268,3 +268,10 @@ NET "B_DATA<0>" LOC = "B32" | IOSTANDARD = LVTTL; # P<24>
 # VGA VS, HS
 NET "VS_DATA" LOC = "J29" | IOSTANDARD = LVTTL; # P<25>
 NET "HS_DATA" LOC = "G28" | IOSTANDARD = LVTTL; # P<28>
+
+
+################################################################
+# keyboard
+
+NET "KEY_CLK"  LOC = "H24" | IOSTANDARD = LVTTL; # P<63> = C23
+NET "KEY_DATA" LOC = "R11" | IOSTANDARD = LVTTL; # P<60> = C22
