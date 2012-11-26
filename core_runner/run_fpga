@@ -10,7 +10,7 @@ IMPACT=$HOME/Xilinx/ISE_DS/ISE/bin/lin64/impact
 runner_dir=$(dirname $0)
 
 # before export xilinx libraries
-\cd $runner_dir/rs232c_io && make && \cd - > /dev/null
+make -q -C $runner_dir/rs232c_io > /dev/null
 
 \cd $HOME/hwex/tools
 source $HOME/Xilinx/ISE_DS/settings64.sh >/dev/null 2>/dev/null
