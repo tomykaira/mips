@@ -6,8 +6,7 @@ module display_instruction_dispatcher(input clk,
                                       input [31:0]      rt,
 
                                       output reg        buffer_write_enable,
-                                      output reg [11:0] position,
-                                      output reg [6:0]  char_code);
+                                      output reg [23:0] color_code);
 
    parameter DISPLAY = 6'b001000;
 
@@ -18,13 +17,11 @@ module display_instruction_dispatcher(input clk,
    always @ (posedge(clk)) begin
       if (op == DISPLAY) begin
          buffer_write_enable <= 1'b1;
-         position <= rs[11:0];
-         char_code <= rt[6:0];
+         color_code <= rt[23:0];
 
       end else begin
          buffer_write_enable <= 1'b0;
-         position <= 11'b0;
-         char_code <= 7'b0;
+         color_code <= 24'b0;
 
       end
    end

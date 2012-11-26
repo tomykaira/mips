@@ -3,8 +3,7 @@ module display(input clk,
                input        reset,
 
                input        buffer_write_enable,
-               input [11:0] position,
-               input [6:0]  char_code,
+               input [23:0] color_code,
 
                output [7:0] r_data,g_data,b_data,
                output       vs_data, hs_data);
@@ -34,10 +33,10 @@ module display(input clk,
    wire [7:0] red, green, blue;
    wire [8:0] row;
    wire [9:0] column;
-   text_drawer text_drawer_inst
+   image_drawer image_drawer_inst
       (.clk(clk), .reset(reset),
        .red(red), .green(green), .blue(blue), .row(row), .column(column),
-       .buffer_write_enable(buffer_write_enable), .position(position), .char_code(char_code));
+       .buffer_write_enable(buffer_write_enable), .color_code(color_code));
 
    vga vga_inst
       (.clk(clk25),

@@ -59,8 +59,7 @@ architecture top of top is
       rx_fifo_pop      : out STD_LOGIC;
 
       display_buffer_write_enable : out STD_LOGIC;
-      display_position : out std_logic_vector(11 downto 0);
-      display_char_code : out std_logic_vector(6 downto 0);
+      display_color_code: out std_logic_vector(23 downto 0);
 
 			key_status : in std_logic_vector(7 downto 0);
 			keycode    : in std_logic_vector(7 downto 0));
@@ -125,8 +124,7 @@ architecture top of top is
       reset : in STD_LOGIC;
 
 			buffer_write_enable : in STD_LOGIC;
-      position            : in std_logic_vector(11 downto 0);
-      char_code           : in std_logic_vector(6 downto 0);
+      color_code          : in std_logic_vector(23 downto 0);
 
       r_data, g_data, b_data : out std_logic_vector(7 downto 0);
       vs_data, hs_data : out STD_LOGIC);
@@ -154,8 +152,7 @@ architecture top of top is
 
   -- display
   signal display_buffer_write_enable : STD_LOGIC;
-  signal display_position            : std_logic_vector(11 downto 0);
-  signal display_char_code           : std_logic_vector(6 downto 0);
+  signal display_color_code          : std_logic_vector(23 downto 0);
 
 	-- keyboard
 	signal key_status : std_logic_vector(7 downto 0);
@@ -191,8 +188,7 @@ begin  -- test
     rx_fifo_pop      => rx_pop,
 
     display_buffer_write_enable => display_buffer_write_enable,
-    display_position            => display_position,
-    display_char_code           => display_char_code,
+    display_color_code          => display_color_code,
 
 		key_status => key_status,
 		keycode    => keycode);
@@ -214,7 +210,7 @@ begin  -- test
 
 	-- workaround for not-stable VGA signal
 	tx_send_enable <= '1'               when core_tx_send_enable = '1' else display_buffer_write_enable;
-	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else "0"&display_char_code;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else display_color_code(7 downto 0);
 
 	Inst_dcm100: dcm100 PORT MAP(
 		CLKIN_IN       => CLK,
@@ -230,8 +226,7 @@ begin  -- test
     reset   => not xrst,
 
     buffer_write_enable => display_buffer_write_enable,
-    position            => display_position,
-    char_code           => display_char_code,
+    color_code          => display_color_code,
 
     r_data  => r_data,
     g_data  => g_data,

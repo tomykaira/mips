@@ -16,8 +16,7 @@ module mimic(input clk,
              output        rx_fifo_pop,
 
              output        display_buffer_write_enable,
-             output [11:0] display_position,
-             output [6:0]  display_char_code,
+             output [23:0] display_color_code,
 
              input [7:0]   key_status,
              input [7:0]   keycode);
@@ -172,7 +171,7 @@ module mimic(input clk,
 
    display_instruction_dispatcher display_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
-      .buffer_write_enable(display_buffer_write_enable), .position(display_position), .char_code(display_char_code));
+      .buffer_write_enable(display_buffer_write_enable), .color_code(display_color_code));
 
    branch_condition_checker branch_condition_checker_inst
       (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));
