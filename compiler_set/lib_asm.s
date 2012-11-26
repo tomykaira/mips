@@ -1838,3 +1838,11 @@ clear_display_start:
 	nop
 	nop
 	return
+
+min_caml_draw:
+	srai $r4, $r3, 16
+	outputb $r4
+	srai $r4, $r3, 8
+	outputb $r4
+	outputb $r3
+	return
