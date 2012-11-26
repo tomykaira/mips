@@ -17,6 +17,7 @@ class Logger {
 	void reg(const char * inst, int dest, uint32_t value);
 	void memory(const char * inst, int dest, uint32_t value);
 	void io(char ch);
+	bool is_enabled();
 };
 
 

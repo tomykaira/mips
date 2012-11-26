@@ -10,10 +10,14 @@ Logger::Logger(simulation_options * a_opt) {
 	opt = a_opt;
 	int id = getpid();
 	char log_path[255];
-	sprintf(log_path, "%s.%d.log", opt->target_binary, id);
-	fp = fopen(log_path, "w");
-	if (!fp) {
-		throw(string("log is enabled, but failed to open log file: ") + string(log_path));
+	if (is_enabled()) {
+		sprintf(log_path, "%s.%d.log", opt->target_binary, id);
+		fp = fopen(log_path, "w");
+		if (!fp) {
+			throw(string("log is enabled, but failed to open log file: ") + string(log_path));
+		}
+	} else {
+		fp = NULL;
 	}
 }
 
@@ -39,4 +43,9 @@ void Logger::io(char ch) {
 	if (fp && opt->enable_record_io) {
 		fprintf(fp, "IO: %c\n", ch);
 	}
+}
+
+bool Logger::is_enabled() {
+	return opt->enable_record_io || opt->enable_record_mem
+		|| opt->enable_record_register || opt->enable_record_instruction;
 }
