@@ -9,7 +9,7 @@ module display_instruction_dispatcher(input clk,
                                       output reg [11:0] position,
                                       output reg [6:0]  char_code);
 
-   parameter DISPLAY = 6'b001000;
+   `include "../opcode.h"
 
    wire [5:0] op;
 

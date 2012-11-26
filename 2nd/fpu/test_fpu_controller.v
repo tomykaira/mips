@@ -1,11 +1,6 @@
 module test_fpu_controller ();
 
-   parameter FADD  = 6'b110000;
-   parameter FSUB  = 6'b110001;
-   parameter FMUL  = 6'b110010;
-   parameter FMULN = 6'b110011;
-   parameter FINV  = 6'b110100;
-   parameter FSQRT = 6'b110101;
+   `include "../opcode.h"
 
    reg clk;
    reg reset;

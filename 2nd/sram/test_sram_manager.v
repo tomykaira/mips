@@ -1,12 +1,6 @@
 module test_sram_manager ();
 
-   parameter LDI  = 6'b101000;
-   parameter STI  = 6'b101001;
-   parameter LDR  = 6'b101100;
-   parameter FLDI = 6'b101010;
-   parameter FSTI = 6'b101011;
-   parameter FLDR = 6'b101110;
-   parameter NOP  = 6'b000000;
+   `include "../opcode.h"
 
    reg clk;
    reg reset;

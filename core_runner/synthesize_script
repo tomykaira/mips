@@ -20,6 +20,9 @@ lines[29]="$BITNAME".rjust(80)
 lines.join.gsub(' ',  "\0").each_char{|c| puts c.ord.to_s(2).rjust(7,"0") }
 EOF
 
+  grep wtime $PROJECT_DIR/2nd/top.vhd | grep "008F" ||
+    (echo "Have you set synthesize mode? RS232C wtime is awkward."; exit 1)
+
   xst -intstyle ise -filter "iseconfig/filter.filter" -ifn "$TOP.xst" -ofn "$TOP.syr"
   ngdbuild -filter "iseconfig/filter.filter" -intstyle ise -dd _ngo -sd ipcore_dir -nt timestamp -uc $UCF -p xc5vlx50t-ff1136-1 $TOP.ngc $TOP.ngd
   map -filter "iseconfig/filter.filter" -intstyle ise -p xc5vlx50t-ff1136-1 -w -logic_opt off -ol high -t 1 -register_duplication off -global_opt off -mt off -cm area -ir off -pr off -lc off -power off -o $TOP_map.ncd $TOP.ngd $TOP.pcf

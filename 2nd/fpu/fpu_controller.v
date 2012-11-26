@@ -20,8 +20,10 @@ module fpu_controller (input clk,
                        output reg [31:0] data,
                        output            float);
 
+   `include "../opcode.h"
+
    reg [31:0] b;
-   reg current_enable;
+   wire current_enable;
    wire [4:0] current_addr;
    wire [31:0] neg_b;
    wire [31:0] fadd_data, fmul_data, finv_data, fsqrt_data;
@@ -46,12 +48,8 @@ module fpu_controller (input clk,
    assign addr   = write_addr[0];
    assign float  = 1'b1;
 
-   always @ (*) begin
-      if (op >= 6'b110000 && op <= 6'b110101)
-        current_enable <= 1;
-      else
-        current_enable <= 0;
-   end
+   assign current_enable =
+      (op == FADD || op == FSUB || op == FMUL || op == FMULN || op == FINV || op == FSQRT) ? 1'b1 : 1'b0;
 
    always @ (*) begin
       if (current_enable == 1)
@@ -63,25 +61,30 @@ module fpu_controller (input clk,
          b <= 32'b0;
    end
 
+   parameter SOURCE_ADD  = 2'b00;
+   parameter SOURCE_MUL  = 2'b01;
+   parameter SOURCE_INV  = 2'b10;
+   parameter SOURCE_SQRT = 2'b11;
+
    always @ (*) begin
       case (op)
-        6'b110000: current_source <= 0;
-        6'b110001: current_source <= 0;
-        6'b110010: current_source <= 1;
-        6'b110011: current_source <= 1;
-        6'b110100: current_source <= 2;
-        6'b110101: current_source <= 3;
-        default: current_source <= 0;
+        FADD    : current_source <= SOURCE_ADD;
+        FSUB    : current_source <= SOURCE_ADD;
+        FMUL    : current_source <= SOURCE_MUL;
+        FMULN   : current_source <= SOURCE_MUL;
+        FINV    : current_source <= SOURCE_INV;
+        FSQRT   : current_source <= SOURCE_SQRT;
+        default : current_source <= SOURCE_ADD;
       endcase
    end
 
    always @ (source[0], source[1], source[2], fadd_data, fmul_data, finv_data, fsqrt_data) begin
 
       case (source[0])
-        0: data <= fadd_data;
-        1: data <= fmul_data;
-        2: data <= finv_data;
-        3: data <= fsqrt_data;
+        SOURCE_ADD : data <= fadd_data;
+        SOURCE_MUL : data <= fmul_data;
+        SOURCE_INV : data <= finv_data;
+        SOURCE_SQRT: data <= fsqrt_data;
       endcase
    end
 

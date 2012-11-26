@@ -23,12 +23,7 @@ module sram_manager (input clk,
                      output reg [31:0] data,
                      output reg        float);
 
-   parameter LDI  = 6'b101000;
-   parameter STI  = 6'b101001;
-   parameter LDR  = 6'b101100;
-   parameter FLDI = 6'b101010;
-   parameter FSTI = 6'b101011;
-   parameter FLDR = 6'b101110;
+   `include "../opcode.h"
 
    wire [5:0] op;
    reg [4:0] current_addr;
