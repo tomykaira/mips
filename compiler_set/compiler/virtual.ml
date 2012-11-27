@@ -2,9 +2,9 @@
 
 open Asm
 
-(* その数が2の何乗か返す *)
+(* その数が2の何乗か返す(切り上げ) *)
 let rec log2_sub n i =
-  if 1 lsl (i+1) > n then i
+  if 1 lsl i >= n then i
   else log2_sub n (i+1)
 let log2 n = log2_sub n 0
 
@@ -221,19 +221,10 @@ and g' tail env = function
 		Let((off, Type.Int), AddI(r, offset),
 		    Let((n, Type.Int), Int(l),
 			seq(CallDir(Id.L("min_caml_int_tuple_array"), [y; off; n], []), store)))) in
-	  let i = log2 l in
-	  let constr =
-	    if 1 lsl i = l then
-	      (fun e -> Let((t, Type.Int), SllI(z, i), e))
-	    else
-	      let n = Id.genid "n" in
-	      (fun e ->
-		Let((n,Type.Int), Int(l),
-	 	    Let((t, Type.Int), CallDir(Id.L("min_caml_mul"),[z;n],[]), e)))
-	  in
 	  Let((r, Type.Array(Type.Tuple(List.map snd yts))), AddI(reg_hp, 0),
-	      constr (Let((reg_hp, Type.Int), Add(reg_hp, t),
-		  	  store)))
+	      Let((t, Type.Int), SllI(z, log2 l),
+		  (Let((reg_hp, Type.Int), Add(reg_hp, t),
+		  	  store))))
       | _ -> Ans(CallDir(Id.L(x), int, float)))
   | Closure.Tuple(xs) -> (* 組の生成 *)
       let y = Id.genid "t" in
@@ -273,16 +264,7 @@ and g' tail env = function
           let ind = Id.genid "Index" in
 	  let l = List.length ts in
 	  let i = log2 l in
-	  let constr =
-	    if 1 lsl i = l then
-	      (fun e -> Let((ind, Type.Int), SllI(y, i), e))
-	    else
-	      let n = Id.genid "n" in
-	      (fun e ->
-		Let((n,Type.Int), Int(l),
-	 	    Let((ind, Type.Int), CallDir(Id.L("min_caml_mul"),[y;n],[]), e)))
-	  in
-	  constr (Ans(Add(x, ind)))
+	  Let((ind, Type.Int), SllI(y, log2 l), (Ans(Add(x, ind))))
       | _ -> assert false)
 	(* タプルを配列に埋め込む時に使う命令 *)
   | Closure.PutTuple(x, y, zs) ->
@@ -292,22 +274,14 @@ and g' tail env = function
           let addr = Id.genid "Addr" in
 	  let l = List.length ts in
 	  let i = log2 l in
-	  let constr =
-	    if 1 lsl i = l then
-	      (fun e -> Let((ind, Type.Int), SllI(y, i), e))
-	    else
-	      let n = Id.genid "n" in
-	      (fun e ->
-		Let((n,Type.Int), Int(l),
-	 	    Let((ind, Type.Int), CallDir(Id.L("min_caml_mul"),[y;n],[]), e)))
-	  in
           let (_, store) =
 	    expand
 	      (List.map (fun x -> (x, M.find x env)) zs)
 	      (0, Ans(Nop))
 	      (fun w offset store ->  seq(FStI(w, addr, offset), store))
 	      (fun w _ offset store -> seq(StI(w, addr, offset), store)) in
-	  constr (Let((addr, Type.Tuple(ts)), Add(x, ind), store))
+	  Let((ind, Type.Int), SllI(y, log2 l),
+	      (Let((addr, Type.Tuple(ts)), Add(x, ind), store)))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
   | Closure.Nil ->
