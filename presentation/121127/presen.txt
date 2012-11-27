@@ -51,12 +51,10 @@ VERY Thanks to White han and IIDX han.
 
 # min-rt result
 
-TODO: 精確な値
+About 4,188,274,411 instructions
+(without branch padding NOPs)
 
-About 4.1M instructions
-(mainly because of mul removal)
-
-81 secs
+81.52 secs
 
 # Display
 
