@@ -11,7 +11,7 @@ module image_drawer(input clk,
    wire [6:0] x;
    wire [6:0] y;
    assign x = column[9:1] - 121;
-   assign y = row[8:1] - 61;
+   assign y = row[8:1] - 56;
 
    wire [13:0] display_address;
    assign display_address = {y, 7'b0} + x;
@@ -29,9 +29,11 @@ module image_drawer(input clk,
       .read_data(rgb));
 
    wire display_in_range;
+   wire boundary;
    assign display_in_range = column >= 242 && column < 498 && row >= 112 && row < 368;
+   assign boundary = column == 241 || column == 498 || row == 111 || row == 368;
 
-   assign red   = display_in_range == 1'b1 ? {rgb[11:8], 4'b0} : 8'b0;
+   assign red   = boundary == 1'b1 ? 8'hff : display_in_range == 1'b1 ? {rgb[11:8], 4'b0} : 8'b0;
    assign green = display_in_range == 1'b1 ? {rgb[ 7:4], 4'b0} : 8'b0;
    assign blue  = display_in_range == 1'b1 ? {rgb[ 3:0], 4'b0} : 8'b0;
 
