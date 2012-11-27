@@ -16,7 +16,7 @@ module text_drawer(input clk,
      $readmemh ("bitmap.dat", BITMAP);
 
    wire [11:0] display_address;
-   assign display_address = {2'b0,row[8:5],5'b0} + {4'b0,row[8:5],3'b0} + {5'b0,column[9:4]};
+   assign display_address = {1'b0,row[8:4],6'b0} + {3'b0,row[8:4],4'b0} + {5'b0,column[9:3]};
 
    wire [6:0] char_to_show;
    display_buffer display_buffer_inst
@@ -30,7 +30,7 @@ module text_drawer(input clk,
    assign char_bitmap = BITMAP[char_to_show];
 
    wire [6:0] index;
-   assign index = 7'h7f - {row[4:1],column[3:1]}; // reverse order
+   assign index = 7'h7f - {row[3:0],column[2:0]}; // reverse order
 
    wire pixel_on;
    assign pixel_on = char_bitmap[index];
