@@ -1,0 +1,101 @@
+# Kandou han 11/27
+
+||| Kandou han 11/27 |||
+||| Urabe, Tomita, Natori, Hamanaka |||
+
+# I had a dream
+
+*WAIT*
+
+||| hskw san "You are tweeting too much about CPU ex!" |||
+
+*WAIT*
+
+||| In underground. |||
+
+# This week's achievement
+
+- 2nd ISA
+- Pipeline core
+- Display
+- Keyboard
+
+# 2nd ISA
+
+Remove redundant instruction
+
+- mul
+- not used ALU instructions
+- not used Branch instructions
+- finv, fmov
+
+Introduce floating 0 register
+
+# Pipeline
+
+- Fetch / Decode at same stage
+- 4 clk for ALU and misc, 5 for memo, 6 for FPU
+- Forwarding
+- Stall only when destination register is used by successor
+
+# Pipeline
+
+- Fetch / Decode at same stage
+- 4 clk for ALU and misc, 5 for memo, 6 for FPU
+- Forwarding
+- Stall only when destination register is used by successor
+
+||| 4 days! |||
+
+VERY Thanks to White han and IIDX han.
+
+# min-rt result
+
+About 4,188,274,411 instructions
+(without branch padding NOPs)
+
+81.52 secs
+
+# Display
+
+Thanks to hole(@h031) san, IS 2010er.
+
+Given:
+
+- extension board with VGA connector
+- simple VGA controller VHDL program.
+
+Implemented:
+
+- text display circuit
+- integrate with 2nd core
+
+# Keyboard
+
+Implemented from scratch.
+
+Protocol ~ RS232C
+
+Difficult, than expected.
+
+References:
+
+- http://www.computer-engineering.org/ps2protocol/
+- http://www.computer-engineering.org/ps2keyboard/
+
+# Yokyou of November
+
+THIS!
+
+This slide is shown by FPGA.
+as you know :-)
+
+# What is computer, huh?
+
+Just execute raytracing program?
+
+Who will get happy with raytracer?
+
+# I have a dream
+
+||| OS on my Core |||

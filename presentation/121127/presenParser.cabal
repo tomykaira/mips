@@ -1,0 +1,16 @@
+
+name:              presenParser
+version:           0.1.0
+author:            tomykaira
+maintainer:        tomykaira@gmail.com
+build-type:        Simple
+cabal-version:     >=1.8
+tested-with:       GHC ==7.4.1
+
+Executable parser
+  Main-is:           Main.hs
+  hs-source-dirs:    .
+  -- type defaults warning is useful, but too much in deveopment
+  -- fix all of them at the end
+  ghc-options:       -Wall -O2 -fno-warn-type-defaults
+  Build-Depends:     base, mtl, bytestring, parsec, text
