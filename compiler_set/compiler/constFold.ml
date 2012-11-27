@@ -78,9 +78,13 @@ and g' env envle envne envif = function
   | Mul(x, y) when memi x env && findi x env = 0 -> Ans(Int(0))
   | Mul(x, y) when memi y env && findi y env = 0 -> Ans(Int(0))
 
-(*  | Sll(x, y) when memi x env -> Ans(Int((findi x env) lsl y)) *)
+  | Sll(x, y) when memi x env ->
+      let i = findi x env in
+      if (Int32.shift_left (Int32.of_int i) y) = Int32.of_int (i lsl y) then
+	Ans(Int(i lsl y))
+      else Ans(Sll(x, y))
   | Sll(x, y) when y = 0 -> Ans(Var(x))
-(*  | Sra(x, y) when memi x env -> Ans(Int((findi x env) asr y)) *)
+  | Sra(x, y) when memi x env -> Ans(Int((findi x env) asr y)) 
   | Sra(x, y) when y = 0 -> Ans(Var(x))
 
   | FNeg(x) when memf x env -> Ans(Float(-.(findf x env)))
@@ -188,8 +192,8 @@ and g' env envle envne envif = function
   | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2
   | IfNil(x, e1, e2) -> Ans(IfNil(x, g env envle envne envif e1, g env envle envne envif e2))
 
-(*  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
-      Ans(Int((findi x env) lxor (findi y env))) *)
+  | ExtFunApp("xor", [x;y]) when memi x env && memi y env ->
+      Ans(Int((findi x env) lxor (findi y env)))
   | ExtFunApp("xor", [x;y]) when memi x env && findi x env = 0 -> Ans(Var(y))
   | ExtFunApp("xor", [x;y]) when memi y env && findi y env = 0 -> Ans(Var(x))
   | ExtFunApp("not", [x]) when memi x env -> Ans(Int(1 - (findi x env)))

@@ -227,7 +227,7 @@ let rec print_int_10000 x flg =
 
     (* 10の位を表示 *)
     let tx = div_binary_search x 10 0 10 in
-    let dx = tx * 10 in
+    let dx = mul10 tx  in
     let x = x - dx in
     let flg = 
       if tx <= 0 then
