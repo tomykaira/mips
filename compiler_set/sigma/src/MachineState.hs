@@ -1,6 +1,7 @@
 module MachineState where
 
 import qualified Control.Monad.State.Strict as State
+import Data.Array
 import Data.Word
 import qualified Data.ByteString as B
 
@@ -14,7 +15,7 @@ data MachineStatus = MachineStatus {
       intRegister    :: Reg.RegisterFile
     , floatRegister  :: Reg.RegisterFile
     , memory         :: Mem.Memory
-    , program        :: Program
+    , program        :: Array Word32 StateTransformer
     , programCounter :: ProgramCounter
     , callStack      :: [ProgramCounter]
     , rxInput        :: B.ByteString
@@ -57,11 +58,13 @@ initialState prog logging =
       mem <- Mem.createMemory
       int <- Reg.createRegister
       float <- Reg.createRegister
+      let programLength = length prog
+      let arrayProgram = listArray (0, fromIntegral programLength - 1) prog
       return MachineStatus
                  { intRegister = int
                  , floatRegister = float
                  , memory = mem
-                 , program = prog
+                 , program = arrayProgram
                  , programCounter = 0
                  , callStack = []
                  , rxInput = B.pack [0, 0, 0, 10]
@@ -252,4 +255,5 @@ fetchInstruction =
     do st <- State.get
        put st { operationLog = fmap (DispatchInstruction (programCounter st) :) (operationLog st) }
        let nextPC = (fromIntegral $ programCounter st)
-       if nextPC < length (program st) then program st !! nextPC else return $ Halt ("Illegal PC: " ++ show nextPC)
+       -- TODO: exception handling with return $ Halt ("Illegal PC: " ++ show nextPC)
+       program st ! nextPC
