@@ -334,7 +334,9 @@ createInstructionTransformer m inst =
           ret
       INPUTB ->
           do a <- readRx
-             setI rt a
+             case a of
+               Just value -> setI rt value
+               Nothing -> return $ Halt "INPUTB: reads nothing"
       OUTPUTB ->
           do a <- getI rt
              sendTx a

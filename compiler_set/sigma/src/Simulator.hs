@@ -25,7 +25,8 @@ startOptions = Options {
 execute :: Options -> Program -> IO ()
 execute options program =
     do
-      init <- initialState program (optLogging options)
+      inputContent <- Maybe.maybe (return B.empty) B.readFile (optInput options)
+      init <- initialState program (optLogging options) inputContent
       runStateT evalLoop init >>= report
 
     where

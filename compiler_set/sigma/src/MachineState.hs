@@ -2,6 +2,7 @@ module MachineState where
 
 import qualified Control.Monad.State.Strict as State
 import Data.Array
+import Data.Maybe
 import Data.Word
 import qualified Data.ByteString as B
 
@@ -52,8 +53,8 @@ instance Show Incident where
     show (WriteMemory (pc, address, value)) =
         "MEM " ++ show pc ++ " " ++ showHex address ++ " " ++ showHex value
 
-initialState :: Program -> Bool -> IO MachineStatus
-initialState prog logging =
+initialState :: Program -> Bool -> B.ByteString -> IO MachineStatus
+initialState prog logging input =
     do
       mem <- Mem.createMemory
       int <- Reg.createRegister
@@ -67,7 +68,7 @@ initialState prog logging =
                  , program = arrayProgram
                  , programCounter = 0
                  , callStack = []
-                 , rxInput = B.pack [0, 0, 0, 10]
+                 , rxInput = input
                  , txOutput = B.empty
                  , operationLog = if logging then Just [] else Nothing }
 
@@ -176,7 +177,7 @@ halt = return $ Halt "Normal exit"
   
 -}
 
-readRx :: MachineState Word32
+readRx :: MachineState (Maybe Word32)
 readRx =
     do
       st <- State.get
@@ -184,10 +185,10 @@ readRx =
         Just(hd, tl) ->
             do
               put st {rxInput = tl}
-              return (fromIntegral hd)
+              return $ Just (fromIntegral hd)
         Nothing ->
             -- FIXME: What can I do? Handle error
-            return 0
+            return Nothing
 
 {-| function 'sendTx'
   
