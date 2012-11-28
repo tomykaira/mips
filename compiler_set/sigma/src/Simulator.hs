@@ -3,18 +3,42 @@ module Simulator where
 
 import Control.Monad.State
 import qualified Data.ByteString as B
+import Data.Char (chr)
 
 import MachineState hiding (program)
 import qualified BoundedStore as Store
 
-execute :: Program -> IO ()
-execute program =
-    do
-      let (exitReason, lastState) = runState evalLoop (initialState program)
-      putStrLn $ "Simulation done. " ++ exitReason
-      putStrLn "Output bytes"
-      print $ (B.reverse . txOutput) lastState
-      -- print (Store.toList (recentStates lastState))
+data Options =
+    Options { optLogging  :: [String]
+            , optStdout   :: Bool
+            , optTestMode :: Bool
+            , optInput    :: Maybe String }
+
+startOptions :: Options
+startOptions = Options {
+                 optLogging  = []
+               , optStdout   = True
+               , optTestMode = False
+               , optInput    = Nothing }
+
+execute :: Options -> Program -> IO ()
+execute options program =
+    let (exitReason, lastState) = runState evalLoop (initialState program) in
+    if optTestMode options then
+        putStrLn $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
+    else
+        do
+          putStrLn $ "Simulation done. " ++ exitReason
+          putStrLn "Output bytes"
+          print $ (B.reverse . txOutput) lastState
+
+    where
+      stripExitCode output =
+          let (code, rest) = B.splitAt 3 output in
+          if code == B.pack [130, 181, 231] then
+              rest
+          else
+              output
 
 {-| function 'execute'
 
