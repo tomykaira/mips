@@ -4,11 +4,13 @@ open ANormal
 
 let qlen = 10
 
-let add x l = if List.mem x l then l else x::l
+let add x l = if List.mem_assoc (fst x) l then l else x::l
+
+let dummy = Var(Id.genid "")
 
 let addq x l =
   let l' = add x l in if List.length l' > qlen then List.tl l' else l'
-let push l = addq (Var(Id.genid ""), "%g0") l
+let push l = addq (dummy, "%g0") l
 let rec pushn n l = if n<=0 then l else pushn (n-1) (push l)
 
 (* 部分式をインデックスに変数を引く関数 *)
@@ -19,7 +21,7 @@ let rec g env env2 env3 = function
   | Let((x,_) as xt, exp, e) ->
       let exp' = find (g' env env2 env3 exp) (env@env3) in
       (match exp' with
-      | Unit | Var _ | Get _ | Put _ | Tuple _ | ExtArray _ | Nil | Cons _ -> 
+      | Unit | Var _ | Get _ | Put _ | Tuple _ | ExtArray _ | Nil -> 
 	  Let(xt, exp', g env env2 (push env3) e)
       | Int i when -0x8000 <= i && i <= 0x7FFF ->
 	  Let(xt, exp', g env env2 (addq (exp', x) env3) e)

@@ -64,8 +64,11 @@ let h { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
   let e'   = g (M.add x t (M.add_list (yts@zts) M.empty)) e in
   { name = (Id.L(x), flat t); args = yts'; formal_fv = zts'; body = e' }
 
+(* グローバル配列の型のタプルの平坦化 *)
+let i { gname = (Id.L(x), t); length = l } =
+  { gname = (Id.L(x), flat t); length = l }
 
 
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   Format.eprintf "flattening nested tuples...@.";
-  Prog(List.map h toplevel, g M.empty e)
+  Prog(List.map i globals, List.map h toplevel, g M.empty e)

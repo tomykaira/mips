@@ -83,13 +83,6 @@ let rec part k l ret = match (k, l) with
 let rec unify t1 t2 = (* 型が合うように、型変数への代入をする *)
   match t1, t2 with
   | Type.Unit, Type.Unit | Type.Bool, Type.Bool | Type.Int, Type.Int | Type.Float, Type.Float -> ()
-	(* 関数の引数の数が違ったら,長い方をカリー化して比較 *)
-  | Type.Fun(t1s, t1'), Type.Fun(t2s, t2') when (List.length t1s) < (List.length t2s) ->
-      let t2s1, t2s2 = part t1s t2s [] in
-      unify (Type.Fun(t1s, t1')) (Type.Fun(t2s1, Type.Fun(t2s2, t2')))
-  | Type.Fun(t1s, t1'), Type.Fun(t2s, t2') when List.length t1s > List.length t2s ->
-      let t1s1, t1s2 = part t2s t1s [] in
-      unify (Type.Fun(t1s1, Type.Fun(t1s2, t1'))) (Type.Fun(t2s, t2'))
   | Type.Fun(t1s, t1'), Type.Fun(t2s, t2') ->
       (try List.iter2 unify t1s t2s
       with Invalid_argument("List.iter2") -> raise (Unify(t1, t2)));

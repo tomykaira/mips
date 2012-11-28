@@ -30,6 +30,12 @@ and g' env env' = function
 	  let xts = List.map (fun t -> (Id.genid y, t)) ts in
 	  LetTuple(xts, y, Ans(AppDir(l, x::(List.map fst xts))))
       | _ -> assert false)
+  | AppDir((Id.L("min_caml_tuple_array_init") as l), [v;x;y]) ->
+      (match M.find y env' with
+      | Type.Tuple(ts) ->
+	  let xts = List.map (fun t -> (Id.genid y, t)) ts in
+	  LetTuple(xts, y, Ans(AppDir(l, v::x::(List.map fst xts))))
+      | _ -> assert false)
   | Get(x,y) when M.mem x env -> 
       let z = Id.genid x in
       let ts = M.find x env in
@@ -65,11 +71,11 @@ let rec at = function
 
 
 (* 本体 *)
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   (* 外部関数や配列に1つでもArray(Tuple(_))の形を持つものがあったら諦める *)
-  if M.exists (fun _ -> at) !Typing.extenv then Prog(toplevel,e) else
+  if M.exists (fun _ -> at) !Typing.extenv then Prog(globals,toplevel,e) else
   (Format.eprintf "embedding tuples into array...@.";
-  Prog(List.map h toplevel, g M.empty M.empty e))
+  Prog(globals, List.map h toplevel, g M.empty M.empty e))
 
   
   
