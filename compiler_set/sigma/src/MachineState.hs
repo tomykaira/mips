@@ -1,6 +1,6 @@
 module MachineState where
 
-import Control.Monad.State as State
+import qualified Control.Monad.State as State
 import Data.Word
 import qualified Data.ByteString as B
 
@@ -8,6 +8,7 @@ import Debug.Trace
 
 import qualified Register as Reg
 import qualified Memory as Mem
+import qualified BoundedStore as Store
 
 data MachineState = MachineState {
       intRegister    :: Reg.RegisterFile
@@ -18,11 +19,16 @@ data MachineState = MachineState {
     , callStack      :: [ProgramCounter]
     , rxInput        :: B.ByteString
     , txOutput       :: B.ByteString
-    }
+    , recentStates   :: Store.BoundedStore MachineState }
 
-data ExecutionState = Continue | Halt deriving (Show)
+instance Show MachineState where
+    show m =
+        "PC: " ++ show (programCounter m) ++ "\n" ++
+        "IntRegisters: " ++ show (intRegister m)
 
-type StateTransformer = State MachineState ExecutionState
+data ExecutionState = Continue | Halt String deriving (Show)
+
+type StateTransformer = State.State MachineState ExecutionState
 type Program = [StateTransformer]
 type ProgramCounter = Word32
 
@@ -35,7 +41,14 @@ initialState prog =
                  , programCounter = 0
                  , callStack = []
                  , rxInput = B.pack [0, 0, 0, 10]
-                 , txOutput = B.empty }
+                 , txOutput = B.empty
+                 , recentStates = Store.create 10 }
+
+put :: MachineState -> State.State MachineState ()
+put = State.put
+    -- do
+    --   current <- State.get
+    --   State.put current { recentStates = Store.add current (recentStates current)}
 
 {-| function 'getI'
   
@@ -44,7 +57,7 @@ initialState prog =
 
 -}
 
-getI :: Int -> State MachineState Word32
+getI :: Int -> State.State MachineState Word32
 getI n = State.get >>= (return . (Reg.get n) . intRegister)
 
 {-| function 'setI'
@@ -57,17 +70,17 @@ Continue
 
 -}
 
-setI :: Int -> Word32 -> State MachineState ExecutionState
+setI :: Int -> Word32 -> State.State MachineState ExecutionState
 setI n value =
     if n == 0 then
         next
     else
         do
           st <- State.get
-          State.put st { intRegister = (Reg.set n value) $ intRegister st}
+          put st { intRegister = (Reg.set n value) $ intRegister st}
           next
 
-getF :: Int -> State MachineState Word32
+getF :: Int -> State.State MachineState Word32
 getF n = State.get >>= (return . (Reg.get n) . floatRegister)
 
 {-| function 'setF'
@@ -80,10 +93,10 @@ Continue
 
 -}
 
-setF :: Int -> Word32 -> State MachineState ExecutionState
+setF :: Int -> Word32 -> State.State MachineState ExecutionState
 setF n value =
     do st <- State.get
-       State.put st { floatRegister = (Reg.set n value) $ floatRegister st}
+       put st { floatRegister = (Reg.set n value) $ floatRegister st}
        next
 
 {-| function 'goto'
@@ -96,24 +109,24 @@ Continue
 
 -}
 
-goto :: Word32 -> State MachineState ExecutionState
+goto :: Word32 -> State.State MachineState ExecutionState
 goto pc =
     do
-      st <- get
+      st <- State.get
       put st { programCounter = pc }
       return Continue
 
-next :: State MachineState ExecutionState
+next :: State.State MachineState ExecutionState
 next =
     do
-      st <- get
+      st <- State.get
       put st { programCounter = programCounter st + 1 }
       return Continue
 
-gotoRelative :: Word32 -> State MachineState ExecutionState
+gotoRelative :: Word32 -> State.State MachineState ExecutionState
 gotoRelative offset =
     do
-      st <- get
+      st <- State.get
       let pc = programCounter st
       goto (pc + offset)
 
@@ -124,8 +137,8 @@ Halt
 
 -}
 
-halt :: State MachineState ExecutionState
-halt = return Halt
+halt :: State.State MachineState ExecutionState
+halt = return $ Halt "Normal exit"
 
 {-| function 'readRx'
   
@@ -134,10 +147,10 @@ halt = return Halt
   
 -}
 
-readRx :: State MachineState Word32
+readRx :: State.State MachineState Word32
 readRx =
     do
-      st <- get
+      st <- State.get
       case B.uncons (rxInput st) of
         Just(hd, tl) ->
             do
@@ -154,10 +167,10 @@ readRx =
   
 -}
 
-sendTx :: Word32 -> State MachineState ExecutionState
+sendTx :: Word32 -> State.State MachineState ExecutionState
 sendTx value =
     do
-      st <- get
+      st <- State.get
       put st { txOutput = B.cons (fromIntegral value) (txOutput st) }
       next
 
@@ -168,14 +181,14 @@ sendTx value =
 
 -}
 
-mem :: Word32 -> State MachineState Word32
+mem :: Word32 -> State.State MachineState Word32
 mem address =
-    get >>= (return . Mem.get (fromIntegral address) . memory)
+    State.get >>= (return . Mem.get (fromIntegral address) . memory)
 
-setMem :: Word32 -> Word32 -> State MachineState ExecutionState
+setMem :: Word32 -> Word32 -> State.State MachineState ExecutionState
 setMem address value =
     do
-      st <- get
+      st <- State.get
       put st { memory = Mem.set (fromIntegral address) value (memory st) }
       next
 
@@ -186,23 +199,24 @@ setMem address value =
   
  -}
 
-call :: Word32 -> State MachineState ExecutionState
+call :: Word32 -> State.State MachineState ExecutionState
 call address =
     do
-      st <- get
+      st <- State.get
       put st { callStack = (programCounter st) : (callStack st) }
       goto address
 
-ret :: State MachineState ExecutionState
+ret :: State.State MachineState ExecutionState
 ret =
     do
-      st <- get
+      st <- State.get
       -- TODO: error report
       let top : rest = callStack st
       put st { callStack = rest }
       goto (top + 1)
 
-fetchInstruction :: State MachineState ExecutionState
+fetchInstruction :: State.State MachineState ExecutionState
 fetchInstruction =
     do st <- State.get
-       program st !! (fromIntegral $ programCounter st) -- TODO: convert exception into our domain
+       let nextPC = (fromIntegral $ programCounter st)
+       if nextPC < length (program st) then program st !! nextPC else return $ Halt ("Illegal PC: " ++ show nextPC)

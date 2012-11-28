@@ -27,6 +27,7 @@ data Mnemonic =
   | J | JR | CALL | CALLR | RETURN
   | INPUTB | OUTPUTB
   | HALT
+  | DEBUG
   | DISPLAY | READKEY
 
 data Operand =
@@ -87,23 +88,23 @@ operations = [
               , mnemonic = FADD
               , operands = [FRS, FRT]
               , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.fadd FRS FRT))
- Instruction {opcode = 110000
+ Instruction {opcode = 110001
              , mnemonic = FSUB
              , operands = [FRS, FRT]
              , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.fsub FRS FRT))
- Instruction {opcode = 110000
+ Instruction {opcode = 110010
              , mnemonic = FMUL
              , operands = [FRS, FRT]
              , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.fmul FRS FRT))
- Instruction {opcode = 110000
+ Instruction {opcode = 110011
              , mnemonic = FMULN
              , operands = [FRS, FRT]
              , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.fmuln FRS FRT))
- Instruction {opcode = 110000
+ Instruction {opcode = 110100
              , mnemonic = FINV
              , operands = [FRS]
              , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.finv FRS))
- Instruction {opcode = 110000
+ Instruction {opcode = 110101
              , mnemonic = FSQRT
              , operands = [FRS]
              , writeBack = Just FRD }, -- , execution = (\ -> setFRD (FPU.fsqrt FRS))
@@ -188,6 +189,11 @@ operations = [
              , mnemonic = HALT
              , operands = [RT]
              , writeBack = Nothing }, -- , execution = (\ -> halt)
+ Instruction {opcode = 101111
+             , mnemonic = DEBUG
+             , operands = []
+             , writeBack = Nothing }, -- , execution = (\ -> setRT readKey)
+
  Instruction {opcode = 001000
              , mnemonic = DISPLAY
              , operands = [RS, RT]
@@ -329,6 +335,9 @@ createInstructionTransformer m inst =
           do a <- getI rt
              sendTx a
       HALT -> halt
+
+      -- TODO:
+      DEBUG -> next
       where
         rs = fromIntegral (inst `shiftR` 21) .&. 0x1f
 
@@ -336,6 +345,10 @@ createInstructionTransformer m inst =
 
         rd = fromIntegral (inst `shiftR` 11) .&. 0x1f
 
-        imm = inst .&. 0xffff
+        imm =
+            if inst .&. 0x8000 > 0 then
+                (0xffff `shiftL` 16) .|. (inst .&. 0xffff)
+            else
+                inst .&. 0xffff
 
         jumpImm = inst .&. 0x3ffffff

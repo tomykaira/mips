@@ -5,7 +5,6 @@ import qualified Numeric
 import Data.Bits
 import qualified Data.Either as Either
 import qualified Data.List as List
-import Data.Word
 
 import qualified Binary as B 
 import MachineState
@@ -66,7 +65,7 @@ decode :: ByteCode -> Either String StateTransformer
 decode byteCode =
     case findMnemonic op of
       Just (m) -> Right $ createInstructionTransformer m byteCode
-      Nothing -> Left $ "Could not decode byte code " ++ show byteCode
+      Nothing -> Left $ "Could not decode byte code 0x" ++ Numeric.showHex byteCode ""
     where
       op :: B.Binary
       op = B.Binary . fromIntegral $ (byteCode `shiftR` 26) .&. 0x3f

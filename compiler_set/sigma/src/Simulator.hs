@@ -5,15 +5,18 @@ import Control.Monad.State
 import qualified Data.ByteString as B
 
 import MachineState hiding (program)
+import qualified BoundedStore as Store
 
 execute :: Program -> IO ()
 execute program =
     do
-      let lastState = execState evalLoop (initialState program)
-      putStrLn "Simulation done."
+      let (exitReason, lastState) = runState evalLoop (initialState program)
+      putStrLn $ "Simulation done. " ++ exitReason
       print $ intRegister lastState
       putStrLn "Output bytes"
       print $ (B.unpack .B.reverse . txOutput) lastState
+      print (programCounter lastState)
+      -- print (Store.toList (recentStates lastState))
 
 {-| function 'execute'
 
@@ -41,11 +44,11 @@ halt
 
 -}
 
-evalLoop :: State MachineState ()
+evalLoop :: State MachineState String
 evalLoop =
     fetchInstruction >>=
                          (\jump ->
                               case jump of
                                 Continue -> evalLoop
-                                Halt -> return ())
+                                Halt reason -> return reason)
 
