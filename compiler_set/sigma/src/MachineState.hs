@@ -9,6 +9,7 @@ import Debug.Trace
 import qualified Register as Reg
 import qualified Memory as Mem
 import qualified BoundedStore as Store
+import Util
 
 data MachineState = MachineState {
       intRegister    :: Reg.RegisterFile
@@ -19,7 +20,8 @@ data MachineState = MachineState {
     , callStack      :: [ProgramCounter]
     , rxInput        :: B.ByteString
     , txOutput       :: B.ByteString
-    , recentStates   :: Store.BoundedStore MachineState }
+    , recentStates   :: Store.BoundedStore MachineState
+    , operationLog   :: [Incident]}
 
 instance Show MachineState where
     show m =
@@ -32,6 +34,24 @@ type StateTransformer = State.State MachineState ExecutionState
 type Program = [StateTransformer]
 type ProgramCounter = Word32
 
+data Incident = DispatchInstruction (ProgramCounter)
+              | WriteIntRegister (ProgramCounter, Int, Word32)
+              | WriteFloatRegister (ProgramCounter, Int, Word32)
+              | SendOutput (ProgramCounter, Word8)
+              | WriteMemory (ProgramCounter, Word32, Word32)
+
+instance Show Incident where
+    show (DispatchInstruction (pc)) = 
+        "INST " ++ show pc
+    show (WriteIntRegister (pc, address, value)) =
+        "REG:  " ++ show address ++ " " ++ showHex value
+    show (WriteFloatRegister (pc, address, value)) =
+        "REG:  " ++ show address ++ " " ++ showHex value
+    show (SendOutput (pc, value)) =
+        "IO " ++ show pc ++ " " ++ showHex value
+    show (WriteMemory (pc, address, value)) =
+        "MEM " ++ show pc ++ " " ++ showHex address ++ " " ++ showHex value
+
 initialState :: Program -> MachineState
 initialState prog =
     MachineState { intRegister = Reg.createRegister
@@ -42,7 +62,8 @@ initialState prog =
                  , callStack = []
                  , rxInput = B.pack [0, 0, 0, 10]
                  , txOutput = B.empty
-                 , recentStates = Store.create 10 }
+                 , recentStates = Store.create 10
+                 , operationLog = [] }
 
 put :: MachineState -> State.State MachineState ()
 put = State.put
@@ -77,7 +98,8 @@ setI n value =
     else
         do
           st <- State.get
-          put st { intRegister = (Reg.set n value) $ intRegister st}
+          put st { intRegister = (Reg.set n value) $ intRegister st
+                 , operationLog = WriteIntRegister (programCounter st, n, value) : operationLog st}
           next
 
 getF :: Int -> State.State MachineState Word32
@@ -96,7 +118,8 @@ Continue
 setF :: Int -> Word32 -> State.State MachineState ExecutionState
 setF n value =
     do st <- State.get
-       put st { floatRegister = (Reg.set n value) $ floatRegister st}
+       put st { floatRegister = (Reg.set n value) $ floatRegister st
+              , operationLog = WriteFloatRegister (programCounter st, n, value) : operationLog st }
        next
 
 {-| function 'goto'
@@ -171,7 +194,9 @@ sendTx :: Word32 -> State.State MachineState ExecutionState
 sendTx value =
     do
       st <- State.get
-      put st { txOutput = B.cons (fromIntegral value) (txOutput st) }
+      let xff = fromIntegral value
+      put st { txOutput = B.cons xff (txOutput st)
+             , operationLog = SendOutput (programCounter st, xff) : operationLog st}
       next
 
 {-| function 'mem'
@@ -189,7 +214,8 @@ setMem :: Word32 -> Word32 -> State.State MachineState ExecutionState
 setMem address value =
     do
       st <- State.get
-      put st { memory = Mem.set (fromIntegral address) value (memory st) }
+      put st { memory = Mem.set (fromIntegral address) value (memory st)
+             , operationLog = WriteMemory (programCounter st, address, value) : operationLog st}
       next
 
 {-| function 'call'
@@ -218,5 +244,6 @@ ret =
 fetchInstruction :: State.State MachineState ExecutionState
 fetchInstruction =
     do st <- State.get
+       put st { operationLog = (DispatchInstruction (programCounter st)) : operationLog st }
        let nextPC = (fromIntegral $ programCounter st)
        if nextPC < length (program st) then program st !! nextPC else return $ Halt ("Illegal PC: " ++ show nextPC)

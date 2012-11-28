@@ -9,6 +9,7 @@ import qualified Data.List as List
 import qualified Binary as B 
 import MachineState
 import Instruction
+import Util
 
 {-| function 'decodeFile'
 
@@ -65,7 +66,7 @@ decode :: ByteCode -> Either String StateTransformer
 decode byteCode =
     case findMnemonic op of
       Just (m) -> Right $ createInstructionTransformer m byteCode
-      Nothing -> Left $ "Could not decode byte code 0x" ++ Numeric.showHex byteCode ""
+      Nothing -> Left $ "Could not decode byte code 0x" ++ showHex byteCode
     where
       op :: B.Binary
       op = B.Binary . fromIntegral $ (byteCode `shiftR` 26) .&. 0x3f

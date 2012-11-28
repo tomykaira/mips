@@ -28,9 +28,12 @@ execute options program =
         putStr $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
     else
         do
+          if null (optLogging options) then return () else mapM_ print (reverse (operationLog lastState))
           putStrLn $ "Simulation done. " ++ exitReason
           putStrLn "Output bytes"
           print $ (B.reverse . txOutput) lastState
+          putStrLn "Floating registers"
+          print $ floatRegister lastState
 
     where
       stripExitCode output =
