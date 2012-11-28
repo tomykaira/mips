@@ -1,0 +1,25 @@
+name:              sigma
+version:           0.1.0
+author:            tomykaira
+maintainer:        tomykaira@gmail.com
+build-type:        Simple
+cabal-version:     >=1.8
+tested-with:       GHC ==7.4.1
+
+Executable sigma
+  Main-is:           Main.hs
+  hs-source-dirs:    ., src
+  ghc-options:       -Wall -O2
+  Build-Depends:     base, mtl, bytestring, text, array
+  includes:          fpu.h
+  c-sources:         fpu.c
+  cc-options:        -std=c99
+
+test-suite doctests
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  test
+  main-is:         doctests.hs
+  ghc-options:     -Wall -threaded
+  build-depends:   base,
+                   mtl, bytestring, text, array,
+                   doctest >= 0.7
