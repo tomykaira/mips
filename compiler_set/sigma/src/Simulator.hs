@@ -24,19 +24,23 @@ startOptions = Options {
 
 execute :: Options -> Program -> IO ()
 execute options program =
-    let (exitReason, lastState) = runState evalLoop (initialState program (optLogging options)) in
-    if optTestMode options then
-        putStr $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
-    else
-        do
-          mapM_ print (Maybe.maybe [] reverse (operationLog lastState))
-          putStrLn $ "Simulation done. " ++ exitReason
-          putStrLn "Output bytes"
-          print $ (B.reverse . txOutput) lastState
-          putStrLn "Floating registers"
-          print $ floatRegister lastState
+    do
+      init <- initialState program (optLogging options)
+      runStateT evalLoop init >>= report
 
     where
+      report (exitReason, lastState) = 
+          if optTestMode options then
+              putStr $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
+          else
+              do
+                mapM_ print (Maybe.maybe [] reverse (operationLog lastState))
+                putStrLn $ "Simulation done. " ++ exitReason
+                putStrLn "Output bytes"
+                print $ (B.reverse . txOutput) lastState
+                putStrLn "Floating registers"
+                print $ floatRegister lastState
+
       stripExitCode output =
           let (code, rest) = B.splitAt 3 output in
           if code == B.pack [130, 181, 231] then

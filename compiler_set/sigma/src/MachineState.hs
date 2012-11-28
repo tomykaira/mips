@@ -28,8 +28,8 @@ instance Show MachineStatus where
 
 data ExecutionState = Continue | Halt String deriving (Show)
 
-type StateTransformer = State.State MachineStatus ExecutionState
-type MachineState = State.State MachineStatus
+type MachineState = State.StateT MachineStatus IO
+type StateTransformer = MachineState ExecutionState
 
 type Program = [StateTransformer]
 type ProgramCounter = Word32
@@ -52,17 +52,20 @@ instance Show Incident where
     show (WriteMemory (pc, address, value)) =
         "MEM " ++ show pc ++ " " ++ showHex address ++ " " ++ showHex value
 
-initialState :: Program -> Bool -> MachineStatus
+initialState :: Program -> Bool -> IO MachineStatus
 initialState prog logging =
-    MachineStatus { intRegister = Reg.createRegister
-                  , floatRegister = Reg.createRegister
-                  , memory = Mem.createMemory
-                  , program = prog
-                  , programCounter = 0
-                  , callStack = []
-                  , rxInput = B.pack [0, 0, 0, 10]
-                  , txOutput = B.empty
-                  , operationLog = if logging then Just [] else Nothing }
+    do
+      mem <- Mem.createMemory
+      return MachineStatus
+                 { intRegister = Reg.createRegister
+                 , floatRegister = Reg.createRegister
+                 , memory = mem
+                 , program = prog
+                 , programCounter = 0
+                 , callStack = []
+                 , rxInput = B.pack [0, 0, 0, 10]
+                 , txOutput = B.empty
+                 , operationLog = if logging then Just [] else Nothing }
 
 put :: MachineStatus -> MachineState ()
 put = State.put
@@ -207,14 +210,17 @@ sendTx value =
 
 mem :: Word32 -> MachineState Word32
 mem address =
-    State.get >>= (return . Mem.get (fromIntegral address) . memory)
+    do
+      st <- State.get
+      value <- State.liftIO (Mem.get (fromIntegral address) (memory st))
+      return value
 
 setMem :: Word32 -> Word32 -> MachineState ExecutionState
 setMem address value =
     do
       st <- State.get
-      put st { memory = Mem.set (fromIntegral address) value (memory st)
-             , operationLog = fmap (WriteMemory (programCounter st, address, value) :) (operationLog st)}
+      State.liftIO $ Mem.set (fromIntegral address) value (memory st)
+      put st { operationLog = fmap (WriteMemory (programCounter st, address, value) :) (operationLog st)}
       next
 
 {-| function 'call'
