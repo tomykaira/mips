@@ -1,38 +1,16 @@
 module Register where
 
-import Data.Array.Unboxed
+import Data.Array.MArray
+import Data.Array.IO
 import Data.Word
 
-type RegisterFile = UArray Int Word32
+type RegisterFile = IOUArray Int Word32
 
-createRegister :: RegisterFile
-createRegister = array (1, 31) []
+createRegister :: IO RegisterFile
+createRegister = newArray (1, 31) 0
 
-{-| function 'get'
-  
->>> get 1 createRegister
-0
+get :: Int -> RegisterFile -> IO Word32
+get n reg = if n == 0 then return 0 else readArray reg n
 
->>> get 0 createRegister
-0
- 
--}
-
-get :: Int -> RegisterFile -> Word32
-get n reg = if n == 0 then 0 else reg ! n
-
-{-| function 'set'
-  
->>> get 2 (set 2 5 createRegister)
-5
-
->>> get 1 (set 2 5 createRegister)
-0
-
->>> get 0 (set 0 5 createRegister)
-0
- 
--}
-
-set :: Int -> Word32 -> RegisterFile -> RegisterFile
-set n value reg = reg // [(n, value)]
+set :: Int -> Word32 -> RegisterFile -> IO ()
+set n value reg = writeArray reg n value

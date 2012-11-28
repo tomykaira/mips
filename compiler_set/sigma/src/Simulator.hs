@@ -38,8 +38,6 @@ execute options program =
                 putStrLn $ "Simulation done. " ++ exitReason
                 putStrLn "Output bytes"
                 print $ (B.reverse . txOutput) lastState
-                putStrLn "Floating registers"
-                print $ floatRegister lastState
 
       stripExitCode output =
           let (code, rest) = B.splitAt 3 output in

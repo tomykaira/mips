@@ -23,8 +23,7 @@ data MachineStatus = MachineStatus {
 
 instance Show MachineStatus where
     show m =
-        "PC: " ++ show (programCounter m) ++ "\n" ++
-        "IntRegisters: " ++ show (intRegister m)
+        "PC: " ++ show (programCounter m)
 
 data ExecutionState = Continue | Halt String deriving (Show)
 
@@ -56,9 +55,11 @@ initialState :: Program -> Bool -> IO MachineStatus
 initialState prog logging =
     do
       mem <- Mem.createMemory
+      int <- Reg.createRegister
+      float <- Reg.createRegister
       return MachineStatus
-                 { intRegister = Reg.createRegister
-                 , floatRegister = Reg.createRegister
+                 { intRegister = int
+                 , floatRegister = float
                  , memory = mem
                  , program = prog
                  , programCounter = 0
@@ -81,7 +82,7 @@ put = State.put
 -}
 
 getI :: Int -> MachineState Word32
-getI n = State.get >>= (return . (Reg.get n) . intRegister)
+getI n = State.get >>= (State.liftIO . (Reg.get n) . intRegister) >>= return
 
 {-| function 'setI'
   
@@ -100,12 +101,12 @@ setI n value =
     else
         do
           st <- State.get
-          put st { intRegister = (Reg.set n value) $ intRegister st
-                 , operationLog = fmap (WriteIntRegister (programCounter st, n, value) :) (operationLog st)}
+          State.liftIO $ Reg.set n value (intRegister st)
+          put st { operationLog = fmap (WriteIntRegister (programCounter st, n, value) :) (operationLog st)}
           next
 
 getF :: Int -> MachineState Word32
-getF n = State.get >>= (return . (Reg.get n) . floatRegister)
+getF n = State.get >>= State.liftIO . (Reg.get n) . floatRegister >>= return
 
 {-| function 'setF'
   
@@ -120,8 +121,8 @@ Continue
 setF :: Int -> Word32 -> MachineState ExecutionState
 setF n value =
     do st <- State.get
-       put st { floatRegister = (Reg.set n value) $ floatRegister st
-              , operationLog = fmap (WriteFloatRegister (programCounter st, n, value) :) (operationLog st) }
+       State.liftIO $ Reg.set n value $ floatRegister st
+       put st { operationLog = fmap (WriteFloatRegister (programCounter st, n, value) :) (operationLog st) }
        next
 
 {-| function 'goto'
