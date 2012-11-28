@@ -42,10 +42,9 @@ options =
       "Input file"
  
     , Option "l" ["logging"]
-      (ReqArg
-       (\arg opt -> opt { optLogging = map T.unpack (T.splitOn (T.pack ",") (T.pack arg)) })
-       "TARGETS")
-      "Logging targets"
+      (NoArg
+       (\opt -> opt { optLogging = True }))
+      "Enable logging"
  
     , Option "t" ["test"]
       (NoArg

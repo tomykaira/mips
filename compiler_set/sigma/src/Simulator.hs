@@ -3,32 +3,33 @@ module Simulator where
 
 import Control.Monad.State
 import qualified Data.ByteString as B
+import qualified Data.Maybe as Maybe
 import Data.Char (chr)
 
 import MachineState hiding (program)
 import qualified BoundedStore as Store
 
 data Options =
-    Options { optLogging  :: [String]
+    Options { optLogging  :: Bool
             , optStdout   :: Bool
             , optTestMode :: Bool
             , optInput    :: Maybe String }
 
 startOptions :: Options
 startOptions = Options {
-                 optLogging  = []
+                 optLogging  = False
                , optStdout   = True
                , optTestMode = False
                , optInput    = Nothing }
 
 execute :: Options -> Program -> IO ()
 execute options program =
-    let (exitReason, lastState) = runState evalLoop (initialState program) in
+    let (exitReason, lastState) = runState evalLoop (initialState program (optLogging options)) in
     if optTestMode options then
         putStr $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
     else
         do
-          if null (optLogging options) then return () else mapM_ print (reverse (operationLog lastState))
+          mapM_ print (Maybe.maybe [] reverse (operationLog lastState))
           putStrLn $ "Simulation done. " ++ exitReason
           putStrLn "Output bytes"
           print $ (B.reverse . txOutput) lastState
@@ -69,7 +70,7 @@ halt
 
 -}
 
-evalLoop :: State MachineState String
+evalLoop :: MachineState String
 evalLoop =
     fetchInstruction >>=
                          (\jump ->
