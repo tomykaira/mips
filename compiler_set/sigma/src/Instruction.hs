@@ -1,6 +1,7 @@
 module Instruction where
 
 import Data.Bits
+import Data.Int
 import Data.Word
 
 import qualified Binary as B 
@@ -300,11 +301,11 @@ createInstructionTransformer m inst =
       BLT ->
           do a <- getI rs
              b <- getI rt
-             if a < b  then gotoRelative imm else next
+             if compareInt32 a b == LT then gotoRelative imm else next
       BLE ->
           do a <- getI rs
              b <- getI rt
-             if a <= b then gotoRelative imm else next
+             if compareInt32 a b == GT then next else gotoRelative imm
       FBEQ ->
           do a <- getF rs
              b <- getF rt
@@ -352,3 +353,8 @@ createInstructionTransformer m inst =
                 inst .&. 0xffff
 
         jumpImm = inst .&. 0x3ffffff
+
+        compareInt32 a b =
+            int32 a `compare` int32 b
+            where
+              int32 x = fromIntegral x :: Int32

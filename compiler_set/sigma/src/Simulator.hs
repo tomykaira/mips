@@ -12,10 +12,8 @@ execute program =
     do
       let (exitReason, lastState) = runState evalLoop (initialState program)
       putStrLn $ "Simulation done. " ++ exitReason
-      print $ intRegister lastState
       putStrLn "Output bytes"
-      print $ (B.unpack .B.reverse . txOutput) lastState
-      print (programCounter lastState)
+      print $ (B.reverse . txOutput) lastState
       -- print (Store.toList (recentStates lastState))
 
 {-| function 'execute'
