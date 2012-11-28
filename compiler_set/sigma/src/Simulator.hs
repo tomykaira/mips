@@ -1,7 +1,7 @@
 -- do simulation
 module Simulator where
 
-import Control.Monad.State
+import Control.Monad.State.Strict
 import qualified Data.ByteString as B
 import qualified Data.Maybe as Maybe
 import Data.Char (chr)

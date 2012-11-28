@@ -1,6 +1,6 @@
 module MachineState where
 
-import qualified Control.Monad.State as State
+import qualified Control.Monad.State.Strict as State
 import Data.Word
 import qualified Data.ByteString as B
 
