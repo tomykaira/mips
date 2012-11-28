@@ -12,12 +12,14 @@ let save x =
 let offset x = (* xがスタックのどこにあるか *)
   let rec loc n = function
     | [] -> raise Not_found
-    | y :: zs when x = y -> n
-    | y :: zs -> loc (n+1) zs in
+    | y :: _ when x = y -> n
+    | _ :: zs -> loc (n+1) zs in
   loc 0 !stackmap
 let stacksize () = List.length !stackmap
 
+(* タプルを返す関数の集合 *)
 let rettuple = ref M.empty
+
 
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) *)
@@ -38,7 +40,7 @@ xys)
 type dest = Tail | NonTail of Id.t (* 末尾かどうかを表すデータ型 *)
 let rec g = function (* 命令列のアセンブリ生成 *)
   | dest, Ans(exp) -> g' (dest, exp)
-  | dest, Let((x, t), exp, e) ->
+  | dest, Let((x, _), exp, e) ->
       g' (NonTail(x), exp);
       g (dest, e)
 and g' = function (* 各命令のアセンブリ生成 *)
@@ -58,14 +60,14 @@ and g' = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.AddI(x, reg_0, i))
   | NonTail(x), Int(i) when i > 0 ->
       let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
-      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
+      let j = if j > 0x7FFF then (Out.print buf (Out.SllI(x, reg_1, 15)); j land 0x7FFF) else j in
       Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)))
-  | NonTail(x), Int(i) when i < 0 ->
+  | NonTail(x), Int(i) (* when i < 0 *) ->
       let i = -i in
       let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
-      let j = if j > 0x7FFF then (Out.SllI(x, reg_1, 15); j land 0x7FFF) else j in
+      let j = if j > 0x7FFF then (Out.print buf (Out.SllI(x, reg_1, 15)); j land 0x7FFF) else j in
       Out.print buf (Out.AddI(x, reg_0, j));
       Out.print buf (Out.SllI(x, x, 15));
       Out.print buf (Out.AddI(x, x, Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)));
@@ -112,7 +114,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | NonTail(_), Save(x, y) when List.mem x allfregs && not (S.mem y !stackset) ->
       save y;
       Out.print buf (Out.FStI(x, reg_fp, -offset y))
-  | NonTail(_), Save(x, y) -> assert (S.mem y !stackset); ()
+  | NonTail(_), Save(_, y) -> assert (S.mem y !stackset); ()
 (* 復帰の仮想命令の実装 *)
   | NonTail(x), Restore(y) when List.mem x allregs ->
       Out.print buf (Out.LdI(x, reg_fp, -offset y))
@@ -146,35 +148,35 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | Tail, IfEq(x, y, e1, e2) ->
       let b_taken = Id.genid "beq_taken" in
       Out.print buf (Out.BEq(x, y, b_taken));
-      g'_tail_if e1 e2 "beq" b_taken
+      g'_tail_if e1 e2 b_taken
   | Tail, IfLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfLE(y,x,e2,e1)) else
       let b_taken = Id.genid "blt_taken" in
       Out.print buf (Out.BLT(x, y, b_taken));
-      g'_tail_if e1 e2 "blt" b_taken
+      g'_tail_if e1 e2 b_taken
   | Tail, IfLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfLT(y,x,e2,e1)) else
       let b_taken = Id.genid "ble_taken" in
       Out.print buf (Out.BLE(x, y, b_taken));
-      g'_tail_if e1 e2 "ble" b_taken
+      g'_tail_if e1 e2 b_taken
   | Tail, IfFEq(x, y, e1, e2) ->
       let b_taken = Id.genid "fbeq_taken" in
       Out.print buf (Out.FBEq(x, y, b_taken));
-      g'_tail_if e1 e2 "fbeq" b_taken
+      g'_tail_if e1 e2 b_taken
   | Tail, IfFLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfFLE(y,x,e2,e1)) else
       let b_taken = Id.genid "fblt_taken" in
       Out.print buf (Out.FBLT(x, y, b_taken));
-      g'_tail_if e1 e2 "fblt" b_taken
+      g'_tail_if e1 e2 b_taken
   | Tail, IfFLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfFLT(y,x,e2,e1)) else
       let b_taken = Id.genid "fble_taken" in
       Out.print buf (Out.FBLE(x, y, b_taken));
-      g'_tail_if e1 e2 "fble" b_taken
+      g'_tail_if e1 e2 b_taken
 
   | NonTail(z), IfEq(x, y, e1, e2) ->
       let b_taken = Id.genid "beq_taken" in
@@ -268,7 +270,7 @@ and g' = function (* 各命令のアセンブリ生成 *)
 	  else if List.mem a allfregs && a <> fregs.(0) then
 	    Out.print buf (Out.FAdd(a, fregs.(0), reg_f0)))
 
-and g'_tail_if e1 e2 b b_taken =
+and g'_tail_if e1 e2 b_taken =
   let stackset_back = !stackset in
   Out.print buf Out.Nop;
   Out.print buf Out.Nop;
@@ -291,7 +293,7 @@ and g'_non_tail_if dest e1 e2 b b_taken =
   let stackset2 = !stackset in
   stackset := S.inter stackset1 stackset2
 and g'_args x_reg_cl ys zs =
-  let (i, yrs) =
+  let (_, yrs) =
     List.fold_left
       (fun (i, yrs) y -> (i + 1, (y, regs.(i)) :: yrs))
       (0, x_reg_cl)
@@ -299,7 +301,7 @@ and g'_args x_reg_cl ys zs =
   List.iter
     (fun (y, r) -> Out.print buf (Out.AddI(r, y, 0)))
     (shuffle reg_sw yrs);
-  let (d, zfrs) =
+  let (_, zfrs) =
     List.fold_left
       (fun (d, zfrs) z -> (d + 1, (z, fregs.(d)) :: zfrs))
       (0, [])
@@ -318,13 +320,16 @@ let h { name = Id.L(x); args = _; fargs = _; body = e; ret = t } =
   g (Tail, e);
   Out.print buf (Out.Comment "")
 
+
+
+
 let f (Prog(fundefs, e)) =
   Format.eprintf "generating assembly...@.";
   Out.print buf Out.Nop;
   Out.print buf (Out.J "min_caml_start");
-  List.iter (fun fundef -> h fundef) fundefs;
+  List.iter h fundefs;
   Out.print buf (Out.Label "min_caml_start");
-  Out.print buf (Out.AddI(reg_hp, reg_0, 0));
+  g' (NonTail(reg_hp), Int(!hp));
   Out.print buf (Out.AddI(reg_fp, reg_0, 2047));
   Out.print buf (Out.SllI(reg_fp, reg_fp, 16));
   Out.print buf (Out.AddI(reg_fp, reg_fp, 65535));  (* 512MB *)

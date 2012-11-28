@@ -7,7 +7,7 @@ let danger = ref S.empty
 (* 変数xがLetTuple (...) = x 以外の使い方をされてないか調べる *)
 let rec read_only x = function
   | Let(_, exp, e) -> read_only' x exp && read_only x e
-  | MakeCls((y,t), { actual_fv = ys }, e) ->
+  | MakeCls(_, { actual_fv = ys }, e) ->
       List.for_all (fun z -> x <> z) ys && read_only x e
   | LetTuple(_,_,e) | LetList(_,_,e) -> read_only x e
   | Ans(exp) -> read_only' x exp
@@ -48,8 +48,8 @@ let h { name = _; args = _; formal_fv = _; body = e } =
   g e
   
 
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   Format.eprintf "collecting dangerous functions...@.";
   List.iter h toplevel;
   g e;
-  Prog(toplevel, e)
+  Prog(globals, toplevel, e)

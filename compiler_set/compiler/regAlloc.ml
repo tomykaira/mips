@@ -237,24 +237,25 @@ let rec gc dest cont regenv ifprefer e =
       | FStI(x, y, z) -> (Ans(FStI(find x Type.Float regenv, find y Type.Int regenv, z)), regenv, graph)
       | FLdR(x, y) -> (Ans(FLdR(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
 
-      | IfEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-      | IfLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-      | IfLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
-      | IfFEq(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-      | IfFLT(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-      | IfFLE(x, y, e1, e2) as exp -> g'_if dest cont regenv graph ifprefer exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfEq(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfEq(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfLT(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfLT(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfLE(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfLE(find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+      | IfFEq(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfFLT(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+      | IfFLE(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
-      | CallCls(l, x, ys, zs) as exp -> g'_call dest cont regenv graph exp (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
+      | CallCls(l, x, ys, zs) ->
+	  g'_call dest cont regenv graph (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
       | CallDir(Id.L l, ys, zs) when List.mem l inl ->
 	  (Ans(CallDir(Id.L l,
 		       (List.map (fun y -> find y Type.Int regenv) ys),
 	               (List.map (fun z -> find z Type.Float regenv) zs))),
 	   regenv, graph)
-      | CallDir(Id.L l, ys, zs) as exp ->
-	  g'_call dest cont regenv graph exp (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
+      | CallDir(Id.L l, ys, zs) ->
+	  g'_call dest cont regenv graph (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
       | _ -> assert false
 
-    and g'_if dest cont regenv graph ifprefer exp constr e1 e2 = (* ifのレジスタ割り当て *)
+    and g'_if dest cont regenv graph ifprefer constr e1 e2 = (* ifのレジスタ割り当て *)
       let ((e1', regenv1, graph1), (e2', regenv2, graph2)) =
 	if ecall e2 then
 	  let (e1', regenv1, graph1) = g dest cont regenv graph ifprefer e1 in
@@ -332,7 +333,7 @@ let rec gc dest cont regenv ifprefer e =
 	
 
 (* 関数呼び出しのレジスタ割り当て *)
-    and g'_call dest cont regenv graph exp constr ys zs = 
+    and g'_call dest cont regenv graph constr ys zs = 
       (List.fold_left
 	 (fun e x ->
 	   if x = fst dest || not (M.mem x regenv) then e else
@@ -345,7 +346,7 @@ let rec gc dest cont regenv ifprefer e =
 
 let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数のレジスタ割り当て *)
   let regenv = add x reg_cl M.empty in
-  let (i, arg_regs, regenv) =
+  let (_, arg_regs, regenv) =
     List.fold_left
       (fun (i, arg_regs, regenv) y ->
         let r = regs.(i) in
@@ -355,7 +356,7 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
 	  add y r regenv)))
       (0, [], regenv)
       ys in
-  let (d, farg_regs, regenv) =
+  let (_, farg_regs, regenv) =
     List.fold_left
       (fun (d, farg_regs, regenv) z ->
         let fr = fregs.(d) in
@@ -370,13 +371,13 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
     | Type.Unit -> (Id.gentmp Type.Unit, fun a -> AddI(a,0))
     | Type.Float -> (fregs.(0), fun a-> FMov(a))
     | _ -> (regs.(0), fun a -> AddI(a, 0)) in
-  let (e', regenv', _) = gc (a, t) (Ans(b a)) regenv M.empty e in
+  let (e', _, _) = gc (a, t) (Ans(b a)) regenv M.empty e in
   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
 let f (Prog(fundefs, e)) = (* プログラム全体のレジスタ割り当て *)
   Format.eprintf "register allocation: may take some time%!";
   let fundefs' = List.map h fundefs in
-  let (e', regenv', _) =
+  let (e', _, _) =
     gc (Id.gentmp Type.Unit, Type.Unit) (Ans(Nop)) M.empty M.empty e in
   Format.eprintf "@.";
   Prog(fundefs', e')

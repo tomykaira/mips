@@ -78,7 +78,7 @@ and g' env envle envne envif = function
   | Mul(x, y) when memi x env && findi x env = 0 -> Ans(Int(0))
   | Mul(x, y) when memi y env && findi y env = 0 -> Ans(Int(0))
 
-  | Sll(x, y) when memi x env ->
+  | Sll(x, y) when memi x env -> (* 安全そうなら畳み込み *)
       let i = findi x env in
       if (Int32.shift_left (Int32.of_int i) y) = Int32.of_int (i lsl y) then
 	Ans(Int(i lsl y))

@@ -61,7 +61,8 @@ and g' env1 env2 = function
 
 
 (* 本体 *)
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   Format.eprintf "eliminating tuples...@.";
-  Prog(List.map (fun { name = xt; args = yts; formal_fv = zts; body = e } -> { name = xt; args = yts; formal_fv = zts; body = g M.empty M.empty e }) toplevel,
-    g M.empty M.empty e)
+  Prog(globals,
+       List.map (fun { name = xt; args = yts; formal_fv = zts; body = e } -> { name = xt; args = yts; formal_fv = zts; body = g M.empty M.empty e }) toplevel,
+       g M.empty M.empty e)

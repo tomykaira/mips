@@ -63,7 +63,7 @@ and make'' rr rf dest cont = function
       let (rr1, rf1) = make' rr rf dest cont e1 in
       let (rr2, rf2) = make' rr rf dest cont e2 in
       (union rr1 rr2, union rf1 rf2)
-  | exp -> (rr, rf)
+  | _ -> (rr, rf)
 let make e =
   (* まず,一番最初に生きている変数で完全グラフを作る *)
   let rr = perf (fv_int e) in
@@ -132,7 +132,7 @@ let color cs regenv prefer g s =
     | (Prefer(p,s),k) -> M.add x (Prefer(p, l@s),k) g
     | _ -> g)
     with Not_found -> g in
-  let add_hates x (y,l) g =
+  let add_hates _ (y,l) g =
     match y with
     | Colored(c) -> List.fold_left (fun g z -> add_hate z [c] g) g l
     | Prefer(p,_) -> List.fold_left (fun g z -> add_hate z p g) g l in

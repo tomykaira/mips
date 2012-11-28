@@ -59,6 +59,12 @@ and exp = (* 一つ一つの命令に対応する式 *)
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
       deriving (Show)
 
+
+(* ヒープポインタの位置 *)
+let hp = ref 1;
+
+
+
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
       deriving (Show)
@@ -111,7 +117,7 @@ let rec fv_exp = function
   | CallDir(_, ys, zs) -> ys @ zs
 and fv = function
   | Ans(exp) -> fv_exp exp
-  | Let((x, t), exp, e) ->
+  | Let((x, _), exp, e) ->
       fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
 
 
@@ -136,7 +142,7 @@ let rec fv_var_exp = function
   | CallDir(_, ys, zs) -> List.filter is_var (ys @ zs)
 and fv_var = function
   | Ans(exp) -> fv_var_exp exp
-  | Let((x, t), exp, e) ->
+  | Let((x, _), exp, e) ->
       fv_var_exp exp @ remove_and_uniq (S.singleton x) (fv_var e)
 
 (* そのプログラムの使うスタックの大きさを求める *)
@@ -172,7 +178,7 @@ let rec fv_int_exp = function
   | CallDir(_, ys, _) -> ys
 and fv_int = function
   | Ans(exp) -> fv_int_exp exp
-  | Let((x, t), exp, e) ->
+  | Let((x, _), exp, e) ->
       fv_int_exp exp @ remove_and_uniq (S.singleton x) (fv_int e)
 let fv_int e = List.filter (fun x -> not (is_reg x) || List.mem x allregs) (remove_and_uniq S.empty (fv_int e))
 
@@ -192,7 +198,7 @@ let rec fv_float_exp = function
   | CallCls(_, _, _, zs) | CallDir(_, _, zs) -> zs
 and fv_float = function
   | Ans(exp) -> fv_float_exp exp
-  | Let((x, t), exp, e) ->
+  | Let((x, _), exp, e) ->
       fv_float_exp exp @ remove_and_uniq (S.singleton x) (fv_float e)
 let fv_float e = List.filter (fun x -> not (is_reg x) || List.mem x allfregs) (remove_and_uniq S.empty (fv_float e))
 
