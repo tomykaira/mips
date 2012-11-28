@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Main (main) where
 
 import qualified Data.Text as T
@@ -30,7 +32,7 @@ main =
       case Loader.decodeFile binaryContent of
         Left errors ->
             mapM_ putStrLn errors
-        Right program ->
+        Right !program ->
             Simulator.execute opts program
 
 options :: [ OptDescr (Options -> Options) ]

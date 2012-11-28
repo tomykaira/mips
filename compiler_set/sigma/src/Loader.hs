@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 -- Load program file and parse into a list of instructions
 module Loader where
 
@@ -27,7 +28,7 @@ import Util
 
 decodeFile :: String -> Either [String] Program
 decodeFile fileContent =
-    let (errors, program) = Either.partitionEithers $ map decodeLine (lines fileContent) in
+    let (errors, !program) = Either.partitionEithers $! map decodeLine (lines fileContent) in
     if null errors then
         Right program
     else
@@ -65,8 +66,8 @@ Halt
 decode :: ByteCode -> Either String StateTransformer
 decode byteCode =
     case findMnemonic op of
-      Just (m) -> Right $ createInstructionTransformer m byteCode
-      Nothing -> Left $ "Could not decode byte code 0x" ++ showHex byteCode
+      Just (m) -> Right $! createInstructionTransformer m byteCode
+      Nothing -> Left $! "Could not decode byte code 0x" ++ showHex byteCode
     where
       op :: B.Binary
       op = B.Binary . fromIntegral $ (byteCode `shiftR` 26) .&. 0x3f

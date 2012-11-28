@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Instruction where
 
 import Data.Bits
@@ -338,19 +339,21 @@ createInstructionTransformer m inst =
           do a <- getI rt
              sendTx a
       HALT -> halt
+      READKEY -> return $ Halt "READKEY: not implemented"
+      DISPLAY -> return $ Halt "DISPLAY: not implemented"
 
       -- TODO:
       DEBUG -> next
       where
-        rs = fromIntegral (inst `shiftR` 21) .&. 0x1f
+        !rs = fromIntegral (inst `shiftR` 21) .&. 0x1f
 
-        rt = fromIntegral (inst `shiftR` 16) .&. 0x1f
+        !rt = fromIntegral (inst `shiftR` 16) .&. 0x1f
 
-        rd = fromIntegral (inst `shiftR` 11) .&. 0x1f
+        !rd = fromIntegral (inst `shiftR` 11) .&. 0x1f
 
-        imm = signExtend 16 (inst .&. 0xffff)
+        !imm = signExtend 16 (inst .&. 0xffff)
 
-        jumpImm = inst .&. 0x3ffffff
+        !jumpImm = inst .&. 0x3ffffff
 
         compareInt32 a b =
             int32 a `compare` int32 b
