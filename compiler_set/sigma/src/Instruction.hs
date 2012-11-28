@@ -1,4 +1,4 @@
-module Instruction where        -- 
+module Instruction where
 
 import Data.Bits
 import Data.Word

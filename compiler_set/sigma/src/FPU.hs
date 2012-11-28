@@ -4,11 +4,18 @@ module FPU where
     
 import Data.Bits
 import Data.Word
+import Foreign.C.String
 
+foreign import ccall "load_tables" c_load_tables :: CString -> IO ()
 foreign import ccall "myfadd" fadd :: Word32 -> Word32 -> Word32
 foreign import ccall "myfmul" fmul :: Word32 -> Word32 -> Word32
 foreign import ccall "myfinv" finv :: Word32 -> Word32
 foreign import ccall "myfsqrt" fsqrt :: Word32 -> Word32
+
+loadTables :: String -> IO ()
+loadTables path =
+    do cPath <- newCString path
+       c_load_tables cPath
 
 fneg :: Word32 -> Word32
 fneg x = x `xor` 0x80000000
