@@ -279,8 +279,8 @@ createInstructionTransformer m inst =
              setMem (base + imm) a
       LDR ->
           do base <- getI rs
-             a <- mem (base + imm)
-             setI rt a
+             offset <- getI rt
+             mem (base + offset) >>= setI rd
       FLDI ->
           do base <- getI rs
              a <- mem (base + imm)
@@ -291,8 +291,8 @@ createInstructionTransformer m inst =
              setMem (base + imm) a
       FLDR ->
           do base <- getI rs
-             a <- mem (base + imm)
-             setF rt a
+             offset <- getI rt
+             mem (base + offset) >>= setF rd
 
       BEQ ->
           do a <- getI rs
