@@ -23,7 +23,8 @@ when 'min-rt'
   target_directories = ['min-rt']
   task_suffix = 'test'
 else
-  STDERR.puts "Unknown test mode.  \"test\" or \"core\""
+  target_directories = [ARGV[0]]
+  task_suffix = 'test'
 end
 
 NG = []

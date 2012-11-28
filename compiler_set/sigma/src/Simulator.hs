@@ -25,7 +25,7 @@ execute :: Options -> Program -> IO ()
 execute options program =
     let (exitReason, lastState) = runState evalLoop (initialState program) in
     if optTestMode options then
-        putStrLn $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
+        putStr $ ((map (chr. fromIntegral)) . B.unpack . B.reverse . stripExitCode . txOutput) lastState
     else
         do
           putStrLn $ "Simulation done. " ++ exitReason
