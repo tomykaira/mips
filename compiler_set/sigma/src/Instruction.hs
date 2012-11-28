@@ -7,6 +7,7 @@ import Data.Word
 import qualified Binary as B 
 import qualified FPU
 import MachineState
+import Util
 
 type ByteCode = Word32
 type Opcode = Word32
@@ -234,7 +235,8 @@ createInstructionTransformer m inst =
              setI rt (a `shiftL` (fromIntegral imm))
       SRAI ->
           do a <- getI rs
-             setI rt (a `shiftR` (fromIntegral imm))
+             let intImm = fromIntegral imm :: Int
+             setI rt (signExtend (32 - intImm) (a `shiftR` intImm))
 
       FMVLO ->
           do a <- getF rs
@@ -346,11 +348,7 @@ createInstructionTransformer m inst =
 
         rd = fromIntegral (inst `shiftR` 11) .&. 0x1f
 
-        imm =
-            if inst .&. 0x8000 > 0 then
-                (0xffff `shiftL` 16) .|. (inst .&. 0xffff)
-            else
-                inst .&. 0xffff
+        imm = signExtend 16 (inst .&. 0xffff)
 
         jumpImm = inst .&. 0x3ffffff
 
