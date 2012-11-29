@@ -109,11 +109,17 @@ let rec g tail env = function
       let z = Id.genid "l" in
       (match t with
       | Type.Fun(_,_) ->
-	  Let((x, t), AddI(reg_hp, 0),
-	      Let((reg_hp, Type.Int), AddI(reg_hp, offset),
-		  Let((z, Type.Int), SetL(l),
-		      seq(StI(z, x, 0),
-			  store_fv))))
+	  if M.mem x !globals then
+	    Let((x, t), Int(M.find x !globals),
+		Let((z, Type.Int), SetL(l),
+		    seq(StI(z, x, 0),
+			store_fv)))
+	  else
+	    Let((x, t), AddI(reg_hp, 0),
+	        Let((reg_hp, Type.Int), AddI(reg_hp, offset),
+	  	    Let((z, Type.Int), SetL(l),
+		        seq(StI(z, x, 0),
+		  	    store_fv))))
       | _ -> assert false)
   | Closure.LetTuple(xts, y, e2) ->
       let (_, load) =
@@ -203,6 +209,8 @@ and g' tail env = function
       | "min_caml_xor" -> Ans(Xor(List.nth int 0, List.nth int 1))
       | "min_caml_sqrt" -> Ans(FSqrt(List.hd float))
       | "min_caml_not" -> Ans(Xor(List.hd int, reg_1))
+      | "min_caml_print_char" -> Ans(Outputb(List.hd int))
+      | "min_caml_input_char" | "min_caml_read_char" -> Ans(Inputb)
       | "min_caml_create_tuple_array" ->
 	  let z = List.hd ays in
 	  let yts = List.tl ayts in
@@ -339,27 +347,29 @@ and g' tail env = function
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
   let (int, float) = separate yts in
   let tail = if S.mem x !CollectDanger.danger then false else true in
+  let (x', head) =
+    if M.mem x !globals then
+      let x' = Id.genid x in
+      (x', (fun p -> (Let((x', t), Int(M.find x !globals), p))))
+    else (x, (fun t -> t)) in
   let (_, load) =
     expand
       zts
       (1, g tail (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load ->
-	insert_load z (fun a -> Let((z, Type.Float), FLdI(x, offset), a)) load)
+	insert_load z (fun a -> Let((z, Type.Float), FLdI(x', offset), a)) load)
       (fun z t offset load ->
-	insert_load z (fun a -> Let((z, t), LdI(x, offset), a)) load) in
+	insert_load z (fun a -> Let((z, t), LdI(x', offset), a)) load) in
   match t with
   | Type.Fun(_, t2) ->
-      { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
+      { name = Id.L(x); args = int; fargs = float; body = head load; ret = t2 }
   | _ -> assert false
 
 
 (* グローバル配列の仮想マシンコード生成 *)
-let i { Closure.gname = (Id.L(x), t); Closure.length = l } =
+let i { Closure.gname = (Id.L(x), _); Closure.length = l } =
   let hp_back = !hp in
-  let len = match t with
-  | Type.Array(Type.Tuple(ts)) -> (1 lsl (log2 (List.length ts))) * l
-  | _ -> l in
-  hp := !hp + len;
+  hp := !hp + l;
   globals := M.add x hp_back !globals
 
 

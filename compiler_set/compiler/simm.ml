@@ -80,9 +80,9 @@ and g' env = function (* 各命令の16bit即値最適化 *)
   | FLdI (x, y) when M.mem x env && -0x8000 <= M.find x env + y && M.find x env + y <= 0x7FFF ->
       Ans(FLdI(reg_0, M.find x env + y))
   | StI (v, x, y) when M.mem x env && -0x8000 <= M.find x env + y && M.find x env + y <= 0x7FFF ->
-      Ans(StI(v, reg_0, M.find x env + y))
+      Ans(StI(co env v, reg_0, M.find x env + y))
   | FStI (v, x, y) when M.mem x env && -0x8000 <= M.find x env + y && M.find x env + y <= 0x7FFF ->
-      Ans(FStI(v, reg_0, M.find x env + y))
+      Ans(FStI(fco env v, reg_0, M.find x env + y))
 
 
   | LdR (x, y) when M.mem y env && is16 (M.find y env) ->

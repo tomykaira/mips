@@ -52,7 +52,7 @@ let rec take l known env rn fn fvs =
        match M.find x env with
        | Type.Unit -> take l known env rn fn fvs'
        | Type.Fun(_,_) ->
-	   if not (S.mem x known) then failwith "function"
+	   if not (S.mem x known) && not (List.mem x !globals) then failwith "function"
            else take l known env rn fn fvs'
        | Type.Float -> if List.mem_assoc x l then
 	                 take l known env rn fn fvs'
@@ -101,6 +101,7 @@ let rec g env known top = function
       | _ -> ());
       Let((x, t), g' env known exp, g (M.add x t env) known top e)
   | LetRec({ name = (x, (Type.Fun(p,q) as t)); args = yts; body = e1 }, e2) ->
+      (if top then globals := x::!globals);
       let env' = M.add x t env in
       let env'' = M.add_list yts env' in
       if not (app_only x e1 && app_only x e2) then

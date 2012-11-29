@@ -131,10 +131,10 @@ and g' = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.SubI(x, reg_fp, stacksize ()))
 
 (* 末尾だったら計算結果を第一レジスタにセットしてret *)
-  | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ as exp) ->
+  | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ | Outputb _ as exp) ->
       g' (NonTail(Id.gentmp Type.Unit), exp);
       Out.print buf Out.Return
-  | Tail, (Add _ | Sub _ | Xor _ | AddI _ | SubI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | SAlloc _ as exp) ->
+  | Tail, (Add _ | Sub _ | Xor _ | AddI _ | SubI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | SAlloc _ | Inputb as exp) ->
       g' (NonTail(regs.(0)), exp);
       Out.print buf Out.Return
   | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _ as exp) ->
@@ -217,16 +217,9 @@ and g' = function (* 各命令のアセンブリ生成 *)
       Out.print buf (Out.LdI(reg_sw, reg_cl, 0));
       Out.print buf (Out.Jr(reg_sw))
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
-      (match x with
-(* コンパイラでインラインに出力されるライブラリ関数 *)
-      | "min_caml_print_char" ->
-	  Out.print buf (Out.Outputb(List.hd ys));
-	  Out.print buf Out.Return
-      | "min_caml_input_char" | "min_caml_read_char" ->
-	  Out.print buf (Out.Inputb(regs.(0)));
-	  Out.print buf Out.Return
-      | _ -> g'_args [] ys zs;
-          Out.print buf (Out.J x))
+      g'_args [] ys zs;
+      Out.print buf (Out.J x)
+
 
   | NonTail(a), CallCls(Id.L(l),x, ys, zs) ->
       g'_args [(x, reg_cl)] ys zs;
@@ -248,27 +241,24 @@ and g' = function (* 各命令のアセンブリ生成 *)
       else if List.mem a allfregs && a <> fregs.(0) then
 	Out.print buf (Out.FAdd(a, fregs.(0), reg_f0))
   | NonTail(a), CallDir(Id.L(x), ys, zs) ->
-      (match x with
-(* コンパイラでインラインに出力されるライブラリ関数 *)
-      | "min_caml_print_char" ->
-	  Out.print buf (Out.Outputb(List.hd ys))
-      | "min_caml_input_char" | "min_caml_read_char" ->
-	  Out.print buf (Out.Inputb(a))
-      | _-> g'_args [] ys zs;
-	  let inc = if M.mem x !rettuple && not (S.mem x !CollectDanger.danger) then M.find x !rettuple else 0 in
-	  let x' = Id.genid "salloc" in
-	  let rec s n =
-	    if n <= 0 then []
-	    else (x' ^ "."^ string_of_int n)::s (n-1) in
-	  stackmap := !stackmap@s inc;
-	  let ss = stacksize () in
-	  if ss > 0 then Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
-	  Out.print buf (Out.Call x);
-	  if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
-	  if List.mem a allregs && a <> regs.(0) then
-	    Out.print buf (Out.AddI(a, regs.(0), 0))
-	  else if List.mem a allfregs && a <> fregs.(0) then
-	    Out.print buf (Out.FAdd(a, fregs.(0), reg_f0)))
+      g'_args [] ys zs;
+      let inc = if M.mem x !rettuple && not (S.mem x !CollectDanger.danger) then M.find x !rettuple else 0 in
+      let x' = Id.genid "salloc" in
+      let rec s n =
+	if n <= 0 then []
+	else (x' ^ "."^ string_of_int n)::s (n-1) in
+      stackmap := !stackmap@s inc;
+      let ss = stacksize () in
+      if ss > 0 then Out.print buf (Out.SubI(reg_fp, reg_fp, ss));
+      Out.print buf (Out.Call x);
+      if ss > 0 then Out.print buf (Out.AddI(reg_fp, reg_fp, ss));
+      if List.mem a allregs && a <> regs.(0) then
+	Out.print buf (Out.AddI(a, regs.(0), 0))
+      else if List.mem a allfregs && a <> fregs.(0) then
+	Out.print buf (Out.FAdd(a, fregs.(0), reg_f0))
+
+  | NonTail(_), Outputb(y) -> Out.print buf (Out.Outputb(y))
+  | NonTail(x), Inputb -> Out.print buf (Out.Inputb(x))
 
 and g'_tail_if e1 e2 b_taken =
   let stackset_back = !stackset in

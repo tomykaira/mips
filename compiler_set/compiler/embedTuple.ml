@@ -6,6 +6,8 @@ let rec a = function
   | (x, Type.Array(Type.Tuple(ts)))::xs -> (x, ts)::a xs
   | _::xs -> a xs
 
+
+
 (* 配列の中のタプルを展開する関数 *)
 let rec g env env' = function
   | Let((x, t), exp, e) ->
@@ -70,12 +72,26 @@ let rec at = function
   | _ -> false
 
 
+(* その数が2の何乗か返す(切り上げ) *)
+let rec log2_sub n i =
+  if 1 lsl i >= n then i
+  else log2_sub n (i+1)
+let log2 n = log2_sub n 0
+
+(* グローバル配列のタプルを展開 *)
+let rec i { gname = (x, t); length = l } =
+  let l' = match t with
+  | Type.Array(Type.Tuple(ts)) -> (1 lsl (log2 (List.length ts))) * l
+  | _ -> l in
+  { gname = (x, t); length = l' }
+
+
 (* 本体 *)
 let f (Prog(globals, toplevel, e)) =
   (* 外部関数や配列に1つでもArray(Tuple(_))の形を持つものがあったら諦める *)
   if M.exists (fun _ -> at) !Typing.extenv then Prog(globals,toplevel,e) else
   (Format.eprintf "embedding tuples into array...@.";
-  Prog(globals, List.map h toplevel, g M.empty M.empty e))
+  Prog(List.map i globals, List.map h toplevel, g M.empty M.empty e))
 
   
   
