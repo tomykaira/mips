@@ -15,3 +15,4 @@ parser.ml
 parser.mli
 *.omc
 .omakedb*
+src/main

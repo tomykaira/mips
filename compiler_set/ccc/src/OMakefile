@@ -6,6 +6,14 @@ FILES[] =
 	lexer
 	parser
 	main
+	m
+	type
+	typing
+	util
+	asm
+	reg
+	flatExp
+	simpleControl
 
 LIB = base
 PROGRAM = main

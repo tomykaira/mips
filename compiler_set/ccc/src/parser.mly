@@ -271,10 +271,10 @@ unary_exp:
 /*     { PreIncrement($2) } */
 /* | DECREMENT unary_exp */
 /*     { PreDecrement($2) } */
-| AND cast_exp
-    { Address($2) }
-| ASTERISK cast_exp
-    { Reference($2) }
+/* | AND cast_exp */
+/*     { Address($2) } */
+/* | ASTERISK cast_exp */
+/*     { Reference($2) } */
 | PLUS cast_exp
     { $2 }
 | MINUS cast_exp
@@ -291,8 +291,8 @@ unary_exp:
 postfix_exp:
 | primary_exp
     { $1 }
-| postfix_exp L_BRACKET exp R_BRACKET
-    { ArrayReference($1, $3) }
+/* | postfix_exp L_BRACKET exp R_BRACKET */
+/*     { ArrayReference($1, $3) } */
 | postfix_exp L_PAREN argument_exp_list R_PAREN
     { CallFunction($1, $3) }
 | postfix_exp L_PAREN R_PAREN
