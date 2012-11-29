@@ -9,6 +9,7 @@ module S' =
       let compare = compare
     end)
 
+
 (* 引数を渡すのに使えるレジスタの数 *)
 let rn = 25
 let fn = 31
@@ -162,12 +163,17 @@ let h env { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
             e
             (yunf@zunf) in
   ({ name = (Id.L(x), Type.Fun(List.map (fun x -> gsup (snd x)) yts', gsup b)); args = List.map (fun (y,t) -> (y, gsup t)) yts'; formal_fv = List.map (fun (z,t) -> (z, gsup t)) zts'; body = g env'' e' }, env')
-  | _ -> failwith "type error"
+  | _ -> assert false
 
 
-(* グローバル配列の型の引数タプルの展開 *)
-let i { gname = (Id.L(x), t); length = l } =
-  { gname = (Id.L(x), gsup t); length = l }
+(* グローバル配列の型の引数タプルの展開と,グローバルクロージャの自由変数タプルの展開 *)
+let i env { gname = (Id.L(x), t); length = l } =
+  let l' =
+    try
+      List.length (List.concat (snd (M.find x env))) + 1
+    with Not_found -> l in
+  { gname = (Id.L(x), gsup t); length = l' }
+
 
 (* 本体 *)
 let f (Prog(globals, toplevel, e)) =
@@ -177,4 +183,4 @@ let f (Prog(globals, toplevel, e)) =
       (fun (x, y) fu -> let (a,b) = h y fu in (x@[a], b))
       ([], M.empty)
       toplevel in
-  Prog(List.map i globals, toplevel', g env e)
+  Prog(List.map (i env) globals, toplevel', g env e)

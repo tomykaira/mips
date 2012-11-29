@@ -43,6 +43,7 @@ and exp =
 type global_array = { gname : Id.l * Type.t;
 		      length : int }
     deriving (Show)
+type global_closure = { cname : Id.l * Type.t }
 type fundef = { name : Id.l * Type.t;
 		args : (Id.t * Type.t) list;
 		formal_fv : (Id.t * Type.t) list;
@@ -70,6 +71,25 @@ and fv' = function
   | Put(x, y, z) -> S.of_list [x; y; z]
   | PutTuple(x,y,z) -> S.of_list (x::y::z)
 
+let rec fv_label x = function
+  | Let(_, exp, e) ->  (fv_label' x exp) || (fv_label x e)
+  | LetTuple(_, _, e) | MakeCls(_, _, e) | LetList(_, _, e) -> fv_label x e
+  | Ans(exp) -> fv_label' x exp
+and fv_label' x = function
+  | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2) ->
+      (fv_label x e1) || (fv_label x e2)
+  | ExtArray(Id.L(l)) when l = x -> true
+  | _ -> false
+
+let rec fv_dir x = function
+  | Let(_, exp, e) -> (fv_dir' x exp) || (fv_dir x e)
+  | LetTuple(_, _, e) | MakeCls(_, _, e) | LetList(_, _, e) -> fv_dir x e
+  | Ans(exp) -> fv_dir' x exp
+and fv_dir' x = function
+  | IfEq(_, _, e1, e2)| IfLE(_, _, e1, e2) | IfLT (_, _, e1, e2) | IfNil(_, e1, e2) ->
+      (fv_dir x e1) || (fv_dir x e2)
+  | AppDir(Id.L(l),_) when x = l -> true
+  | _ -> false
 
 
 let rec concat e1 xt e2 =
@@ -81,26 +101,30 @@ let rec concat e1 xt e2 =
   | Ans(exp) -> Let(xt, exp, e2)
 
 
-let globals : global_array list ref = ref []
-let toplevel : fundef list ref = ref []
+let globals : global_array list ref = ref [] (* グローバル配列の集合 *)
+let glbcls : global_closure list ref = ref [] (* グローバルクロージャの集合 *)
+let toplevel : fundef list ref = ref [] (* トップレベル関数の集合 *)
 
 
 (* gの中で使う補助関数1 *)
-let rec memg x gl = List.exists (fun y -> fst (y.gname) = Id.L(x)) gl
-let rec findg x gl = snd ((List.find (fun y -> fst (y.gname) = Id.L(x)) gl).gname)
+let rec memg x =
+  List.exists (fun y -> fst (y.gname) = Id.L(x)) !globals ||
+  List.exists (fun y -> fst (y.cname) = Id.L(x)) !glbcls
+let rec findg x =
+  try snd ((List.find (fun y -> fst (y.gname) = Id.L(x)) !globals).gname) with
+    Not_found -> snd ((List.find (fun y -> fst (y.cname) = Id.L(x)) !glbcls).cname)
 
 (* gの中で使う補助関数2 *)
-let rec gl_args env l =
+let rec gl_args l =
   match l with
   | [] -> [], (fun t -> t)
   | x::xs ->
-      let (xs', load) = gl_args env xs in
-      if memg x !globals then
+      let (xs', load) = gl_args xs in
+      if memg x then
 	let x' = Id.genid x in
-	(x'::xs', (fun t -> Let((x', M.find x env), ExtArray(Id.L(x)), load t)))
+	(x'::xs', (fun t -> Let((x', findg x), ExtArray(Id.L(x)), load t)))
       else (x::xs', load)
       
-    
 
 (* クロージャ変換ルーチン本体 *)
 let rec g env known const top = function
@@ -127,12 +151,14 @@ let rec g env known const top = function
 	  (Let((x', t), ExtArray(Id.L(x)),
 	      Ans(AppDir(Id.L("min_caml_tuple_array_init"), [x';y;z]))), env, gu)
       | _ -> (exp', M.add x t env, (x, t)) in
-      concat exp'' xt (g (M.add x t env) known const' top e)
+      concat exp'' xt (g env' known const' top e)
   | ANormal.LetRec({ ANormal.name = (x, t); ANormal.args = yts; ANormal.body = e1 }, e2) -> (* 関数定義の場合 *)
       (* 関数定義let rec x y1 ... yn = e1 in e2の場合は、
 	 xに自由変数がない(closureを介さずdirectに呼び出せる)
 	 と仮定し、knownに追加してe1をクロージャ変換してみる *)
       let toplevel_backup = !toplevel in
+      let globals_backup = !globals in
+      let glbcls_backup = !glbcls in
       let env' = M.add x t env in
       let known' = S.add x known in
       let e1' = g (M.add_list yts env') known' const false e1 in
@@ -141,16 +167,39 @@ let rec g env known const top = function
       let zs = S.diff (fv e1') (S.of_list (List.map fst yts)) in
       let known', e1' =
 	if S.is_empty zs then known', e1' else
-	(* 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す *)
+	(* 駄目だったら状態を戻して、クロージャ変換をやり直す *)
 	(toplevel := toplevel_backup;
+	 globals := globals_backup;
+	 glbcls := glbcls_backup;
+	(* トップレベルで宣言されている関数ならアドレスを静的に決定 *)
+	 (if top then glbcls := { cname = (Id.L(x), t) } :: !glbcls);
 	 let e1' = g (M.add_list yts env') known const false e1 in
 	 known, e1') in
       let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
       let zts = List.map (fun z -> (z, M.find z env')) zs in (* ここで自由変数zの型を引くために引数envが必要 *)
-      toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* トップレベル関数を追加 *)
+      let kn = S.mem x known' in
       let e2' = g env' known' const top e2 in
-      if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
-	MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
+      let fvs = S.mem x (fv e2') in
+      let fvl =
+	List.fold_left
+	  (fun fvl { name = _; args = _; formal_fv = _; body = e } -> fvl || (fv_label x e))
+	  (fv_label x e2')
+	  (!toplevel) in
+      let fvd =
+	List.fold_left
+	  (fun fvd { name = _; args = _; formal_fv = _; body = e } -> fvd || (fv_dir x e))
+	  (fv_dir x e2')
+	  (!toplevel) in
+      (* トップレベル関数を追加 *)
+      (if kn || fvs || fvl || fvd then
+	(toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel)); 
+      if fvl || (fvd && not (kn)) then
+	(* e2'もしくはトップレベル関数内にxがクロージャのラベルとして出現していたらglobalsに追加 *)
+	((globals := { gname = (Id.L(x), t); length = List.length zs + 1 } :: !globals);
+        MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2'))
+      else if fvs then
+	(* e2'にxが変数として出現していたら削除しない *)
+        MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2')
       else e2' (* 出現しなければMakeClsを削除 *)
   | ANormal.LetTuple(xts, y, e) ->
       LetTuple(xts, y, g (M.add_list xts env) known const top e)
@@ -177,47 +226,49 @@ and g' env known const =  function
   | ANormal.IfLT(x, y, e1, e2) -> Ans(IfLT(x, y, g env known const false e1, g env known const false e2))
   | ANormal.IfNil(x, e1, e2) -> Ans(IfNil(x, g env known const false e1, g env known const false e2))
   | ANormal.Var(x) ->
-      if memg x !globals then
+      if memg x then
 	let x' = Id.genid x in
-	Let((x', findg x !globals), ExtArray(Id.L(x)), Ans(Var(x')))
+	Let((x', findg x), ExtArray(Id.L(x)), Ans(Var(x')))
       else Ans(Var(x))
   | ANormal.App(x, ys) when S.mem x known -> (* 関数適用の場合 *)
-      let (ys', load) = gl_args env ys in
+      let (ys', load) = gl_args ys in
       load (Ans(AppDir(Id.L(x), ys')))
   | ANormal.App(f, xs) ->
-      let (xs', load) = gl_args env xs in
-      load (Ans(AppCls(f, xs')))
+      let (xs', load) = gl_args xs in
+      if memg f then
+	load (Ans(AppDir(Id.L(f), xs')))
+      else load (Ans(AppCls(f, xs')))
   | ANormal.Tuple(xs) ->
-      let (xs', load) = gl_args env xs in
+      let (xs', load) = gl_args xs in
       load (Ans(Tuple(xs')))
   | ANormal.Get(x, y) ->
-      if memg x !globals then
+      if memg x then
 	let x' = Id.genid x in
-	Let((x', findg x !globals), ExtArray(Id.L(x)), Ans(Get(x', y)))
+	Let((x', findg x), ExtArray(Id.L(x)), Ans(Get(x', y)))
       else Ans(Get(x, y))
   | ANormal.Put(x, y, z) ->
-      if memg x !globals then
+      if memg x then
 	let x' = Id.genid x in
 	let exp' =
-	  if memg z !globals then
+	  if memg z then
 	    let z' = Id.genid z in
-	    Let((z', findg z !globals), ExtArray(Id.L(z)), Ans(Put(x', y, z')))
+	    Let((z', findg z), ExtArray(Id.L(z)), Ans(Put(x', y, z')))
 	  else Ans(Put(x', y, z)) in
-	Let((x', findg x !globals), ExtArray(Id.L(x)), exp')
+	Let((x', findg x), ExtArray(Id.L(x)), exp')
       else Ans(Put(x, y, z))
   | ANormal.ExtArray(x) -> Ans(ExtArray(Id.L(x)))
   | ANormal.ExtFunApp(x, ys) ->
-      let (ys', load) = gl_args env ys in      
+      let (ys', load) = gl_args ys in      
       load (Ans(AppDir(Id.L("min_caml_" ^ x), ys')))
   | ANormal.Nil -> Ans(Nil)
   | ANormal.Cons(x, y) ->
-      if memg x !globals then
+      if memg x then
 	let x' = Id.genid x in
-	Let((x', findg x !globals), ExtArray(Id.L(x)), Ans(Cons(x', y)))
+	Let((x', findg x), ExtArray(Id.L(x)), Ans(Cons(x', y)))
       else Ans(Cons(x, y))
 
 let f e =
   Format.eprintf "making closures...@.";
   toplevel := [];
   let e' = g M.empty S.empty M.empty true e in
-  Prog(List.rev !globals, List.rev !toplevel, e')
+  Prog(!globals, !toplevel, e')
