@@ -1,0 +1,18 @@
+.PHONY: all clean
+
+FILES[] =
+	id
+	syntax
+	lexer
+	parser
+	main
+
+LIB = base
+PROGRAM = main
+
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
+
+OCamlLibrary($(LIB), $(FILES))
+
+clean:
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.cma *.cmxa $(PROGRAM) *.a

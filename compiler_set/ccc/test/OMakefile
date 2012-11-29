@@ -1,0 +1,20 @@
+.PHONY: all clean check
+OCAMLINCLUDES += ../src
+
+FILES[] =
+
+OCAMLPACKS[] =
+	oUnit
+
+PROGRAM = test
+OCAML_LIBS += ../src/base
+
+clean:
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.cma *.cmxa
+
+.DEFAULT: all
+
+all : $(OCamlProgram $(PROGRAM), $(FILES))
+
+check : all
+	./$(PROGRAM)
