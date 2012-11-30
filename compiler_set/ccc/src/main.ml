@@ -13,19 +13,30 @@ let parse_buf_exn lexbuf =
       failwith (Printf.sprintf "Parse error at %d:%d `%s'" line cnum tok)
     end
 
+let notify str x = print_endline str; x
+
 (* バッファをコンパイルしてチャンネルへ出力する *)
 let lexbuf outchan l =
   Id.counter := 0;
   (
     Asm.print_all outchan
+      $ (notify "print asm")
       $ GenerateAsm.convert
+      $ (notify "generate asm")
       $ MemoryAllocation.convert
+      $ (notify "memory allocation")
       $ RegisterAllocation.convert
+      $ (notify "register allocation")
       $ Flow.convert
+      $ (notify "flow")
       $ SimpleControl.convert
+      $ (notify "simple control")
       $ FlatExp.convert
+      $ (notify "flat exp")
       $ Alpha.convert
+      $ (notify "alpha")
       $ Typing.check
+      $ (notify "typing")
   ) (parse_buf_exn l)
 
 (* ファイルをコンパイルしてファイルに出力する *)

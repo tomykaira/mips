@@ -1,7 +1,9 @@
 open Util
 
 type i = [ `I of int ]
+    deriving (Show)
 type f = [ `F of int ]
+    deriving (Show)
 
 module RegSet =
   Set.Make

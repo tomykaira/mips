@@ -8,26 +8,36 @@ type exp =
   | Add            of Reg.i * Reg.i
   | Sub            of Reg.i * Reg.i
   | Negate         of Reg.i
+    deriving (Show)
+
+type call_context = { to_save: (Reg.i * Id.v) list; to_restore: (Reg.i * Id.v) list }
+    deriving (Show)
 
 type instruction =
   | Assignment  of Reg.i * exp
   | BranchZero  of Reg.i * Id.l
   | BranchEqual of Reg.i * Reg.i * Id.l
   | BranchLT    of Reg.i * Reg.i * Id.l
-  | Call        of Id.l * Reg.i list * (Reg.i * Id.v) list
-  | CallAndSet  of Reg.i * Id.l * Reg.i list * (Reg.i * Id.v) list
+  | Call        of Id.l * Reg.i list * call_context
+  | CallAndSet  of Reg.i * Id.l * Reg.i list * call_context
   | Spill       of Reg.i * Id.v
   | Restore     of Reg.i * Id.v
   | Label       of Id.l
   | Return
   | Goto        of Id.l
+    deriving (Show)
 
 type t =
   | Function of Id.l * instruction list
   | GlobalVariable of Syntax.variable
 
 let rev_assoc value xs =
-  fst (List.find (fun (k, v) -> v = value) xs)
+  try
+    fst (List.find (fun (k, v) -> v = value) xs)
+  with
+      Not_found ->
+        failwith (Printf.sprintf "%s is not found in allocation list %s"
+                    (Show.show<Id.v> value) (Show.show<(Reg.i * Id.v) list> xs))
 
 let spilled_arguments spilled allocation inst =
   let use = LiveAnalyzer.use_instruction inst in
@@ -84,22 +94,19 @@ let write_back_global reg id =
     | Id.V(_) -> []
     | Id.G(_) -> [Spill(reg, id)]
 
-let replace allocation live inst =
+let replace allocation call_context inst =
   let reg_of v = rev_assoc v allocation in
   let regs_of = List.map reg_of in
-  let to_save =
-    List.map (fun var -> List.find (fun (_, v) -> v = var) allocation) (S.elements live)
-  in
   match inst with
   | Flow.Assignment(id, exp) ->
     write_back_global (reg_of id) id @ [Assignment(reg_of id, replace_exp allocation exp)]
 
   | Flow.Call(l, args) ->
-    [Call(l, regs_of args, to_save)]
+    [Call(l, regs_of args, call_context)]
 
   | Flow.CallAndSet(id, l, args) ->
     write_back_global (reg_of id) id @
-      [CallAndSet(reg_of id, l, regs_of args, to_save)]
+      [CallAndSet(reg_of id, l, regs_of args, call_context)]
 
   | Flow.Definition(Syntax.Define(id, typ, init)) ->
     [Assignment(reg_of id, Const(init))]
@@ -127,15 +134,29 @@ let update_usage usage live =
   List.filter (fun (_, id) -> S.mem id live) usage
 
 let replace_variables ({live = live; usage = usage; spilled = spilled}, new_insts) inst =
-  let this_living              = LiveAnalyzer.LiveMap.find inst live in
   let to_restore               = spilled_arguments spilled usage inst in
   let to_assign                = new_assignment usage inst in
+
+  let this_living              = LiveAnalyzer.LiveMap.find inst live in
   let (new_alloc, to_spill)    = allocate this_living usage (to_assign @ to_restore) in
-  let restore_insts            = List.map (restore_instruction new_alloc) to_restore in
   let new_usage                = update_usage (new_alloc @ usage) this_living in
-  let new_inst                 = replace new_usage this_living inst in
+
+  (* registers to be saved and restored *)
+  let call_context =
+    let f u = concat_map (fun var -> List.find_all (fun (_, v) -> v = var) u) (S.elements this_living) in
+    { to_save = f usage; to_restore = f new_usage }
+  in
+
+  (* newly allocated registers are available, and registers die here are still allocated *)
+  let new_inst                 = replace (new_alloc @ usage) call_context inst in
   let spill_insts              = List.map spill_instruction to_spill in
+  let restore_insts            = List.map (restore_instruction new_alloc) to_restore in
+
   let spilled_vars             = S.of_list (List.map snd to_spill) in
+
+  print_endline (Show.show<instruction list> new_inst);
+  print_endline (Show.show<(Reg.i * Id.v) list> usage);
+  print_endline (Show.show<(Reg.i * Id.v) list> new_usage);
   ({live = live;
     usage = new_usage;
     spilled = S.union spilled_vars spilled},

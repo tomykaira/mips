@@ -51,14 +51,14 @@ let rec assign_local inst =
     List.map (fun (to_reg, from_reg) -> Assignment(to_reg, RegisterAllocation.Mov(from_reg))) mapping
   in
   match inst with
-    | RegisterAllocation.Call(l, args, to_save) ->
-      load_after_call to_save
+    | RegisterAllocation.Call(l, args, { RegisterAllocation.to_save = to_save; RegisterAllocation.to_restore = to_restore}) ->
+      load_after_call to_restore
       @ [Call(l, stack.size)]
       @ move_args args
       @ store_before_call to_save
 
-    | RegisterAllocation.CallAndSet(dest, l, args, to_save) ->
-      load_after_call to_save
+    | RegisterAllocation.CallAndSet(dest, l, args, { RegisterAllocation.to_save = to_save; RegisterAllocation.to_restore = to_restore}) ->
+      load_after_call to_restore
       @ [Assignment(dest, RegisterAllocation.Mov(Reg.ret));
          Call(l, stack.size)]
       @ move_args args

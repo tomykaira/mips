@@ -1,5 +1,6 @@
 (* rename identifiers in Syntax tree to make them unique (alpha-conversion) *)
 open Syntax
+open Util
 
 let rename_variable env (Define(name, typ, const)) =
   let new_name = Id.unique (Id.raw name) in
@@ -87,4 +88,6 @@ let convert ts =
 
   in
   let (env, result) = List.fold_left convert_t (M.empty, []) ts in
-  List.rev result
+  let result = List.rev result in
+  List.iter (print_endline $ Show.show<t>) result;
+  result

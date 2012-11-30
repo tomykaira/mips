@@ -1,4 +1,5 @@
 (* Flatten Exp in Syntax *)
+open Util
 
 type exp =
   | Var            of Id.v
@@ -110,6 +111,9 @@ let rec expand_exp exp =
     let new_id = Id.gen () in
     { result = new_id; chain = {set = new_id; exp = CallFunction(l, ids)} :: (List.concat (List.rev chains))}
 
+let rev_expand_exp exp =
+  let { result =  r; chain = c } = expand_exp exp in
+  { result =  r; chain = List.rev c }
 
 let rec convert_case = function
   | Syntax.SwitchCase(const, stat) ->
@@ -127,7 +131,7 @@ and convert_statement = function
   | Syntax.Label(l, stat) ->
     Label(l, convert_statement stat)
   | Syntax.Exp(exp) ->
-    let {chain = chain; _} = expand_exp exp in
+    let {chain = chain; _} = rev_expand_exp exp in
     let headed = BatList.drop_while (function {exp = CallFunction(_); _} -> false | _ -> true) (List.rev chain) in
     (match headed with
       | [] -> Nop
@@ -137,15 +141,15 @@ and convert_statement = function
   | Syntax.Block (variables, stats) ->
     Block(variables, List.map convert_statement stats)
   | Syntax.If(exp, stat_true, Some(stat_false)) ->
-    If(expand_exp exp, convert_statement stat_true, Some(convert_statement stat_false))
+    If(rev_expand_exp exp, convert_statement stat_true, Some(convert_statement stat_false))
   | Syntax.If(exp, stat_true, None) ->
-    If(expand_exp exp, convert_statement stat_true, None)
+    If(rev_expand_exp exp, convert_statement stat_true, None)
   | Syntax.Switch(exp, cases) ->
-    Switch(expand_exp exp, List.map convert_case cases)
+    Switch(rev_expand_exp exp, List.map convert_case cases)
   | Syntax.While(exp, stat) ->
-    While(expand_exp exp, convert_statement stat)
+    While(rev_expand_exp exp, convert_statement stat)
   | Syntax.Return(Some(exp)) ->
-    Return (expand_exp exp)
+    Return (rev_expand_exp exp)
 
 let convert_top = function
   | Syntax.Function (id, typ, params, stat) ->
@@ -153,5 +157,7 @@ let convert_top = function
   | Syntax.GlobalVariable (var) ->
     GlobalVariable(var)
 
-let convert =
-  List.map convert_top
+let convert ts =
+  let result = List.map convert_top ts in
+  List.iter (print_endline $ Show.show<t>) result;
+  result

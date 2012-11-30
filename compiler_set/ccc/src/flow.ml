@@ -108,4 +108,6 @@ let convert ts =
     | SimpleControl.GlobalVariable(v) ->
       GlobalVariable v
   in
-  List.map convert_fun ts
+  let result = List.map convert_fun ts in
+  List.iter (print_endline $ Show.show<t>) result;
+  result

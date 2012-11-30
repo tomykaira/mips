@@ -59,13 +59,13 @@ and statement =
   | HALT
 
 let rec print_stat out_channel stat =
-  let print0 inst = output_string out_channel ("\t" ^ inst) in
+  let print0 inst = output_string out_channel ("\t" ^ inst ^ "\n") in
   let print1 inst arg =
-    Printf.fprintf out_channel "\t%s\t%s" inst arg in
+    Printf.fprintf out_channel "\t%s\t%s\n" inst arg in
   let print_branch inst reg1 reg2 (Id.L label) =
-    Printf.fprintf out_channel "\t%s\t%s, %s, %s" inst (Reg.show reg1) (Reg.show reg2) label in
+    Printf.fprintf out_channel "\t%s\t%s, %s, %s\n" inst (Reg.show reg1) (Reg.show reg2) label in
   let print_save inst reg1 reg2 off =
-    Printf.fprintf out_channel "\t%s\t%s, %s, %s" inst (Reg.show reg1) (Reg.show reg2) (string_of_int off) in
+    Printf.fprintf out_channel "\t%s\t%s, %s, %s\n" inst (Reg.show reg1) (Reg.show reg2) (string_of_int off) in
   match stat with
     | NOP ->
       print0 "nop"
@@ -103,8 +103,8 @@ let rec print_stat out_channel stat =
       print_save "fsti" reg1 reg2 off
 
 let rec print_int_exp out_channel destination exp =
-  let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s" inst (Reg.show destination) arg in
-  let print2 inst arg1 arg2 = Printf.fprintf out_channel "\t%s\t%s, %s, %s" inst (Reg.show destination) arg1 arg2 in
+  let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s\n" inst (Reg.show destination) arg in
+  let print2 inst arg1 arg2 = Printf.fprintf out_channel "\t%s\t%s, %s, %s\n" inst (Reg.show destination) arg1 arg2 in
   match exp with
   | Int(i) when i > 0x7fff ->
     let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
@@ -148,8 +148,8 @@ let rec print_int_exp out_channel destination exp =
     print2 "ldr" (Reg.show reg1) (Reg.show reg2)
 
 let print_float_exp out_channel destination exp =
-  let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s" inst (Reg.show destination) arg in
-  let print2 inst arg1 arg2 = Printf.fprintf out_channel "\t%s\t%s, %s, %s" inst (Reg.show destination) arg1 arg2 in
+  let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s\n" inst (Reg.show destination) arg in
+  let print2 inst arg1 arg2 = Printf.fprintf out_channel "\t%s\t%s, %s, %s\n" inst (Reg.show destination) arg1 arg2 in
   match exp with
   | Float(i) ->
     let high = (Int32.to_int (Int32.shift_right_logical (Int32.bits_of_float i) 16)) in
