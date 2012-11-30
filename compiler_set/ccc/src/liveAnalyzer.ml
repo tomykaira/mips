@@ -79,7 +79,7 @@ let rec live_instruction inst (env, next, context) =
   (LiveMap.add inst live env, Some(inst), context)
 
 let live_t = function
-  | Function(id, typ, param, instructions) ->
+  | Function(_, instructions) ->
     let rec loop last_env =
       let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
       if env = last_env then

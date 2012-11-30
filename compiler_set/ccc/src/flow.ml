@@ -26,7 +26,7 @@ type instruction =
     deriving (Show)
 
 type t =
-  | Function of Id.l * Syntax.type_class * Syntax.parameter list * instruction list
+  | Function of Syntax.function_signature * instruction list
   | GlobalVariable of Syntax.variable
       deriving (Show)
 
@@ -103,8 +103,8 @@ let insert_return stats =
 
 let convert ts =
   let convert_fun = function
-    | SimpleControl.Function(l, typ, params, stat) ->
-      Function(l, typ, params, insert_return (expand_statement stat))
+    | SimpleControl.Function(fun_sig, stat) ->
+      Function(fun_sig, insert_return (expand_statement stat))
     | SimpleControl.GlobalVariable(v) ->
       GlobalVariable v
   in

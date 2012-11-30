@@ -77,10 +77,13 @@ let rec convert_statement env stat =
 let convert ts =
   let convert_t (env, definitions) t =
     match t with
-      | Function (id, typ, params, stat) ->
+      | Function ({ name = name; return_type = return_type; parameters = params } , stat) ->
         let (new_env, new_params) = List.fold_right fold_rename_parameter params (env, []) in
         let new_stat = convert_statement env stat in
-        (env, Function(id, typ, new_params, new_stat) :: definitions)
+        (env, Function({ name = name; return_type = return_type; parameters = new_params }, new_stat) :: definitions)
+
+      | FunctionDeclaration (_) ->
+        (env, t :: definitions)
 
       | GlobalVariable(variable) ->
         let (new_env, v) = rename_global_variable env variable in

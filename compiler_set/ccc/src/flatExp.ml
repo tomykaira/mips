@@ -44,7 +44,7 @@ and switch_case =
     deriving (Show)
 
 type t =
-  | Function of Id.l * Syntax.type_class * Syntax.parameter list * statement
+  | Function of Syntax.function_signature * statement
   | GlobalVariable of Syntax.variable
     deriving (Show)
 
@@ -152,12 +152,14 @@ and convert_statement = function
     Return (rev_expand_exp exp)
 
 let convert_top = function
-  | Syntax.Function (id, typ, params, stat) ->
-    Function(id, typ, params, convert_statement stat)
+  | Syntax.Function (signature, stat) ->
+    Some(Function(signature, convert_statement stat))
+  | Syntax.FunctionDeclaration (_) ->
+    None
   | Syntax.GlobalVariable (var) ->
-    GlobalVariable(var)
+    Some(GlobalVariable(var))
 
 let convert ts =
-  let result = List.map convert_top ts in
+  let result = concat_map (function Some(x) -> [x] | None -> []) (List.map convert_top ts) in
   List.iter (print_endline $ Show.show<t>) result;
   result

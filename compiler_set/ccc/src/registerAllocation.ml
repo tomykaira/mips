@@ -168,10 +168,10 @@ let initialize f params heap_variables =
   { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.of_list heap_variables }
 
 let convert_top (result, heap_variables) = function
-  | (Flow.Function(id, typ, params, insts) as f) ->
+  | (Flow.Function({Syntax.name = name; Syntax.parameters = params; _}, insts) as f) ->
     let env = initialize f params heap_variables in
     let insts = snd (List.fold_left replace_variables (env, []) insts) in
-    (Function(id, List.rev insts) :: result, heap_variables)
+    (Function(name, List.rev insts) :: result, heap_variables)
   | Flow.GlobalVariable(Syntax.Define(id, _, _) as v) ->
     (GlobalVariable(v) :: result, id :: heap_variables)
 

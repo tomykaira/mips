@@ -19,7 +19,8 @@ type environment = { variables: Type.t M.t; functions: Type.fun_type FunTypeMap.
 let extract_bodies t =
   let body = function
     | GlobalVariable(_) -> []
-    | Function(_, return_type, _, stat) -> [(convert_syntactic_type return_type, stat)]
+    | FunctionDeclaration(_) -> []
+    | Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
   in
   concat_map body t
 
@@ -82,7 +83,8 @@ let rec get_exp_type env exp =
       | Some(Type.Fun(ret_type, param_types)) ->
         List.iter2 unify param_types arg_types;
         ret_type
-      | None -> raise (UndefinedFunction(label))
+      | None ->
+        raise (UndefinedFunction(label))
     )
   | PostIncrement(e) | PostDecrement(e) ->
     assert_primitive e;
@@ -131,19 +133,24 @@ let rec check_statement env return_type stat =
       unify Type.Void return_type
     | _ -> ()
 
-let check_top t {variables = vs; functions = fs} =
+let check_top {variables = vs; functions = fs} t =
+  let add_function_type {name = label; return_type = return_type; parameters = params} =
+    let param_type (Parameter (typ, _)) = typ in
+    let return_type = convert_syntactic_type return_type in
+    let fun_typ = Type.Fun (return_type,
+                            List.map (convert_syntactic_type $ param_type) params) in
+    { variables = vs; functions = FunTypeMap.add label fun_typ fs }
+  in
   match t with
-    | Function(label, return_type, params, stat) ->
-      let param_type (Parameter (typ, _)) = typ in
-      let return_type = convert_syntactic_type return_type in
-      let fun_typ = Type.Fun (return_type,
-                              List.map (convert_syntactic_type $ param_type) params) in
-      let new_env = { variables = vs; functions = FunTypeMap.add label fun_typ fs } in
-      check_statement new_env return_type stat;
+    | Function({return_type = return_type; _} as signature, stat) ->
+      let new_env = add_function_type signature in
+      check_statement new_env (convert_syntactic_type return_type) stat;
       new_env
+    | FunctionDeclaration(signature) ->
+      add_function_type signature
     | GlobalVariable(var) ->
       { variables = M.add_pair (binding var) vs; functions = fs }
 
-let check t =
-  ignore (List.fold_right (check_top) t {variables = M.empty; functions = FunTypeMap.empty});
-  t
+let check ts =
+  ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);
+  ts

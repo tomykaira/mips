@@ -12,7 +12,7 @@ type statement =
     deriving (Show)
 
 type t =
-  | Function of Id.l * Syntax.type_class * Syntax.parameter list * statement
+  | Function of Syntax.function_signature * statement
   | GlobalVariable of Syntax.variable
     deriving (Show)
 
@@ -51,22 +51,21 @@ let rec convert_statement env stat =
     | FlatExp.Switch ({FlatExp.result = flag; FlatExp.chain = ass}, all_cases) ->
       let end_label = Id.gen_label "switch_end" in
       let switch_env = { continue = current_cont; break = Some(end_label) } in
-      let add_branch (header, body) (FlatExp.SwitchCase (const, stat)) =
-        let label         = Id.gen_label "case" in
-        let (id, ass)     = assign_const const in
-        let new_statement = convert_statement switch_env stat in
-        (Assignments ass :: BranchEqual(flag, id, label) :: header,
-         Label(label) :: new_statement :: body)
+      let add_branch (header, body, default) case =
+        match case with
+          | FlatExp.SwitchCase (const, stat) ->
+            let label         = Id.gen_label "case" in
+            let (id, ass)     = assign_const const in
+            let new_statement = convert_statement switch_env stat in
+            (Assignments ass :: BranchEqual(flag, id, label) :: header,
+             Label(label) :: new_statement :: body,
+             default)
+
+          (* default case overrides existing value *)
+          | FlatExp.DefaultCase (stat) ->
+            (header, body, [convert_statement switch_env stat; Goto(end_label)])
       in
-      let (cases, defaults) = BatList.partition (function FlatExp.SwitchCase _ -> true | FlatExp.DefaultCase _ -> false) all_cases in
-      let (header, body) = List.fold_left add_branch ([], []) cases in
-      let default_sequence =
-        match defaults with
-          | [] -> []
-          | FlatExp.DefaultCase seq :: _ ->
-            [convert_statement switch_env seq; Goto(end_label)]
-          | _ -> failwith "Unexpected default case"
-      in
+      let (header, body, default_sequence) = List.fold_left add_branch ([], [], []) all_cases in
       Sequence(header @ default_sequence @ body @ [Label(end_label)])
     | FlatExp.While ({FlatExp.result = flag; FlatExp.chain = ass}, stat) ->
       let start_label = Id.gen_label "while_start" in
@@ -92,8 +91,8 @@ let rec convert_statement env stat =
     | FlatExp.Nop -> Sequence []
 
 let convert_top = function
-  | FlatExp.Function (id, typ, params, stat) ->
-    Function(id, typ, params, convert_statement {continue = None; break = None} stat)
+  | FlatExp.Function (fun_sig, stat) ->
+    Function(fun_sig, convert_statement {continue = None; break = None} stat)
   | FlatExp.GlobalVariable (var) ->
     GlobalVariable(var)
 

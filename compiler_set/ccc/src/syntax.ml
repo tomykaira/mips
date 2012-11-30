@@ -74,7 +74,14 @@ type parameter =
     Parameter of type_class * Id.v
     deriving (Show)
 
+type function_signature = { name: Id.l; return_type: type_class; parameters: parameter list }
+    deriving (Show)
+
+let signature id return_type params =
+  { name = Id.L id; return_type = return_type; parameters = params }
+
 type t =
-  | Function of Id.l * type_class * parameter list * statement
+  | Function of function_signature * statement
+  | FunctionDeclaration of function_signature
   | GlobalVariable of variable
     deriving (Show)
