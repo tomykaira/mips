@@ -60,9 +60,12 @@ let spill_LRU usage count =
   let to_spill = BatList.take count (List.rev usage) in
   (List.map fst to_spill, to_spill)
 
-let allocate live usage to_allocate =
+let using_registers live usage =
   let live_usage = List.filter (fun (reg, var) -> S.exists ((=) var) live) usage in
-  let not_used = Reg.rest (List.map fst live_usage) in
+  List.map fst live_usage
+
+let allocate live usage to_allocate =
+  let not_used = Reg.rest (using_registers live usage) in
   let available = List.length not_used in
   let required = List.length to_allocate in
   if available >= required then
@@ -137,9 +140,15 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
   let to_restore               = spilled_arguments spilled usage inst in
   let to_assign                = new_assignment usage inst in
 
+  print_endline (Show.show<Id.v list> to_restore);
+  print_endline (Show.show<Id.v list> to_assign);
+
   let this_living              = LiveAnalyzer.LiveMap.find inst live in
   let (new_alloc, to_spill)    = allocate this_living usage (to_assign @ to_restore) in
   let new_usage                = update_usage (new_alloc @ usage) this_living in
+
+  print_endline (Show.show<Id.v list> (S.elements this_living));
+  print_endline (Show.show<(Reg.i * Id.v) list> (new_alloc @ usage));
 
   (* registers to be saved and restored *)
   let call_context =
@@ -154,9 +163,9 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
 
   let spilled_vars             = S.of_list (List.map snd to_spill) in
 
-  print_endline (Show.show<instruction list> new_inst);
-  print_endline (Show.show<(Reg.i * Id.v) list> usage);
-  print_endline (Show.show<(Reg.i * Id.v) list> new_usage);
+  Printf.printf "%s\t%s\t%s\n" (Show.show<instruction list> new_inst)
+    (Show.show<(Reg.i * Id.v) list> usage)
+    (Show.show<(Reg.i * Id.v) list> new_usage);
   ({live = live;
     usage = new_usage;
     spilled = S.union spilled_vars spilled},

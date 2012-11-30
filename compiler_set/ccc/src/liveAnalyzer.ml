@@ -87,7 +87,8 @@ let live_t = function
     let rec loop last_env =
       let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
       if unpack env = unpack last_env then
-        last_env
+        (print_endline (Show.show<(Flow.instruction * Id.v list) list> (unpack env));
+        last_env)
       else
         loop env
     in

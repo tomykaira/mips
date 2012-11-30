@@ -22,7 +22,7 @@ FILES[] =
 	memoryAllocation
 	generateAsm
 
-LIB = base
+LIB = ccc
 PROGRAM = main
 
 .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))

@@ -2,12 +2,13 @@
 OCAMLINCLUDES += ../src
 
 FILES[] =
+	test_reg
+	test_registerAllocation
 
-OCAMLPACKS[] =
-	oUnit
+OCAMLPACKS += oUnit
 
 PROGRAM = test
-OCAML_LIBS += ../src/base
+OCAML_LIBS += ../src/ccc
 
 clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.cma *.cmxa
