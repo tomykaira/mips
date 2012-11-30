@@ -12,13 +12,17 @@ open Syntax
 %token AND_AND
 %token ASTERISK
 %token BANG
+%token BANG_EQUAL
 %token COMMA
 %token COLON
 %token DECREMENT
 %token EQUAL
+%token EQUAL_EQUAL
 %token GT
+%token GT_EQUAL
 %token INCREMENT
 %token LT
+%token LT_EQUAL
 %token L_BRACE
 %token L_BRACKET
 %token L_PAREN
@@ -223,18 +227,18 @@ binary_exp:
 equality_exp:
 | shift_expression
     { $1 }
-| equality_exp EQUAL EQUAL shift_expression
-    { Equal($1, $4) }
-| equality_exp BANG EQUAL shift_expression
-    { Not(Equal($1, $4)) }
+| equality_exp EQUAL_EQUAL shift_expression
+    { Equal($1, $3) }
+| equality_exp BANG_EQUAL shift_expression
+    { Not(Equal($1, $3)) }
 | equality_exp LT shift_expression
     { LessThan($1, $3) }
 | equality_exp GT shift_expression
     { GreaterThan($1, $3) }
-| equality_exp LT EQUAL shift_expression
-    { Not(GreaterThan($1, $4)) }
-| equality_exp GT EQUAL shift_expression
-    { Not(LessThan($1, $4)) }
+| equality_exp LT_EQUAL shift_expression
+    { Not(GreaterThan($1, $3)) }
+| equality_exp GT_EQUAL shift_expression
+    { Not(LessThan($1, $3)) }
 
 shift_expression:
 | additive_exp

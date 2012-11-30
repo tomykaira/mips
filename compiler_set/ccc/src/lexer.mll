@@ -32,8 +32,16 @@ let upper = ['A'-'Z']
         { COLON }
     | "--"
         { DECREMENT }
-    | '='
+    | "="
         { EQUAL }
+    | "=="
+        { EQUAL_EQUAL }
+    | "!="
+        { BANG_EQUAL }
+    | "<="
+        { LT_EQUAL }
+    | ">="
+        { GT_EQUAL }
     | ">"
         { GT }
     | "++"

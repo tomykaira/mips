@@ -24,9 +24,12 @@ let convert_instruction = function
   | MemoryAllocation.BranchLT(r1, r2, l) ->
     [Exec(BLT(r1, r2, l))]
   | MemoryAllocation.Call (l, offset) ->
-    [AssignInt(Reg.frame, SUBI(Reg.frame, offset));
-     Exec(CALL(l));
-     AssignInt(Reg.frame, ADDI(Reg.frame, offset))]
+    if offset > 0 then
+      [AssignInt(Reg.frame, SUBI(Reg.frame, offset));
+       Exec(CALL(l));
+       AssignInt(Reg.frame, ADDI(Reg.frame, offset))]
+    else
+      [Exec(CALL(l))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Heap(off)) ->
     [Exec(STI(reg, Reg.int_zero, off))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Stack(off)) ->

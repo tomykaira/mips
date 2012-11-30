@@ -80,9 +80,13 @@ let rec live_instruction inst (env, next, context) =
 
 let live_t = function
   | Function(_, instructions) ->
+    (* to compare data structure *)
+    let unpack env =
+      (List.map (fun (x, y) -> (x, S.elements y))(LiveMap.bindings env))
+    in
     let rec loop last_env =
       let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
-      if env = last_env then
+      if unpack env = unpack last_env then
         last_env
       else
         loop env

@@ -19,7 +19,7 @@ let notify str x = print_endline str; x
 let lexbuf outchan l =
   Id.counter := 0;
   (
-    Asm.print_all outchan
+    Asm.print_all stdout
       $ (notify "print asm")
       $ GenerateAsm.convert
       $ (notify "generate asm")

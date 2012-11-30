@@ -141,10 +141,15 @@ let check_top {variables = vs; functions = fs} t =
                             List.map (convert_syntactic_type $ param_type) params) in
     { variables = vs; functions = FunTypeMap.add label fun_typ fs }
   in
+  let add_parameters { variables = vs; functions = fs } params =
+    let param_binds = List.map (fun (Parameter(typ, var)) -> (var, convert_syntactic_type typ)) params in
+    { variables = M.add_list param_binds vs; functions = fs }
+  in
   match t with
-    | Function({return_type = return_type; _} as signature, stat) ->
+    | Function({return_type = return_type; parameters = params; _} as signature, stat) ->
       let new_env = add_function_type signature in
-      check_statement new_env (convert_syntactic_type return_type) stat;
+      let local_env = add_parameters new_env params in
+      check_statement local_env (convert_syntactic_type return_type) stat;
       new_env
     | FunctionDeclaration(signature) ->
       add_function_type signature
