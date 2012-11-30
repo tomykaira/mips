@@ -17,7 +17,9 @@ let of_option = function
   | None -> empty
 let unions = List.fold_left union empty
 
-let int_zero = "$r0"
+let int_zero = `I 0
+let frame = `I 1
+let heap_pointer = `I 2
 
 let show = function
   | `I(num) -> "$r" ^ string_of_int num

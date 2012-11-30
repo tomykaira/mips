@@ -19,6 +19,8 @@ FILES[] =
 	registerAllocation
 	liveAnalyzer
 	s
+	memoryAllocation
+	generateAsm
 
 LIB = base
 PROGRAM = main

@@ -3,7 +3,7 @@ type label = Id.l
 
 type t =
   | Exec of statement
-  | AssignInt   of Reg.i   * int_exp
+  | AssignInt   of Reg.i * int_exp
   | AssignFloat of Reg.f * float_exp
   | Label of label
 
@@ -49,12 +49,17 @@ and statement =
   | FBEQ of Reg.f * Reg.f * label
   | FBLT of Reg.f * Reg.f * label
   | FBLE of Reg.f * Reg.f * label
+  | JUMP of label
+  | JUMPR of Reg.i
   | CALL of label
   | CALLR of Reg.i
   | STI   of Reg.i * Reg.i * int
   | FSTI  of Reg.i * Reg.f * int
+  | RETURN
+  | HALT
 
 let rec print_stat out_channel stat =
+  let print0 inst = output_string out_channel ("\t" ^ inst) in
   let print1 inst arg =
     Printf.fprintf out_channel "\t%s\t%s" inst arg in
   let print_branch inst reg1 reg2 (Id.L label) =
@@ -63,7 +68,11 @@ let rec print_stat out_channel stat =
     Printf.fprintf out_channel "\t%s\t%s, %s, %s" inst (Reg.show reg1) (Reg.show reg2) (string_of_int off) in
   match stat with
     | NOP ->
-      output_string out_channel "nop"
+      print0 "nop"
+    | RETURN ->
+      print0 "return"
+    | HALT ->
+      print0 "halt"
 
     | BEQ(reg1, reg2, l) ->
       print_branch "beq" reg1 reg2 l
@@ -83,6 +92,11 @@ let rec print_stat out_channel stat =
     | CALLR(reg) ->
       print1 "callr" (Reg.show reg)
 
+    | JUMP(Id.L l) ->
+      print1 "jump" l
+    | JUMPR(reg) ->
+      print1 "jumpr" (Reg.show reg)
+
     | STI(reg1, reg2, off) ->
       print_save "sti" reg1 reg2 off
     | FSTI(reg1, reg2, off) ->
@@ -95,14 +109,14 @@ let rec print_int_exp out_channel destination exp =
   | Int(i) when i > 0x7fff ->
     let j = Int32.to_int (Int32.shift_right_logical (Int32.of_int i) 15) in
     let j = if j > 0x7FFF then j land 0x7FFF else j in
-    print2 "addi" (Reg.int_zero) (string_of_int j);
+    print2 "addi" (Reg.show Reg.int_zero) (string_of_int j);
     print2 "slli" (Reg.show destination) "15";
     print2 "addi" (Reg.show destination) (string_of_int (Int32.to_int (Int32.logand (Int32.of_int i) 0x7FFFl)))
   | Int(i) when -0x8000 > i ->
     print_int_exp out_channel destination (Int(-i));
-    print2 "sub" (Reg.int_zero) (Reg.show destination)
+    print2 "sub" (Reg.show Reg.int_zero) (Reg.show destination)
   | Int(i) ->
-    print2 "addi" (Reg.int_zero) (string_of_int i)
+    print2 "addi" (Reg.show Reg.int_zero) (string_of_int i)
 
   | SETL(Id.L l) ->
     print1 "setl" l
@@ -169,3 +183,6 @@ let print out_channel = function
     print_float_exp out_channel destination exp
   | Label(Id.L label) ->
     Printf.fprintf out_channel "%s:\n" label
+
+let print_all out_channel =
+  List.iter (print out_channel)

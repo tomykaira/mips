@@ -144,5 +144,6 @@ let check_top t {variables = vs; functions = fs} =
     | GlobalVariable(var) ->
       { variables = M.add_pair (binding var) vs; functions = fs }
 
-let type_check t =
-  List.fold_right (check_top) t {variables = M.empty; functions = FunTypeMap.empty}
+let check t =
+  ignore (List.fold_right (check_top) t {variables = M.empty; functions = FunTypeMap.empty});
+  t
