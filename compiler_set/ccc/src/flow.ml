@@ -1,12 +1,25 @@
 open Util
 
+(* Limit exp to primitive instructions *)
+type exp =
+  | Mov            of Id.t
+  | Const          of Syntax.const_value
+  | And            of Id.t * Id.t
+  | Or             of Id.t * Id.t
+  | Add            of Id.t * Id.t
+  | Sub            of Id.t * Id.t
+  | Negate         of Id.t
+    deriving (Show)
+
 type instruction =
   | Label       of Id.l
-  | Assignment  of Id.t * FlatExp.exp
-  | Call        of Id.l * Id.t list      (* if Exp has function call *)
+  | Assignment  of Id.t * exp
+  | CallAndSet  of Id.t * Id.l * Id.t list      (* with variable binding *)
+  | Call        of Id.l * Id.t list      (* just calling *)
   | Definition  of Syntax.variable
   | BranchZero  of Id.t * Id.l
   | BranchEqual of Id.t * Id.t * Id.l
+  | BranchLT    of Id.t * Id.t * Id.l
   | Goto        of Id.l
   | Return      of Id.t
   | ReturnVoid
@@ -17,9 +30,59 @@ type t =
   | GlobalVariable of Syntax.variable
       deriving (Show)
 
+(* Result of exp expansion *)
+type expanded_exp = Exp of exp | Instructions of instruction list
+
+let expand_exp assign_to exp =
+  let local_branch branch_inst =
+    let label_t = Id.gen_label "eq1" in
+    let label_end = Id.gen_label "eq_end" in
+    Instructions
+      [branch_inst label_t;
+       Assignment(assign_to, Const(Syntax.IntVal(0)));
+       Goto(label_end);
+       Label(label_t);
+       Assignment(assign_to, Const(Syntax.IntVal(1)));
+       Label(label_end)]
+  in
+  match exp with
+  | FlatExp.Var(i)    -> Exp(Mov(i))
+  | FlatExp.Const(c)  -> Exp(Const(c))
+  | FlatExp.And(a, b) -> Exp(And(a, b))
+  | FlatExp.Or(a, b)  -> Exp(Or(a, b))
+  | FlatExp.Add(a, b) -> Exp(Add(a, b))
+  | FlatExp.Sub(a, b) -> Exp(Sub(a, b))
+  | FlatExp.Negate(a) -> Exp(Negate(a))
+
+  | FlatExp.Equal(a, b) ->
+    local_branch (fun l -> BranchEqual(a, b, l))
+  | FlatExp.LessThan(a, b) ->
+    local_branch (fun l -> BranchLT(a, b, l))
+  | FlatExp.GreaterThan(a, b) ->
+    local_branch (fun l -> BranchLT(b, a, l))
+  | FlatExp.Not(a) ->
+    local_branch (fun l -> BranchZero(a, l))
+
+  | FlatExp.Mul(a, b) ->
+    Instructions [CallAndSet(assign_to, Id.L "min_caml_mul", [a; b])]
+  | FlatExp.Div(a, b) ->
+    Instructions [CallAndSet(assign_to, Id.L "min_caml_div", [a; b])]
+  | FlatExp.Mod(a, b) ->
+    Instructions [CallAndSet(assign_to, Id.L "min_caml_mod", [a; b])]
+
+  | FlatExp.CallFunction(l, args) ->
+    Instructions [CallAndSet(assign_to, l, args)]
+
 let rec expand_statement = function
   | SimpleControl.Assignments(ass) ->
-    List.map (fun {FlatExp.set = set; FlatExp.exp = exp} -> Assignment (set, exp)) ass
+    let expand_ass {FlatExp.set = set; FlatExp.exp = exp} =
+      match expand_exp set exp with
+        | Exp(exp) ->
+          [Assignment (set, exp)]
+        | Instructions(insts) ->
+          insts
+    in
+    concat_map expand_ass ass
   | SimpleControl.Sequence(stats) ->
     concat_map expand_statement stats
   | SimpleControl.Block(vars, stats) ->

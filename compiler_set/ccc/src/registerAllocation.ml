@@ -5,27 +5,21 @@ type exp =
   | Const          of Syntax.const_value
   | And            of Reg.i * Reg.i
   | Or             of Reg.i * Reg.i
-  | Equal          of Reg.i * Reg.i
-  | LessThan       of Reg.i * Reg.i
-  | GreaterThan    of Reg.i * Reg.i
   | Add            of Reg.i * Reg.i
   | Sub            of Reg.i * Reg.i
-  | Mul            of Reg.i * Reg.i
-  | Div            of Reg.i * Reg.i
-  | Mod            of Reg.i * Reg.i
-  | Not            of Reg.i
   | Negate         of Reg.i
 
 type instruction =
-  | Assignment of Reg.i * exp
-  | BranchZero of Reg.i * Id.l
+  | Assignment  of Reg.i * exp
+  | BranchZero  of Reg.i * Id.l
   | BranchEqual of Reg.i * Reg.i * Id.l
-  | Call of Id.l * Reg.i list * (Reg.i * Id.t) list
-  | Spill of Reg.i * Id.t
-  | Restore of Reg.i * Id.t
-  | Label of Id.l
+  | BranchLT    of Reg.i * Reg.i * Id.l
+  | Call        of Id.l * Reg.i list * (Reg.i * Id.t) list
+  | Spill       of Reg.i * Id.t
+  | Restore     of Reg.i * Id.t
+  | Label       of Id.l
   | Return
-  | Goto of Id.l
+  | Goto        of Id.l
 
 type t =
   | Function of Id.l * instruction list
@@ -75,21 +69,13 @@ let spill_instruction (reg, id) =
 let replace_exp allocation exp =
   let r v = rev_assoc v allocation in
   match exp with
-    | FlatExp.Var(v)                -> Mov(r v)
-    | FlatExp.Const(const)          -> Const(const)
-    | FlatExp.And(id1, id2)         -> And(r id1, r id2)
-    | FlatExp.Or(id1, id2)          -> Or(r id1, r id2)
-    | FlatExp.Equal(id1, id2)       -> Equal(r id1, r id2)
-    | FlatExp.LessThan(id1, id2)    -> LessThan(r id1, r id2)
-    | FlatExp.GreaterThan(id1, id2) -> GreaterThan(r id1, r id2)
-    | FlatExp.Add(id1, id2)         -> Add(r id1, r id2)
-    | FlatExp.Sub(id1, id2)         -> Sub(r id1, r id2)
-    | FlatExp.Mul(id1, id2)         -> Mul(r id1, r id2)
-    | FlatExp.Div(id1, id2)         -> Div(r id1, r id2)
-    | FlatExp.Mod(id1, id2)         -> Mod(r id1, r id2)
-    | FlatExp.Not(id)               -> Not(r id)
-    | FlatExp.Negate(id)            -> Negate(r id)
-    | FlatExp.CallFunction _ -> failwith "not comes here"
+    | Flow.Mov(v)                -> Mov(r v)
+    | Flow.Const(const)          -> Const(const)
+    | Flow.And(id1, id2)         -> And(r id1, r id2)
+    | Flow.Or(id1, id2)          -> Or(r id1, r id2)
+    | Flow.Add(id1, id2)         -> Add(r id1, r id2)
+    | Flow.Sub(id1, id2)         -> Sub(r id1, r id2)
+    | Flow.Negate(id)            -> Negate(r id)
 
 let replace allocation live inst =
   let reg_of v = rev_assoc v allocation in
@@ -98,15 +84,15 @@ let replace allocation live inst =
     List.map (fun var -> List.find (fun (_, v) -> v = var) allocation) (S.elements live)
   in
   match inst with
-  | Flow.Assignment(id, FlatExp.CallFunction(l, args)) ->
-    [Assignment(reg_of id, Mov(Reg.ret));
-     Call(l, regs_of args, to_save);]
-
   | Flow.Assignment(id, exp) ->
     [Assignment(reg_of id, replace_exp allocation exp)]
 
   | Flow.Call(l, args) ->
     [Call(l, regs_of args, to_save)]
+
+  | Flow.CallAndSet(id, l, args) ->
+    [Assignment(reg_of id, Mov(Reg.ret));
+     Call(l, regs_of args, to_save)]
 
   | Flow.Definition(Syntax.Define(id, typ, init)) ->
     [Assignment(reg_of id, Const(init))]
@@ -116,6 +102,9 @@ let replace allocation live inst =
 
   | Flow.BranchEqual(id1, id2, l) ->
     [BranchEqual(reg_of id1, reg_of id2, l)]
+
+  | Flow.BranchLT(id1, id2, l) ->
+    [BranchLT(reg_of id1, reg_of id2, l)]
 
   | Flow.Return(id) ->
     let reg = rev_assoc id allocation in

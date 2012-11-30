@@ -1,4 +1,3 @@
-open FlatExp
 open Flow
 open Util
 
@@ -15,32 +14,32 @@ let calculate_next live def use =
   S.union (S.diff live (S.of_option def)) (S.of_list use)
 
 let use_exp = function
-  | Var(i) -> [i]
+  | Mov(i) -> [i]
   | And(id1, id2) | Or(id1, id2)
-  | Equal(id1, id2) | LessThan(id1, id2) | GreaterThan(id1, id2)
-  | Add(id1, id2) | Sub(id1, id2) | Mul(id1, id2) | Div(id1, id2) | Mod(id1, id2) -> [id1; id2]
-  | Not(id1) | Negate(id1) -> [id1]
-  | CallFunction(f, args) -> args
+  | Add(id1, id2) | Sub(id1, id2) -> [id1; id2]
+  | Negate(id1) -> [id1]
   | Const(_) -> []
 
 let use_instruction = function
   | Assignment(id, exp) ->
     use_exp exp
   | Call(l, args) -> args
+  | CallAndSet(_, _, args) -> args
   | BranchZero(id, _) -> [id]
-  | BranchEqual(id1, id2, _) -> [id1; id2]
+  | BranchEqual(id1, id2, _) | BranchLT(id1, id2, _) -> [id1; id2]
   | Return(id) -> [id]
   | _ -> []
 
 let def_instruction = function
   | Assignment(id, _) -> Some(id)
   | Definition(Syntax.Define(id, _, _)) -> Some(id)
+  | CallAndSet(id, _, _) -> Some(id)
   | _ -> None
 
 type sucessor = Next | Jump of Id.l
 
 let successors = function
-  | BranchZero (_, l) | BranchEqual (_, _, l) ->
+  | BranchZero (_, l) | BranchEqual (_, _, l) | BranchLT (_, _, l) ->
     [Next; Jump l]
   | Goto(l) -> [Jump l]
   | Return _ | ReturnVoid -> []
