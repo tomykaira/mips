@@ -15,6 +15,10 @@ FILES[] =
 	flatExp
 	simpleControl
 	alpha
+	flow
+	registerAllocation
+	liveAnalyzer
+	s
 
 LIB = base
 PROGRAM = main

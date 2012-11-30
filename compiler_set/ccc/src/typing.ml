@@ -13,7 +13,7 @@ let extract_bodies t =
     | GlobalVariable(_) -> []
     | Function(_, return_type, _, stat) -> [(convert_syntactic_type return_type, stat)]
   in
-  List.concat (List.map body t)
+  concat_map body t
 
 let unify typ1 typ2 =
   if typ1 = typ2 then

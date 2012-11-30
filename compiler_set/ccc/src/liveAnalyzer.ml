@@ -1,0 +1,92 @@
+open FlatExp
+open Flow
+open Util
+
+(* Live variable analysis, per function *)
+
+module LiveMap =
+  Map.Make
+    (struct
+      type t = Flow.instruction
+      let compare = compare
+     end)
+
+let calculate_next live def use =
+  S.union (S.diff live (S.of_option def)) (S.of_list use)
+
+let use_exp = function
+  | Var(i) -> [i]
+  | And(id1, id2) | Or(id1, id2)
+  | Equal(id1, id2) | LessThan(id1, id2) | GreaterThan(id1, id2)
+  | Add(id1, id2) | Sub(id1, id2) | Mul(id1, id2) | Div(id1, id2) | Mod(id1, id2) -> [id1; id2]
+  | Not(id1) | Negate(id1) -> [id1]
+  | CallFunction(f, args) -> args
+  | Const(_) -> []
+
+let use_instruction = function
+  | Assignment(id, exp) ->
+    use_exp exp
+  | Call(l, args) -> args
+  | BranchZero(id, _) -> [id]
+  | BranchEqual(id1, id2, _) -> [id1; id2]
+  | Return(id) -> [id]
+  | _ -> []
+
+let def_instruction = function
+  | Assignment(id, _) -> Some(id)
+  | Definition(Syntax.Define(id, _, _)) -> Some(id)
+  | _ -> None
+
+type sucessor = Next | Jump of Id.l
+
+let successors = function
+  | BranchZero (_, l) | BranchEqual (_, _, l) ->
+    [Next; Jump l]
+  | Goto(l) -> [Jump l]
+  | Return _ | ReturnVoid -> []
+  | _ -> [Next]
+
+(* Find labeled instruction in context (instruction list) *)
+exception LabelNotFound of Id.l
+exception NoSuccessor of Id.l
+
+let find_labeled context label =
+  let list_matcher = function
+    | Label(l) when l = label -> true
+    | _ -> false
+  in
+  match BatList.drop_while list_matcher context with
+    | [] -> raise(LabelNotFound(label))
+    | l :: [] -> raise(NoSuccessor(label))
+    | l :: next :: _ -> next
+
+let rec live_instruction inst (env, next, context) =
+  let find_or_empty inst =
+    if LiveMap.mem inst env then
+      LiveMap.find inst env
+    else
+      S.empty
+  in
+  let for_instruction = function
+    | Some(succ_inst) ->
+      calculate_next (find_or_empty succ_inst) (def_instruction succ_inst) (use_instruction succ_inst)
+    | None -> S.empty
+  in
+  let find_successor = function
+    | Next   -> next
+    | Jump l -> Some(find_labeled context l)
+  in
+  let live = (S.unions $ List.map (for_instruction $ find_successor) $ successors) inst in
+  (LiveMap.add inst live env, Some(inst), context)
+
+let live_t = function
+  | Function(id, typ, param, instructions) ->
+    let rec loop last_env =
+      let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
+      if env = last_env then
+        last_env
+      else
+        loop env
+    in
+    loop LiveMap.empty
+  | GlobalVariable(v) -> LiveMap.empty
