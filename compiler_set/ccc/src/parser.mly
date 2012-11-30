@@ -82,7 +82,7 @@ parameter_list:
 
 parameter:
 | type_class ID
-    { Parameter($1, $2) }
+    { Parameter($1, Id.V $2) }
 
 type_class:
 | TYPE_CLASS
@@ -96,7 +96,7 @@ variable_definition_list:
 
 variable_definition:
 | type_class ID EQUAL const SEMICOLON
-    { Define($2, $1, $4) }
+    { Define(Id.V $2, $1, $4) }
 
 
 stat:
@@ -308,7 +308,7 @@ postfix_exp:
 
 primary_exp:
 | ID
-    { Var($1) }
+    { Var(Id.V $1) }
 | const
     { Const($1) }
 | L_PAREN exp R_PAREN

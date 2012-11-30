@@ -2,12 +2,16 @@
 open Syntax
 
 let rename_variable env (Define(name, typ, const)) =
-  let new_name = Id.genid name in
-  (M.add name new_name env, Define(new_name, typ, const))
+  let new_name = Id.unique (Id.raw name) in
+  (M.add name (Id.V new_name) env, Define((Id.V new_name), typ, const))
+
+let rename_global_variable env (Define(name, typ, const)) =
+  let new_name = Id.unique (Id.raw name) in
+  (M.add name (Id.G new_name) env, Define((Id.G new_name), typ, const))
 
 let rename_parameter env (Parameter(typ, name)) =
-  let new_name = Id.genid name in
-  (M.add name new_name env, Parameter(typ, new_name))
+  let new_name = Id.unique (Id.raw name) in
+  (M.add name (Id.V new_name) env, Parameter(typ, (Id.V new_name)))
 
 let fold_rename_variable v (e, vs) =
   let (e', v') = rename_variable e v in
@@ -70,7 +74,7 @@ let rec convert_statement env stat =
 
 
 let convert ts =
-  let convert_t t (env, definitions) =
+  let convert_t (env, definitions) t =
     match t with
       | Function (id, typ, params, stat) ->
         let (new_env, new_params) = List.fold_right fold_rename_parameter params (env, []) in
@@ -78,8 +82,9 @@ let convert ts =
         (env, Function(id, typ, new_params, new_stat) :: definitions)
 
       | GlobalVariable(variable) ->
-        let (new_env, v) = rename_variable env variable in
+        let (new_env, v) = rename_global_variable env variable in
         (new_env, GlobalVariable(v) :: definitions)
 
   in
-  List.fold_right convert_t ts (M.empty, [])
+  let (env, result) = List.fold_left convert_t (M.empty, []) ts in
+  List.rev result

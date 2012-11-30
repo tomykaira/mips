@@ -2,26 +2,26 @@ open Util
 
 (* Limit exp to primitive instructions *)
 type exp =
-  | Mov            of Id.t
+  | Mov            of Id.v
   | Const          of Syntax.const_value
-  | And            of Id.t * Id.t
-  | Or             of Id.t * Id.t
-  | Add            of Id.t * Id.t
-  | Sub            of Id.t * Id.t
-  | Negate         of Id.t
+  | And            of Id.v * Id.v
+  | Or             of Id.v * Id.v
+  | Add            of Id.v * Id.v
+  | Sub            of Id.v * Id.v
+  | Negate         of Id.v
     deriving (Show)
 
 type instruction =
   | Label       of Id.l
-  | Assignment  of Id.t * exp
-  | CallAndSet  of Id.t * Id.l * Id.t list      (* with variable binding *)
-  | Call        of Id.l * Id.t list      (* just calling *)
+  | Assignment  of Id.v * exp
+  | CallAndSet  of Id.v * Id.l * Id.v list      (* with variable binding *)
+  | Call        of Id.l * Id.v list      (* just calling *)
   | Definition  of Syntax.variable
-  | BranchZero  of Id.t * Id.l
-  | BranchEqual of Id.t * Id.t * Id.l
-  | BranchLT    of Id.t * Id.t * Id.l
+  | BranchZero  of Id.v * Id.l
+  | BranchEqual of Id.v * Id.v * Id.l
+  | BranchLT    of Id.v * Id.v * Id.l
   | Goto        of Id.l
-  | Return      of Id.t
+  | Return      of Id.v
   | ReturnVoid
     deriving (Show)
 

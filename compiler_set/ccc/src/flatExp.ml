@@ -1,32 +1,32 @@
 (* Flatten Exp in Syntax *)
 
 type exp =
-  | Var            of Id.t
+  | Var            of Id.v
   | Const          of Syntax.const_value
-  | And            of Id.t * Id.t
-  | Or             of Id.t * Id.t
-  | Equal          of Id.t * Id.t
-  | LessThan       of Id.t * Id.t
-  | GreaterThan    of Id.t * Id.t
-  | Add            of Id.t * Id.t
-  | Sub            of Id.t * Id.t
-  | Mul            of Id.t * Id.t
-  | Div            of Id.t * Id.t
-  | Mod            of Id.t * Id.t
-  | Not            of Id.t
-  | Negate         of Id.t
-  | CallFunction   of Id.l * Id.t list
+  | And            of Id.v * Id.v
+  | Or             of Id.v * Id.v
+  | Equal          of Id.v * Id.v
+  | LessThan       of Id.v * Id.v
+  | GreaterThan    of Id.v * Id.v
+  | Add            of Id.v * Id.v
+  | Sub            of Id.v * Id.v
+  | Mul            of Id.v * Id.v
+  | Div            of Id.v * Id.v
+  | Mod            of Id.v * Id.v
+  | Not            of Id.v
+  | Negate         of Id.v
+  | CallFunction   of Id.l * Id.v list
       deriving (Show)
 
-type assignment = { set : Id.t; exp : exp }
+type assignment = { set : Id.v; exp : exp }
     deriving (Show)
 
-type assignment_chain = { result : Id.t; chain : assignment list }
+type assignment_chain = { result : Id.v; chain : assignment list }
     deriving (Show)
 
 type statement =
   | Label  of Id.l * statement
-  | Call   of assignment list * Id.l * Id.t list      (* if Exp has function call *)
+  | Call   of assignment list * Id.l * Id.v list      (* if Exp has function call *)
   | Block  of Syntax.variable list * statement list
   | If     of assignment_chain * statement * statement option
   | Switch of assignment_chain * switch_case list

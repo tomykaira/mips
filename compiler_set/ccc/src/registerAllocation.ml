@@ -14,9 +14,9 @@ type instruction =
   | BranchZero  of Reg.i * Id.l
   | BranchEqual of Reg.i * Reg.i * Id.l
   | BranchLT    of Reg.i * Reg.i * Id.l
-  | Call        of Id.l * Reg.i list * (Reg.i * Id.t) list
-  | Spill       of Reg.i * Id.t
-  | Restore     of Reg.i * Id.t
+  | Call        of Id.l * Reg.i list * (Reg.i * Id.v) list
+  | Spill       of Reg.i * Id.v
+  | Restore     of Reg.i * Id.v
   | Label       of Id.l
   | Return
   | Goto        of Id.l
@@ -28,9 +28,10 @@ type t =
 let rev_assoc value xs =
   fst (List.find (fun (k, v) -> v = value) xs)
 
-let spilled_arguments spilled inst =
+let spilled_arguments spilled allocation inst =
   let use = LiveAnalyzer.use_instruction inst in
-  S.elements (S.inter spilled (S.of_list use))
+  let allocated = List.map snd allocation in
+  S.elements (S.inter spilled (S.diff (S.of_list use) (S.of_list allocated)))
 
 let is_allocated alloc id =
   List.exists (fun (_, v) -> id = v) alloc
@@ -77,6 +78,11 @@ let replace_exp allocation exp =
     | Flow.Sub(id1, id2)         -> Sub(r id1, r id2)
     | Flow.Negate(id)            -> Negate(r id)
 
+let write_back_global reg id =
+  match id with
+    | Id.V(_) -> []
+    | Id.G(_) -> [Spill(reg, id)]
+
 let replace allocation live inst =
   let reg_of v = rev_assoc v allocation in
   let regs_of = List.map reg_of in
@@ -85,13 +91,13 @@ let replace allocation live inst =
   in
   match inst with
   | Flow.Assignment(id, exp) ->
-    [Assignment(reg_of id, replace_exp allocation exp)]
+    write_back_global (reg_of id) id @ [Assignment(reg_of id, replace_exp allocation exp)]
 
   | Flow.Call(l, args) ->
     [Call(l, regs_of args, to_save)]
 
   | Flow.CallAndSet(id, l, args) ->
-    [Assignment(reg_of id, Mov(Reg.ret));
+    write_back_global (reg_of id) id @ [Assignment(reg_of id, Mov(Reg.ret));
      Call(l, regs_of args, to_save)]
 
   | Flow.Definition(Syntax.Define(id, typ, init)) ->
@@ -114,14 +120,14 @@ let replace allocation live inst =
   | Flow.Goto(l) -> [Goto(l)]
   | Flow.ReturnVoid -> [Return]
 
-type replacement_context = {live : S.t LiveAnalyzer.LiveMap.t; usage : (Reg.i * Id.t) list; spilled : S.t}
+type replacement_context = {live : S.t LiveAnalyzer.LiveMap.t; usage : (Reg.i * Id.v) list; spilled : S.t}
 
 let update_usage usage live =
   List.filter (fun (_, id) -> S.mem id live) usage
 
 let replace_variables ({live = live; usage = usage; spilled = spilled}, new_insts) inst =
   let this_living              = LiveAnalyzer.LiveMap.find inst live in
-  let to_restore               = spilled_arguments spilled inst in
+  let to_restore               = spilled_arguments spilled usage inst in
   let to_assign                = new_assignment usage inst in
   let (new_alloc, to_spill)    = allocate this_living usage (to_assign @ to_restore) in
   let restore_insts            = List.map (restore_instruction new_alloc) to_restore in
@@ -135,17 +141,17 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
    new_inst @ restore_insts @ spill_insts @ new_insts)
 
 (* Initialize context with function parameters *)
-let initialize f params =
+let initialize f params heap_variables =
   let usage = Reg.assign_params (List.map (fun (Syntax.Parameter(_, id)) -> id) params) in
-  { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.empty }
+  { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.of_list heap_variables }
 
-let convert_top = function
+let convert_top (result, heap_variables) = function
   | (Flow.Function(id, typ, params, insts) as f) ->
-    let env = initialize f params in
+    let env = initialize f params heap_variables in
     let insts = snd (List.fold_left replace_variables (env, []) insts) in
-    Function(id, insts)
-  | Flow.GlobalVariable(v) ->
-    GlobalVariable(v)
+    (Function(id, insts) :: result, heap_variables)
+  | Flow.GlobalVariable(Syntax.Define(id, _, _) as v) ->
+    (GlobalVariable(v) :: result, id :: heap_variables)
 
 let convert ts =
-  List.map convert_top ts
+  List.fold_left convert_top ([], []) ts

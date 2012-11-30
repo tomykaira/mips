@@ -27,11 +27,11 @@ let const_type = function
 
 
 type variable =
-    Define of Id.t * type_class * const_value
+    Define of Id.v * type_class * const_value
     deriving (Show)
 
 type exp =
-  | Var            of Id.t
+  | Var            of Id.v
   | Const          of const_value
   | Assign         of exp * exp  (* TODO: refine first arg *)
   | And            of exp * exp
@@ -71,7 +71,7 @@ and switch_case =
     deriving (Show)
 
 type parameter =
-    Parameter of type_class * Id.t
+    Parameter of type_class * Id.v
     deriving (Show)
 
 type t =

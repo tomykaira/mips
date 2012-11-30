@@ -1,8 +1,8 @@
-
 type t =
   | Void
   | Int
   | Char
   | Float
-  | Fun of t * t list
       deriving (Show)
+
+type fun_type = Fun of t * t list

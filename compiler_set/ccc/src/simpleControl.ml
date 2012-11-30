@@ -1,13 +1,13 @@
 type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
-  | Call        of Id.l * Id.t list      (* if Exp has function call *)
+  | Call        of Id.l * Id.v list      (* if Exp has function call *)
   | Sequence    of statement list
   | Block       of Syntax.variable list * statement list
-  | BranchZero  of Id.t * Id.l
-  | BranchEqual of Id.t * Id.t * Id.l
+  | BranchZero  of Id.v * Id.l
+  | BranchEqual of Id.v * Id.v * Id.l
   | Goto        of Id.l
-  | Return      of Id.t
+  | Return      of Id.v
   | ReturnVoid
     deriving (Show)
 
