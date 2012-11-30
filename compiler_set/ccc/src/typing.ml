@@ -6,6 +6,8 @@ exception Undefined of Id.t
 exception NotFunction of Syntax.exp * Type.t
 exception NotPrimitive of Syntax.exp
 
+type environment = { variables: Type.t M.t; functions: Type.t M.t }
+
 let extract_bodies t =
   let body = function
     | GlobalVariable(_) -> []
@@ -24,13 +26,6 @@ let rec binding (Define(name, typ, const_value)) =
     unify (typ) (const_type const_value);
     (name, typ)
 
-let binding_top = function
-  | Function(name, return_type, parameters, _) ->
-    let extract_parameter_type (Parameter (typ, _)) = typ in
-    (name, Type.Fun (convert_syntactic_type return_type, List.map (convert_syntactic_type $ extract_parameter_type) parameters))
-  | GlobalVariable(var) ->
-    binding var
-
 let rec get_exp_type env exp =
   let go = get_exp_type env in
   let assert_primitive e =
@@ -38,9 +33,25 @@ let rec get_exp_type env exp =
       | Type.Int | Type.Char | Type.Float -> ()
       | _ -> raise (NotPrimitive(e))
   in
+  let find_function f =
+    let { functions = fs; _ } = env in
+    if M.mem f fs then
+      Some(M.find f fs)
+    else
+      None
+  in
+  let find_variable v =
+    let { variables = vs; _ } = env in
+    if M.mem v vs then
+      Some(M.find v vs)
+    else
+      None
+  in
   match exp with
   | Var(id) ->
-    if M.mem id env then M.find id env else raise (Undefined(id))
+    (match find_variable id with
+      | Some(t) -> t
+      | None -> raise (Undefined(id)))
   | Const(value) -> const_type value
   | Assign(e1, e2) ->
     let t2 = go e2 in
@@ -57,14 +68,15 @@ let rec get_exp_type env exp =
   | Negate(e) ->
     assert_primitive e;
     go e
-  | CallFunction(f, args) ->
+  | CallFunction(Id.L f, args) ->
     let arg_types = List.map go args in
-    let fun_type = go f in
-    (match fun_type with
-      | Type.Fun(ret_type, param_types) ->
+    (match find_function f with
+      | Some(Type.Fun(ret_type, param_types)) ->
         List.iter2 unify param_types arg_types;
         ret_type
-      | _ -> raise (NotFunction(f, fun_type)))
+      | Some(_) -> failwith "unreachable"
+      | None -> raise (Undefined(f))
+    )
   | PostIncrement(e) | PostDecrement(e) ->
     assert_primitive e;
     go e
@@ -80,7 +92,8 @@ let rec check_statement env return_type stat =
     | Label(_, stat) -> go stat
     | Exp(exp) -> go_exp exp
     | Block(variables, stats) ->
-      let new_env = M.add_list (List.map binding variables) env in
+      let { variables = vs; functions = fs } = env in
+      let new_env = { variables = M.add_list (List.map binding variables) vs; functions = fs } in
       List.iter (check_statement new_env return_type) stats
     | If(exp, stat_true, Some(stat_false)) ->
       go_exp exp;
@@ -111,7 +124,18 @@ let rec check_statement env return_type stat =
       unify Type.Void return_type
     | _ -> ()
 
+let check_top t {variables = vs; functions = fs} =
+  match t with
+    | Function(Id.L id, return_type, params, stat) ->
+      let param_type (Parameter (typ, _)) = typ in
+      let return_type = convert_syntactic_type return_type in
+      let fun_typ = Type.Fun (return_type,
+                              List.map (convert_syntactic_type $ param_type) params) in
+      let new_env = { variables = vs; functions = M.add id fun_typ fs } in
+      check_statement new_env return_type stat;
+      new_env
+    | GlobalVariable(var) ->
+      { variables = M.add_pair (binding var) vs; functions = fs }
+
 let type_check t =
-  let contexts = extract_bodies t in
-  let env = M.from_list (List.map binding_top t) in
-  List.iter (uncurry2 (check_statement env)) contexts
+  List.fold_right (check_top) t {variables = M.empty; functions = M.empty}

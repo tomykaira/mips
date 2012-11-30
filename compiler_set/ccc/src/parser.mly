@@ -72,7 +72,7 @@ external_decl:
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
-    { Function($2, $1, $4, $6) }
+    { Function(Id.L $2, $1, $4, $6) }
 
 parameter_list:
 | parameter
@@ -293,10 +293,10 @@ postfix_exp:
     { $1 }
 /* | postfix_exp L_BRACKET exp R_BRACKET */
 /*     { ArrayReference($1, $3) } */
-| postfix_exp L_PAREN argument_exp_list R_PAREN
-    { CallFunction($1, $3) }
-| postfix_exp L_PAREN R_PAREN
-    { CallFunction($1, []) }
+| ID L_PAREN argument_exp_list R_PAREN
+    { CallFunction(Id.L $1, $3) }
+| ID L_PAREN R_PAREN
+    { CallFunction(Id.L $1, []) }
 /* | postfix_exp DOT id */
 /*     { StructReference($1, $3) } */
 /* | postfix_exp ARROW id */

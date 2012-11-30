@@ -49,7 +49,7 @@ type exp =
   (* | Reference      of exp *)
   | Negate         of exp
   (* | ArrayReference of exp * exp *)
-  | CallFunction   of exp * exp list
+  | CallFunction   of Id.l * exp list
   | PostIncrement  of exp
   | PostDecrement  of exp
     deriving (Show)
@@ -75,6 +75,6 @@ type parameter =
     deriving (Show)
 
 type t =
-  | Function of Id.t * type_class * parameter list * statement
+  | Function of Id.l * type_class * parameter list * statement
   | GlobalVariable of variable
     deriving (Show)

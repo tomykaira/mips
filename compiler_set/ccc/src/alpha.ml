@@ -38,7 +38,7 @@ let rec convert_exp env e =
     | Not(e1)    -> Not(go e1)
     | Negate(e1) -> Negate(go e1)
 
-    | CallFunction(e1, args) -> CallFunction(go e1, List.map go args)
+    | CallFunction(l, args) -> CallFunction(l, List.map go args)
 
     | PostIncrement(e1) -> PostIncrement(go e1)
     | PostDecrement(e1) -> PostDecrement(go e1)

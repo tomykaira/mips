@@ -15,7 +15,7 @@ type exp =
   | Mod            of Id.t * Id.t
   | Not            of Id.t
   | Negate         of Id.t
-  | CallFunction   of Id.t * Id.t list
+  | CallFunction   of Id.l * Id.t list
       deriving (Show)
 
 type assignment = { set : Id.t; exp : exp }
@@ -26,7 +26,7 @@ type assignment_chain = { result : Id.t; chain : assignment list }
 
 type statement =
   | Label  of Id.l * statement
-  | Call   of assignment list * Id.t * Id.t list      (* if Exp has function call *)
+  | Call   of assignment list * Id.l * Id.t list      (* if Exp has function call *)
   | Block  of Syntax.variable list * statement list
   | If     of assignment_chain * statement * statement option
   | Switch of assignment_chain * switch_case list
@@ -43,7 +43,7 @@ and switch_case =
     deriving (Show)
 
 type t =
-  | Function of Id.t * Syntax.type_class * Syntax.parameter list * statement
+  | Function of Id.l * Syntax.type_class * Syntax.parameter list * statement
   | GlobalVariable of Syntax.variable
     deriving (Show)
 
@@ -104,13 +104,11 @@ let rec expand_exp exp =
   | Syntax.PostDecrement _ ->
     failwith "PostDecrement to non-var expression is not supported"
 
-  | Syntax.CallFunction (Syntax.Var(id), args) ->
+  | Syntax.CallFunction (l, args) ->
     let args_binds = List.map expand_exp args in
     let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in
     let new_id = Id.gen () in
-    { result = new_id; chain = {set = new_id; exp = CallFunction(id, ids)} :: (List.concat (List.rev chains))}
-  | Syntax.CallFunction _ ->
-    failwith "CallFunction to non-var expression is not supported"
+    { result = new_id; chain = {set = new_id; exp = CallFunction(l, ids)} :: (List.concat (List.rev chains))}
 
 
 let rec convert_case = function

@@ -1,7 +1,7 @@
 type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
-  | Call        of Id.t * Id.t list      (* if Exp has function call *)
+  | Call        of Id.l * Id.t list      (* if Exp has function call *)
   | Sequence    of statement list
   | Block       of Syntax.variable list * statement list
   | BranchZero  of Id.t * Id.l
@@ -12,7 +12,7 @@ type statement =
     deriving (Show)
 
 type t =
-  | Function of Id.t * Syntax.type_class * Syntax.parameter list * statement
+  | Function of Id.l * Syntax.type_class * Syntax.parameter list * statement
   | GlobalVariable of Syntax.variable
     deriving (Show)
 
