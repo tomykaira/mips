@@ -30,6 +30,7 @@ type instruction =
 type t =
   | Function of Id.l * instruction list
   | GlobalVariable of Syntax.variable
+    deriving (Show)
 
 let rev_assoc value xs =
   try
@@ -152,8 +153,11 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
 
   (* registers to be saved and restored *)
   let call_context =
+    let inter usage new_usage =
+      List.filter (fun (reg, id) -> List.exists (fun (r, i) -> i = id) usage) new_usage
+    in
     let f u = concat_map (fun var -> List.find_all (fun (_, v) -> v = var) u) (S.elements this_living) in
-    { to_save = f usage; to_restore = f new_usage }
+    { to_save = f usage; to_restore = f (inter usage new_usage) } (* restore variables stored, and used afterward *)
   in
 
   (* newly allocated registers are available, and registers die here are still allocated *)
@@ -186,4 +190,6 @@ let convert_top (result, heap_variables) = function
 
 let convert ts =
   let (result, _) = List.fold_left convert_top ([], []) ts in
-  List.rev result
+  let result = List.rev result in
+  print_endline (Show.show<t list> result);
+  result
