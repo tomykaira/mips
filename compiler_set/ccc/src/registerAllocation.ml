@@ -97,7 +97,7 @@ let write_back_global reg id =
     | Id.V(_) -> []
     | Id.G(_) -> [Spill(reg, id)]
 
-let replace allocation call_context inst =
+let replace allocation call_context (Flow.E(_, inst)) =
   let reg_of v = rev_assoc v allocation in
   let regs_of = List.map reg_of in
   match inst with

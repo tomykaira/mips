@@ -25,8 +25,15 @@ type instruction =
   | ReturnVoid
     deriving (Show)
 
+type id = int
+      deriving (Show)
+
+type instruction_entity =
+  | E of id * instruction
+      deriving (Show)
+
 type t =
-  | Function of Syntax.function_signature * instruction list
+  | Function of Syntax.function_signature * instruction_entity list
   | GlobalVariable of Syntax.variable
       deriving (Show)
 
@@ -100,10 +107,15 @@ let rec expand_statement = function
 let insert_return stats =
   stats @ [ReturnVoid]
 
+let id_counter = ref 0
+
+let identify insts =
+  List.map (fun i -> id_counter := !id_counter + 1; E(!id_counter, i)) insts
+
 let convert ts =
   let convert_fun = function
     | SimpleControl.Function(fun_sig, stat) ->
-      Function(fun_sig, insert_return (expand_statement stat))
+      Function(fun_sig, (identify $ insert_return $ expand_statement) stat)
     | SimpleControl.GlobalVariable(v) ->
       GlobalVariable v
   in

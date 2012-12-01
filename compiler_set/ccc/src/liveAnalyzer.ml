@@ -6,7 +6,7 @@ open Util
 module LiveMap =
   Map.Make
     (struct
-      type t = Flow.instruction
+      type t = Flow.instruction_entity
       let compare = compare
      end)
 
@@ -20,7 +20,7 @@ let use_exp = function
   | Negate(id1) -> [id1]
   | Const(_) -> []
 
-let use_instruction = function
+let use_instruction (E(_, inst)) = match inst with
   | Assignment(id, exp) ->
     use_exp exp
   | Call(l, args) -> args
@@ -30,7 +30,7 @@ let use_instruction = function
   | Return(id) -> [id]
   | _ -> []
 
-let def_instruction = function
+let def_instruction (E(_, inst)) = match inst with
   | Assignment(id, _) -> Some(id)
   | Definition(Syntax.Define(id, _, _)) -> Some(id)
   | CallAndSet(id, _, _) -> Some(id)
@@ -38,7 +38,7 @@ let def_instruction = function
 
 type sucessor = Next | Jump of Id.l
 
-let successors = function
+let successors (E(_, inst)) = match inst with
   | BranchZero (_, l) | BranchEqual (_, _, l) | BranchLT (_, _, l) ->
     [Next; Jump l]
   | Goto(l) -> [Jump l]
@@ -51,7 +51,7 @@ exception NoSuccessor of Id.l
 
 let find_labeled context label =
   let list_matcher = function
-    | Label(l) when l = label -> true
+    | E(_, Label(l)) when l = label -> true
     | _ -> false
   in
   match BatList.drop_while list_matcher context with
@@ -87,7 +87,7 @@ let live_t = function
     let rec loop last_env =
       let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
       if unpack env = unpack last_env then
-        (print_endline (Show.show<(Flow.instruction * Id.v list) list> (unpack env));
+        (print_endline (Show.show<(Flow.instruction_entity * Id.v list) list> (unpack env));
         last_env)
       else
         loop env
