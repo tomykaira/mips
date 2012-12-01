@@ -77,8 +77,12 @@ external_decl:
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
     { Function(signature $2 $1 $4, $6) }
+| type_class ID L_PAREN R_PAREN compound_stat
+    { Function(signature $2 $1 [], $5) }
 | type_class ID L_PAREN parameter_list R_PAREN SEMICOLON
     { FunctionDeclaration(signature $2 $1 $4) }
+| type_class ID L_PAREN R_PAREN SEMICOLON
+    { FunctionDeclaration(signature $2 $1 []) }
 
 parameter_list:
 | parameter
