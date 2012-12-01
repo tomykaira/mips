@@ -95,32 +95,6 @@ let rec expand_exp assign_to exp =
   | Syntax.Not (e) -> add1 e (fun t -> Not t)
   | Syntax.Negate (e) -> add1 e (fun t -> Negate t)
 
-  | Syntax.PostIncrement (Syntax.Var(id)) ->
-    let one = Id.gen () in
-    let gen new_id =
-      { result = new_id; chain = [{set = id; exp = Add(id, one)};
-                                  {set = new_id; exp = Var(id)};
-                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
-    in
-    (match assign_to with
-      | Some(new_id) -> gen new_id
-      | None -> gen (Id.gen ()))
-  | Syntax.PostIncrement _ ->
-    failwith "PostIncrement to non-var expression is not supported"
-
-  | Syntax.PostDecrement (Syntax.Var(id)) ->
-    let one = Id.gen () in
-    let gen new_id =
-      { result = new_id; chain = [{set = id; exp = Sub(id, one)};
-                                  {set = new_id; exp = Var(id)};
-                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
-    in
-    (match assign_to with
-      | Some(new_id) -> gen new_id
-      | None -> gen (Id.gen ()))
-  | Syntax.PostDecrement _ ->
-    failwith "PostDecrement to non-var expression is not supported"
-
   | Syntax.CallFunction (l, args) ->
     let args_binds = List.map (expand_exp None) args in
     let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in

@@ -45,9 +45,6 @@ let rec convert_exp env e =
 
     | CallFunction(l, args) -> CallFunction(l, List.map go args)
 
-    | PostIncrement(e1) -> PostIncrement(go e1)
-    | PostDecrement(e1) -> PostDecrement(go e1)
-
 let rec convert_statement env stat =
   let go = convert_statement env in
   let go_exp = convert_exp env in

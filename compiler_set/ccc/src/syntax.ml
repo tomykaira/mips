@@ -50,8 +50,6 @@ type exp =
   | Negate         of exp
   (* | ArrayReference of exp * exp *)
   | CallFunction   of Id.l * exp list
-  | PostIncrement  of exp
-  | PostDecrement  of exp
     deriving (Show)
 
 type statement =

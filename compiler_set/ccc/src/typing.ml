@@ -86,9 +86,6 @@ let rec get_exp_type env exp =
       | None ->
         raise (UndefinedFunction(label))
     )
-  | PostIncrement(e) | PostDecrement(e) ->
-    assert_primitive e;
-    go e
 
 (* get_exp_type will throw exception, if some error found *)
 let rec check_exp env exp =

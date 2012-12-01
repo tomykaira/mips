@@ -311,10 +311,6 @@ postfix_exp:
 /*     { StructReference($1, $3) } */
 /* | postfix_exp ARROW id */
 /*     { StructPointerReference($1, $3) } */
-| postfix_exp INCREMENT
-    { PostIncrement($1) }
-| postfix_exp DECREMENT
-    { PostDecrement($1) }
 
 primary_exp:
 | ID
