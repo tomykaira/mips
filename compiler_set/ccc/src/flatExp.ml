@@ -51,26 +51,33 @@ type t =
 
 
 
-let rec expand_exp exp =
+let rec expand_exp assign_to exp =
+  let assign rest exp =
+    match assign_to with
+      | Some(assign_to) ->
+        { result = assign_to; chain = {set = assign_to; exp = exp} :: rest }
+      | None ->
+        let id = Id.gen () in
+        { result = id; chain = {set = id; exp = exp} :: rest }
+  in
   let add1 e constructor =
-    let {result = id1; chain = c1} = expand_exp e in
-    let new_id = Id.gen () in
-    { result = new_id; chain = {set = new_id; exp = constructor id1} :: c1 }
+    let {result = id1; chain = c1} = expand_exp None e in
+    assign c1 (constructor id1)
   in
   let concat2 e1 e2 constructor =
-    let {result = id1; chain = c1} = expand_exp e1 in
-    let {result = id2; chain = c2} = expand_exp e2 in
-    let id = Id.gen () in
-    { result = id; chain = {set = id; exp = constructor (id1, id2)} :: c2 @ c1}
+    let {result = id1; chain = c1} = expand_exp None e1 in
+    let {result = id2; chain = c2} = expand_exp None e2 in
+    assign (c2 @ c1) (constructor (id1, id2))
   in
   match exp with
-  | Syntax.Var(id) -> { result = id; chain = [] }
+  | Syntax.Var(id) ->
+    (match assign_to with
+      | Some(assign_to) -> { result = assign_to; chain = [{ set = assign_to; exp = Var(id)}] }
+      | None -> { result = id; chain = [] })
   | Syntax.Const(const) ->
-    let id = Id.gen () in
-    { result = id; chain = [{set = id; exp = Const(const)}] }
+    assign [] (Const(const))
   | Syntax.Assign(Syntax.Var(id), e2) ->
-    let {result = id2; chain = c2} = expand_exp e2 in
-    { result = id; chain = {set = id; exp = Var(id2)} :: c2}
+    expand_exp (Some id) e2
   | Syntax.Assign(_, e2) ->
     failwith "Assign to non-var expression is not supported"
 
@@ -89,31 +96,38 @@ let rec expand_exp exp =
   | Syntax.Negate (e) -> add1 e (fun t -> Negate t)
 
   | Syntax.PostIncrement (Syntax.Var(id)) ->
-    let new_id = Id.gen () in
     let one = Id.gen () in
-    { result = new_id; chain = [{set = id; exp = Add(id, one)};
-                                {set = new_id; exp = Var(id)};
-                                {set = one; exp = Const(Syntax.IntVal 1)}] }
+    let gen new_id =
+      { result = new_id; chain = [{set = id; exp = Add(id, one)};
+                                  {set = new_id; exp = Var(id)};
+                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
+    in
+    (match assign_to with
+      | Some(new_id) -> gen new_id
+      | None -> gen (Id.gen ()))
   | Syntax.PostIncrement _ ->
     failwith "PostIncrement to non-var expression is not supported"
 
   | Syntax.PostDecrement (Syntax.Var(id)) ->
-    let new_id = Id.gen () in
     let one = Id.gen () in
-    { result = new_id; chain = [{set = id; exp = Sub(id, one)};
-                                {set = new_id; exp = Var(id)};
-                                {set = one; exp = Const(Syntax.IntVal 1)}] }
+    let gen new_id =
+      { result = new_id; chain = [{set = id; exp = Sub(id, one)};
+                                  {set = new_id; exp = Var(id)};
+                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
+    in
+    (match assign_to with
+      | Some(new_id) -> gen new_id
+      | None -> gen (Id.gen ()))
   | Syntax.PostDecrement _ ->
     failwith "PostDecrement to non-var expression is not supported"
 
   | Syntax.CallFunction (l, args) ->
-    let args_binds = List.map expand_exp args in
+    let args_binds = List.map (expand_exp None) args in
     let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in
-    let new_id = Id.gen () in
-    { result = new_id; chain = {set = new_id; exp = CallFunction(l, ids)} :: (List.concat (List.rev chains))}
+    assign (List.concat (List.rev chains)) (CallFunction(l, ids))
 
 let rev_expand_exp exp =
-  let { result =  r; chain = c } = expand_exp exp in
+  let { result =  r; chain = c } = expand_exp None exp in
   { result =  r; chain = List.rev c }
 
 let rec convert_case = function

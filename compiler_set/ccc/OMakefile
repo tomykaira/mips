@@ -25,8 +25,8 @@ clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc
 
 .BUILD_SUCCESS:
-	@git add -u
-	@printf "Success\n\n%s" "`git diff --cached`" | git commit -F -
+	@git add -u || true
+	@printf "Success\n\n%s" "`git diff --cached`" | git commit -F - || true
 
 .BUILD_FAILURE:
 	@git add -u
