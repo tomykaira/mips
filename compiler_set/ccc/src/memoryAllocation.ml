@@ -34,7 +34,7 @@ let location id =
         Stack (M.find id stack.allocation)
       else
         let s = stack.size in
-        stack.size <- s + 2;
+        stack.size <- s + 1;
         stack.allocation <- M.add id s stack.allocation;
         Stack s
     | Id.G(g) ->
@@ -82,6 +82,8 @@ let assign_global { functions = funs; initialize_code = code } t =
   in
   match t with
     | RegisterAllocation.Function(id, insts) ->
+      stack.size <- 0;
+      stack.allocation <- M.empty;
       let converted = (id, (List.rev $ List.concat) (List.fold_left (fun acc i -> assign_local i :: acc) [] insts)) in
       { functions = funs @ [converted]; initialize_code = code }
     | RegisterAllocation.GlobalVariable(Syntax.Define(id, typ, initial)) ->
