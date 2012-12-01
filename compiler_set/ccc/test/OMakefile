@@ -2,6 +2,7 @@
 OCAMLINCLUDES += ../src
 
 FILES[] =
+	test_alpha
 	test_reg
 	test_registerAllocation
 
