@@ -1,7 +1,6 @@
 type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
-  | Call        of Id.l * Id.v list      (* if Exp has function call *)
   | Sequence    of statement list
   | Block       of Syntax.variable list * statement list
   | BranchZero  of Id.v * Id.l
@@ -28,8 +27,8 @@ let rec convert_statement env stat =
   match stat with
     | FlatExp.Label (l, stat) ->
       Sequence([Label(l); go stat])
-    | FlatExp.Call (assignments, f, args) ->
-      Sequence([Assignments(assignments); Call(f, args)])
+    | FlatExp.Assignments (assignments) ->
+      Assignments(assignments)
     | FlatExp.Block (variables, stats) ->
       Block(variables, List.map go stats)
     | FlatExp.If ({FlatExp.result = flag; FlatExp.chain = ass}, stat_true, Some(stat_false)) ->

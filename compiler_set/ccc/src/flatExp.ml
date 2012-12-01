@@ -25,17 +25,18 @@ type assignment = { set : Id.v; exp : exp }
 type assignment_chain = { result : Id.v; chain : assignment list }
     deriving (Show)
 
+(* TODO: assignment_chains can go to Assignments *)
 type statement =
-  | Label  of Id.l * statement
-  | Call   of assignment list * Id.l * Id.v list      (* if Exp has function call *)
-  | Block  of Syntax.variable list * statement list
-  | If     of assignment_chain * statement * statement option
-  | Switch of assignment_chain * switch_case list
-  | While  of assignment_chain * statement
-  | Goto   of Id.l
+  | Label       of Id.l * statement
+  | Assignments of assignment list
+  | Block       of Syntax.variable list * statement list
+  | If          of assignment_chain * statement * statement option
+  | Switch      of assignment_chain * switch_case list
+  | While       of assignment_chain * statement
+  | Goto        of Id.l
   | Continue
   | Break
-  | Return of assignment_chain
+  | Return      of assignment_chain
   | ReturnVoid
   | Nop
 and switch_case =
@@ -132,12 +133,7 @@ and convert_statement = function
     Label(l, convert_statement stat)
   | Syntax.Exp(exp) ->
     let {chain = chain; _} = rev_expand_exp exp in
-    let headed = BatList.drop_while (function {exp = CallFunction(_); _} -> false | _ -> true) (List.rev chain) in
-    (match headed with
-      | [] -> Nop
-      | {exp = CallFunction(f, args); _} :: rest ->
-        Call(rest, f, args)
-      | _ -> failwith "unexpected case.  Head should be CallFunction")
+    Assignments chain
   | Syntax.Block (variables, stats) ->
     Block(variables, List.map convert_statement stats)
   | Syntax.If(exp, stat_true, Some(stat_false)) ->

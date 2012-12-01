@@ -89,7 +89,6 @@ let rec expand_statement = function
     List.map (fun v -> Definition(v)) vars @ concat_map expand_statement stats
 
   | SimpleControl.Label(l)                 -> [Label(l)]
-  | SimpleControl.Call(l, id)              -> [Call(l, id)]
   | SimpleControl.BranchZero(id, l)        -> [BranchZero(id, l)]
   | SimpleControl.BranchEqual(id1, id2, l) -> [BranchEqual(id1, id2, l)]
   | SimpleControl.Goto(l)                  -> [Goto(l)]
