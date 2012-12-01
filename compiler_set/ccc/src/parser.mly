@@ -27,8 +27,10 @@ open Syntax
 %token L_BRACKET
 %token L_PAREN
 %token MINUS
+%token MINUS_EQUAL
 %token PERCENT
 %token PLUS
+%token PLUS_EQUAL
 %token PIPE_PIPE
 %token R_BRACE
 %token R_BRACKET
@@ -147,10 +149,10 @@ stat_list:
     { $1 @ [$2] }
 
 selection_stat:
-| IF L_PAREN exp R_PAREN stat
-    { If($3, $5, None) }
 | IF L_PAREN exp R_PAREN stat ELSE stat
     { If($3, $5, Some($7)) }
+| IF L_PAREN exp R_PAREN stat
+    { If($3, $5, None) }
 | SWITCH L_PAREN exp R_PAREN L_BRACE case_definitions R_BRACE
     { Switch($3, $6) }
 
@@ -194,14 +196,16 @@ jump_stat:
 exp:
 | assignment_exp
     { $1 }
-/* | exp COMMA assignment_exp */
-/*     { $1 } */
 
 assignment_exp:
 | conditional_exp
     { $1 }
 | unary_exp EQUAL assignment_exp
     { Assign($1, $3) }
+| unary_exp PLUS_EQUAL assignment_exp
+    { Assign($1, Add($1, $3)) }
+| unary_exp MINUS_EQUAL assignment_exp
+    { Assign($1, Add($1, $3)) }
 
 /* TODO */
 /* assignment_operator: */

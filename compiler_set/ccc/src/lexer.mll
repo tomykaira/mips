@@ -56,10 +56,14 @@ let upper = ['A'-'Z']
         { L_PAREN }
     | '-'
         { MINUS }
+    | "-="
+        { MINUS_EQUAL }
     | '%'
         { PERCENT }
     | '+'
         { PLUS }
+    | "+="
+        { PLUS_EQUAL }
     | "||"
         { PIPE_PIPE }
     | '}'
