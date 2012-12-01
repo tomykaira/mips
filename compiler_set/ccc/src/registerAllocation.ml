@@ -101,6 +101,10 @@ let write_back_global reg id =
 let replace allocation call_context (Flow.E(_, inst)) =
   let reg_of v = rev_assoc v allocation in
   let regs_of = List.map reg_of in
+  let remove_assignee ({ to_save = s; to_restore = r}) id =
+    let remove = List.filter (fun (_, i) -> id != i) in
+    { to_save = remove s; to_restore = remove r}
+  in
   match inst with
   | Flow.Assignment(id, exp) ->
     write_back_global (reg_of id) id @ [Assignment(reg_of id, replace_exp allocation exp)]
@@ -110,7 +114,7 @@ let replace allocation call_context (Flow.E(_, inst)) =
 
   | Flow.CallAndSet(id, l, args) ->
     write_back_global (reg_of id) id @
-      [CallAndSet(reg_of id, l, regs_of args, call_context)]
+      [CallAndSet(reg_of id, l, regs_of args, remove_assignee call_context id)]
 
   | Flow.Definition(Syntax.Define(id, typ, init)) ->
     [Assignment(reg_of id, Const(init))]
