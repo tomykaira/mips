@@ -72,6 +72,7 @@ let rec convert_statement env stat =
       let new_statement = convert_statement { continue = Some(start_label); break = Some(end_label) } stat in
       Sequence [Label(start_label);
                 Assignments ass;
+                BranchZero(flag, end_label);
                 new_statement;
                 Goto(start_label);
                 Label(end_label)]
