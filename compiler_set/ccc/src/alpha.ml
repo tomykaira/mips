@@ -79,7 +79,7 @@ let convert ts =
     match t with
       | Function ({ name = name; return_type = return_type; parameters = params } , stat) ->
         let (new_env, new_params) = List.fold_right fold_rename_parameter params (env, []) in
-        let new_stat = convert_statement env stat in
+        let new_stat = convert_statement new_env stat in
         (env, Function({ name = name; return_type = return_type; parameters = new_params }, new_stat) :: definitions)
 
       | FunctionDeclaration (_) ->
