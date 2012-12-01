@@ -2,17 +2,28 @@
 open Syntax
 open Util
 
-let rename_variable env (Define(name, typ, const)) =
+let rename_variable env (Variable(name, typ, const)) =
   let new_name = Id.unique (Id.raw name) in
-  (M.add name (Id.V new_name) env, Define((Id.V new_name), typ, const))
+  (M.add name (Id.V new_name) env, Variable((Id.V new_name), typ, const))
 
-let rename_global_variable env (Define(name, typ, const)) =
+let rename_global_variable env (Variable(name, typ, const)) =
   let new_name = Id.unique (Id.raw name) in
-  (M.add name (Id.G new_name) env, Define((Id.G new_name), typ, const))
+  (M.add name (Id.G new_name) env, Variable((Id.G new_name), typ, const))
 
-let rename_parameter env (Parameter(typ, name)) =
-  let new_name = Id.unique (Id.raw name) in
-  (M.add name (Id.V new_name) env, Parameter(typ, (Id.V new_name)))
+(* Map Id.V old_name -> Id.A new_name
+   To replace Id.v occurrence in statements *)
+let rename_array env ({id = id; } as signature) =
+  let raw = Id.raw id in
+  let new_name = Id.A(Id.unique raw) in
+  (M.add (Id.V raw) new_name env, { signature with id = new_name})
+
+let rename_parameter env = function
+  | Parameter(typ, name) -> 
+    let new_name = Id.unique (Id.raw name) in
+    (M.add name (Id.V new_name) env, Parameter(typ, (Id.V new_name)))
+  | PointerParameter(typ, name) -> 
+    let new_name = Id.unique (Id.raw name) in
+    (M.add name (Id.V new_name) env, PointerParameter(typ, (Id.V new_name)))
 
 let fold_rename_variable v (e, vs) =
   let (e', v') = rename_variable e v in
@@ -24,11 +35,21 @@ let fold_rename_parameter p (e, ps) =
 
 let rec convert_exp env e =
   let go = convert_exp env in
+  let rename_assignee = function
+    | VarSet(v) when M.mem v env ->
+      VarSet(M.find v env)
+    | ArraySet(v, exp) when M.mem v env ->
+      ArraySet(M.find v env, go exp)
+    | ass -> 
+      failwith ("You cannot set to an unknown variable " ^ (Show.show<Syntax.assignee> ass) ^ ".")
+  in
   match e with
     | Var(v) when M.mem v env -> Var(M.find v env)
     | Var(v)              -> Var(v)                  (* function name? *)
+    | ArrayRef(a, e) when M.mem a env -> ArrayRef(M.find a env, go e)
+    | ArrayRef(a, _)      -> failwith (Printf.sprintf "Unknown array %s is referred." (Show.show<Id.v> a))
     | Const(v)            -> Const(v)
-    | Assign(e1, e2)      -> Assign(go e1, go e2)
+    | Assign(a, e)        -> Assign(rename_assignee a, go e)
     | And(e1, e2)         -> And(go e1, go e2)
     | Or(e1, e2)          -> Or(go e1, go e2)
     | Equal(e1, e2)       -> Equal(go e1, go e2)
@@ -85,6 +106,10 @@ let convert ts =
       | GlobalVariable(variable) ->
         let (new_env, v) = rename_global_variable env variable in
         (new_env, GlobalVariable(v) :: definitions)
+
+      | Array(signature) ->
+        let (new_env, new_sig) = rename_array env signature in
+        (new_env, Array(new_sig) :: definitions)
 
   in
   let (env, result) = List.fold_left convert_t (M.empty, []) ts in

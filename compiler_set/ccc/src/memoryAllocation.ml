@@ -5,7 +5,7 @@
 *)
 open Util
 
-type memory_point = Heap of int | Stack of int
+type memory_point = Heap of int | HeapReg of Reg.i | Stack of int
 
 type instruction =
   | Assignment  of Reg.i * RegisterAllocation.exp
@@ -26,6 +26,23 @@ let stack = { allocation = M.empty; size = 0 }
 let heap  = { allocation = M.empty; size = 0 }
 
 (* Use global environment with side-effect *)
+
+(* Get address of global or array *)
+let address id =
+  match id with
+    | Id.A(a) ->
+      if M.mem id heap.allocation then
+        M.find id heap.allocation
+      else
+        failwith ("Unknown array variable: " ^ a)
+    | Id.G(g) ->
+      if M.mem id heap.allocation then
+        M.find id heap.allocation
+      else
+        failwith "Unknown global variable."
+    | Id.V(_) ->
+      failwith "address calculation is not permitted for stack variable"
+
 (* Return location for given variable.  If not allocated, newly allocate it. *)
 let location id =
   match id with
@@ -37,11 +54,8 @@ let location id =
         stack.size <- s + 1;
         stack.allocation <- M.add id s stack.allocation;
         Stack s
-    | Id.G(g) ->
-      if M.mem id heap.allocation then
-        Heap (M.find id heap.allocation)
-      else
-        failwith "Unknown global variable."
+    | Id.G(_) | Id.A(_) ->
+      Heap (address id)
 
 let rec assign_local inst =
   let store_before_call = concat_map (fun (reg, id) -> assign_local (RegisterAllocation.Spill(reg, id))) in
@@ -64,8 +78,18 @@ let rec assign_local inst =
       @ move_args args
       @ store_before_call to_save
 
+    | RegisterAllocation.ArraySet(id, offset_reg, value) ->
+      [Store(value, HeapReg Reg.address);
+       Assignment(Reg.address, RegisterAllocation.Add(Reg.address, offset_reg));
+       Assignment(Reg.address, RegisterAllocation.Const(Syntax.IntVal(address id)))]
+
     | RegisterAllocation.Spill(reg, id) -> [Store(reg, location id)]
     | RegisterAllocation.Restore(reg, id) -> [Load(reg, location id)]
+
+    | RegisterAllocation.Assignment(to_reg, RegisterAllocation.ArrayGet(id, offset_reg)) ->
+      [Load(to_reg, HeapReg Reg.address);
+       Assignment(Reg.address, RegisterAllocation.Add(Reg.address, offset_reg));
+       Assignment(Reg.address, RegisterAllocation.Const(Syntax.IntVal(address id)))]
 
     | RegisterAllocation.Assignment(r, exp)     -> [Assignment(r, exp)]
     | RegisterAllocation.BranchZero(r, l)       -> [BranchZero(r, l)]
@@ -80,17 +104,28 @@ let assign_global { functions = funs; initialize_code = code } t =
     [Assignment(Reg.ret, RegisterAllocation.Const(value));
      Store(Reg.ret, Heap location)]
   in
+  let rec push_zeros top size =
+    if size = 0 then
+      []
+    else
+      Store(Reg.int_zero, Heap top) :: push_zeros (top + 1) (size - 1)
+  in
   match t with
     | RegisterAllocation.Function(id, insts) ->
       stack.size <- 0;
       stack.allocation <- M.empty;
       let converted = (id, (List.rev $ List.concat) (List.fold_left (fun acc i -> assign_local i :: acc) [] insts)) in
       { functions = funs @ [converted]; initialize_code = code }
-    | RegisterAllocation.GlobalVariable(Syntax.Define(id, typ, initial)) ->
+    | RegisterAllocation.GlobalVariable(Syntax.Variable(id, typ, initial)) ->
       let top = heap.size in
       heap.size <- heap.size + 1;
       heap.allocation <- M.add id top heap.allocation;
       { functions = funs; initialize_code = code @ assign_and_save initial top }
+    | RegisterAllocation.Array({ Syntax.id = id; Syntax.size = size; _ }) ->
+      let top = heap.size in
+      heap.size <- heap.size + size;
+      heap.allocation <- M.add id top heap.allocation;
+      { functions = funs; initialize_code = code @ push_zeros top size }
 
 let convert ts =
   List.fold_left assign_global { functions = []; initialize_code = []} ts

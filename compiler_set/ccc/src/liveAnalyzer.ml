@@ -16,7 +16,8 @@ let calculate_next live def use =
 let use_exp = function
   | Mov(i) -> [i]
   | And(id1, id2) | Or(id1, id2)
-  | Add(id1, id2) | Sub(id1, id2) -> [id1; id2]
+  | Add(id1, id2) | Sub(id1, id2)
+  | ArrayGet(id1, id2) -> [id1; id2]
   | Negate(id1) -> [id1]
   | Const(_) -> []
 
@@ -28,11 +29,12 @@ let use_instruction (E(_, inst)) = match inst with
   | BranchZero(id, _) -> [id]
   | BranchEqual(id1, id2, _) | BranchLT(id1, id2, _) -> [id1; id2]
   | Return(id) -> [id]
+  | ArraySet(id1, id2, id3) -> [id1; id2; id3]
   | _ -> []
 
 let def_instruction (E(_, inst)) = match inst with
   | Assignment(id, _) -> Some(id)
-  | Definition(Syntax.Define(id, _, _)) -> Some(id)
+  | Definition(Syntax.Variable(id, _, _)) -> Some(id)
   | CallAndSet(id, _, _) -> Some(id)
   | _ -> None
 
@@ -91,3 +93,4 @@ let live_t = function
     in
     loop LiveMap.empty
   | GlobalVariable(v) -> LiveMap.empty
+  | Array(v) -> LiveMap.empty

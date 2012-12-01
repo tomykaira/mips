@@ -4,6 +4,7 @@ type storage_class = Auto | Register | Static | Extern | Typedef
 
 type type_class = Void | Char | Int | Long | Float | Signed | Unsigned (* | UserDefined of Id.t *)
     deriving (Show)
+    
 
 (* type type_qualifier = Const | Volatile *)
 let convert_syntactic_type = function
@@ -27,13 +28,17 @@ let const_type = function
 
 
 type variable =
-    Define of Id.v * type_class * const_value
+    Variable of Id.v * type_class * const_value
     deriving (Show)
 
-type exp =
+type assignee =
+  | VarSet of Id.v
+  | ArraySet of Id.v * exp
+and exp =
   | Var            of Id.v
   | Const          of const_value
-  | Assign         of exp * exp  (* TODO: refine first arg *)
+  | ArrayRef       of Id.v * exp
+  | Assign         of assignee * exp  (* TODO: refine first arg *)
   | And            of exp * exp
   | Or             of exp * exp
   | Equal          of exp * exp
@@ -51,6 +56,11 @@ type exp =
   (* | ArrayReference of exp * exp *)
   | CallFunction   of Id.l * exp list
     deriving (Show)
+
+(* Convert assignee to exp for parser *)
+let ref_of = function
+  | VarSet(v) -> Var(v)
+  | ArraySet(a, e) -> ArrayRef(a, e)
 
 type statement =
   | Label  of Id.l * statement
@@ -70,9 +80,21 @@ and switch_case =
 
 type parameter =
     Parameter of type_class * Id.v
+  | PointerParameter of type_class * Id.v (* pointer comes only in parameters *)
     deriving (Show)
 
+let parameter_id = function
+  | Parameter(_, id) -> id
+  | PointerParameter(_, id) -> id
+
+let parameter_type = function
+  | Parameter(typ, _) -> convert_syntactic_type typ
+  | PointerParameter(typ, _) -> Type.Pointer(convert_syntactic_type typ)
+
 type function_signature = { name: Id.l; return_type: type_class; parameters: parameter list }
+    deriving (Show)
+
+type array_signature = { id: Id.v; content_type: type_class; size: int }
     deriving (Show)
 
 let signature id return_type params =
@@ -82,4 +104,5 @@ type t =
   | Function of function_signature * statement
   | FunctionDeclaration of function_signature
   | GlobalVariable of variable
+  | Array of array_signature
     deriving (Show)

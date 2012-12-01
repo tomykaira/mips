@@ -30,4 +30,4 @@ clean:
 
 .BUILD_FAILURE:
 	@git add -u || true
-	(printf "Success\n\n%s"; git diff --cached) | git commit -F - || true
+	(printf "Failure\n\n%s"; git diff --cached) | git commit -F - || true

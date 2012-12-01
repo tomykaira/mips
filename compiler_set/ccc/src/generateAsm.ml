@@ -20,7 +20,7 @@ let convert_exp = function
   | RegisterAllocation.Const(Syntax.IntVal(i))   -> Int(i)
   | RegisterAllocation.Const(Syntax.CharVal(c))  -> Int(Char.code c)
   | RegisterAllocation.Const(Syntax.FloatVal(f)) -> failwith "Float value is not yet supported"
-  | _ -> failwith "oops.. sorry, not supported"
+  | x -> failwith ("oops.. sorry, not supported: " ^ (Show.show<RegisterAllocation.exp> x))
 
 
 let convert_instruction = function
@@ -42,10 +42,15 @@ let convert_instruction = function
       [Exec(CALL(l))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Heap(off)) ->
     [Exec(STI(reg, Reg.heap_pointer, off))]
+  | MemoryAllocation.Store (reg, MemoryAllocation.HeapReg(address)) ->
+    [AssignInt(Reg.address, ADD(Reg.heap_pointer, address)); 
+     Exec(STI(reg, Reg.address, 0))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Stack(off)) ->
     [Exec(STI(reg, Reg.frame, -off))]
   | MemoryAllocation.Load (reg, MemoryAllocation.Heap(off)) ->
     [AssignInt(reg, LDI(Reg.heap_pointer, off))]
+  | MemoryAllocation.Load (reg, MemoryAllocation.HeapReg(address)) ->
+    [AssignInt(reg, LDR(Reg.heap_pointer, address))]
   | MemoryAllocation.Load (reg, MemoryAllocation.Stack(off)) ->
     [AssignInt(reg, LDI(Reg.frame, -off))]
   | MemoryAllocation.Label(l) ->

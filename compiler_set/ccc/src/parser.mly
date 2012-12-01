@@ -75,6 +75,8 @@ external_decl:
     { $1 }
 | variable_definition
     { GlobalVariable($1) }
+| array_definition
+    { $1 }
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
@@ -95,10 +97,16 @@ parameter_list:
 parameter:
 | type_class ID
     { Parameter($1, Id.V $2) }
+| type_class ASTERISK ID
+    { PointerParameter($1, Id.V $3) }
 
 type_class:
 | TYPE_CLASS
     { $1 }
+
+array_definition:
+| type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
+    { Array({id = Id.A $2; content_type = $1; size = $4}) }
 
 variable_definition_list:
 | variable_definition
@@ -108,7 +116,7 @@ variable_definition_list:
 
 variable_definition:
 | type_class ID EQUAL const SEMICOLON
-    { Define(Id.V $2, $1, $4) }
+    { Variable(Id.V $2, $1, $4) }
 
 
 stat:
@@ -200,12 +208,18 @@ exp:
 assignment_exp:
 | conditional_exp
     { $1 }
-| unary_exp EQUAL assignment_exp
+| assignee_exp EQUAL assignment_exp
     { Assign($1, $3) }
-| unary_exp PLUS_EQUAL assignment_exp
-    { Assign($1, Add($1, $3)) }
-| unary_exp MINUS_EQUAL assignment_exp
-    { Assign($1, Add($1, $3)) }
+| assignee_exp PLUS_EQUAL assignment_exp
+    { Assign($1, Add(ref_of $1, $3)) }
+| assignee_exp MINUS_EQUAL assignment_exp
+    { Assign($1, Add(ref_of $1, $3)) }
+
+assignee_exp:
+| ID
+    { VarSet(Id.V $1) }
+| ID L_BRACKET exp R_BRACKET
+    { ArraySet(Id.A $1, $3) }
 
 /* TODO */
 /* assignment_operator: */
@@ -281,44 +295,26 @@ cast_exp:
 unary_exp:
 | postfix_exp
     { $1 }
-/* | INCREMENT unary_exp */
-/*     { PreIncrement($2) } */
-/* | DECREMENT unary_exp */
-/*     { PreDecrement($2) } */
-/* | AND cast_exp */
-/*     { Address($2) } */
-/* | ASTERISK cast_exp */
-/*     { Reference($2) } */
 | PLUS cast_exp
     { $2 }
 | MINUS cast_exp
     { Negate($2) }
-/* | TILDE cast_exp */
-/*     { BitwiseNot($2) } */
 | BANG cast_exp
     { Not($2) }
-/* | SIZEOF unary_exp */
-/*     { SizeOfVar($2) } */
-/* | SIZEOF L_PAREN type_name R_PAREN */
-/*     { SizeOfType($3) } */
 
 postfix_exp:
 | primary_exp
     { $1 }
-/* | postfix_exp L_BRACKET exp R_BRACKET */
-/*     { ArrayReference($1, $3) } */
 | ID L_PAREN argument_exp_list R_PAREN
     { CallFunction(Id.L $1, $3) }
 | ID L_PAREN R_PAREN
     { CallFunction(Id.L $1, []) }
-/* | postfix_exp DOT id */
-/*     { StructReference($1, $3) } */
-/* | postfix_exp ARROW id */
-/*     { StructPointerReference($1, $3) } */
 
 primary_exp:
 | ID
     { Var(Id.V $1) }
+| ID L_BRACKET exp R_BRACKET
+    { ArrayRef(Id.A $1, $3) }
 | const
     { Const($1) }
 | L_PAREN exp R_PAREN

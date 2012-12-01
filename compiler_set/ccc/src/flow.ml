@@ -9,6 +9,7 @@ type exp =
   | Add            of Id.v * Id.v
   | Sub            of Id.v * Id.v
   | Negate         of Id.v
+  | ArrayGet       of Id.v * Id.v
     deriving (Show)
 
 type instruction =
@@ -23,6 +24,7 @@ type instruction =
   | Goto        of Id.l
   | Return      of Id.v
   | ReturnVoid
+  | ArraySet    of Id.v * Id.v * Id.v
     deriving (Show)
 
 type id = int
@@ -35,6 +37,7 @@ type instruction_entity =
 type t =
   | Function of Syntax.function_signature * instruction_entity list
   | GlobalVariable of Syntax.variable
+  | Array of Syntax.array_signature
       deriving (Show)
 
 (* Result of exp expansion *)
@@ -53,13 +56,14 @@ let expand_exp assign_to exp =
        Label(label_end)]
   in
   match exp with
-  | FlatExp.Var(i)    -> Exp(Mov(i))
-  | FlatExp.Const(c)  -> Exp(Const(c))
-  | FlatExp.And(a, b) -> Exp(And(a, b))
-  | FlatExp.Or(a, b)  -> Exp(Or(a, b))
-  | FlatExp.Add(a, b) -> Exp(Add(a, b))
-  | FlatExp.Sub(a, b) -> Exp(Sub(a, b))
-  | FlatExp.Negate(a) -> Exp(Negate(a))
+  | FlatExp.Var(i)         -> Exp(Mov(i))
+  | FlatExp.Const(c)       -> Exp(Const(c))
+  | FlatExp.And(a, b)      -> Exp(And(a, b))
+  | FlatExp.Or(a, b)       -> Exp(Or(a, b))
+  | FlatExp.Add(a, b)      -> Exp(Add(a, b))
+  | FlatExp.Sub(a, b)      -> Exp(Sub(a, b))
+  | FlatExp.Negate(a)      -> Exp(Negate(a))
+  | FlatExp.ArrayGet(a, b) -> Exp(ArrayGet(a, b))
 
   | FlatExp.Equal(a, b) ->
     local_branch (fun l -> BranchEqual(a, b, l))
@@ -79,6 +83,9 @@ let expand_exp assign_to exp =
 
   | FlatExp.CallFunction(l, args) ->
     Instructions [CallAndSet(assign_to, l, args)]
+
+  | FlatExp.ArraySet(array, index, exp) ->
+    Instructions [ArraySet(array, index, exp)]
 
 let rec expand_statement = function
   | SimpleControl.Assignments(ass) ->
@@ -118,6 +125,8 @@ let convert ts =
       Function(fun_sig, (identify $ insert_return $ expand_statement) stat)
     | SimpleControl.GlobalVariable(v) ->
       GlobalVariable v
+    | SimpleControl.Array(a) ->
+      Array a
   in
   let result = List.map convert_fun ts in
   List.iter (print_endline $ Show.show<t>) result;

@@ -8,6 +8,7 @@ type exp =
   | Add            of Reg.i * Reg.i
   | Sub            of Reg.i * Reg.i
   | Negate         of Reg.i
+  | ArrayGet       of Id.v * Reg.i      (* TODO: force array by types *)
     deriving (Show)
 
 type call_context = { to_save: (Reg.i * Id.v) list; to_restore: (Reg.i * Id.v) list }
@@ -25,11 +26,13 @@ type instruction =
   | Label       of Id.l
   | Return
   | Goto        of Id.l
+  | ArraySet    of Id.v * Reg.i * Reg.i
     deriving (Show)
 
 type t =
   | Function of Id.l * instruction list
   | GlobalVariable of Syntax.variable
+  | Array of Syntax.array_signature
     deriving (Show)
 
 let rev_assoc value xs =
@@ -92,10 +95,12 @@ let replace_exp allocation exp =
     | Flow.Add(id1, id2)         -> Add(r id1, r id2)
     | Flow.Sub(id1, id2)         -> Sub(r id1, r id2)
     | Flow.Negate(id)            -> Negate(r id)
+    | Flow.ArrayGet(array, id)   -> ArrayGet(array, r id)
 
 let write_back_global reg id =
   match id with
     | Id.V(_) -> []
+    | Id.A(_) -> []
     | Id.G(_) -> [Spill(reg, id)]
 
 let replace allocation call_context (Flow.E(_, inst)) =
@@ -116,7 +121,7 @@ let replace allocation call_context (Flow.E(_, inst)) =
     write_back_global (reg_of id) id @
       [CallAndSet(reg_of id, l, regs_of args, remove_assignee call_context id)]
 
-  | Flow.Definition(Syntax.Define(id, typ, init)) ->
+  | Flow.Definition(Syntax.Variable(id, typ, init)) ->
     [Assignment(reg_of id, Const(init))]
 
   | Flow.BranchZero(id, l) ->
@@ -131,6 +136,9 @@ let replace allocation call_context (Flow.E(_, inst)) =
   | Flow.Return(id) ->
     let reg = rev_assoc id allocation in
     [Return; Assignment(Reg.ret, Mov(reg))]
+
+  | Flow.ArraySet(id, index, value) ->
+    [ArraySet(id, reg_of index, reg_of value)]
 
   | Flow.Label(l) -> [Label(l)]
   | Flow.Goto(l) -> [Goto(l)]
@@ -181,7 +189,7 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
 
 (* Initialize context with function parameters *)
 let initialize f params heap_variables =
-  let usage = Reg.assign_params (List.map (fun (Syntax.Parameter(_, id)) -> id) params) in
+  let usage = Reg.assign_params (List.map Syntax.parameter_id params) in
   { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.of_list heap_variables }
 
 let convert_top (result, heap_variables) = function
@@ -189,8 +197,10 @@ let convert_top (result, heap_variables) = function
     let env = initialize f params heap_variables in
     let insts = snd (List.fold_left replace_variables (env, []) insts) in
     (Function(name, List.rev insts) :: result, heap_variables)
-  | Flow.GlobalVariable(Syntax.Define(id, _, _) as v) ->
+  | Flow.GlobalVariable(Syntax.Variable(id, _, _) as v) ->
     (GlobalVariable(v) :: result, id :: heap_variables)
+  | Flow.Array(array_sig) ->
+    (Array(array_sig) :: result, heap_variables)
 
 let convert ts =
   let (result, _) = List.fold_left convert_top ([], []) ts in

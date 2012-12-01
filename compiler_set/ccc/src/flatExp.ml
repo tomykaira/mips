@@ -17,6 +17,8 @@ type exp =
   | Not            of Id.v
   | Negate         of Id.v
   | CallFunction   of Id.l * Id.v list
+  | ArraySet       of Id.v * Id.v * Id.v
+  | ArrayGet       of Id.v * Id.v
       deriving (Show)
 
 type assignment = { set : Id.v; exp : exp }
@@ -47,6 +49,7 @@ and switch_case =
 type t =
   | Function of Syntax.function_signature * statement
   | GlobalVariable of Syntax.variable
+  | Array of Syntax.array_signature
     deriving (Show)
 
 
@@ -76,10 +79,16 @@ let rec expand_exp assign_to exp =
       | None -> { result = id; chain = [] })
   | Syntax.Const(const) ->
     assign [] (Const(const))
-  | Syntax.Assign(Syntax.Var(id), e2) ->
+  | Syntax.ArrayRef(id, index) ->
+    add1 index (fun t -> ArrayGet(id, t))
+  | Syntax.Assign(Syntax.VarSet(id), e2) ->
     expand_exp (Some id) e2
-  | Syntax.Assign(_, e2) ->
-    failwith "Assign to non-var expression is not supported"
+  | Syntax.Assign(Syntax.ArraySet(id, index), exp) ->
+    let { result = index_id; chain = index_chain } = expand_exp None index in
+    let { result = exp_id; chain = exp_chain } = expand_exp None exp in
+    let dummy_id = Id.gen () in
+    { result = exp_id;
+      chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: exp_chain @ index_chain }
 
   | Syntax.And (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> And (t1, t2))
   | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))
@@ -142,6 +151,8 @@ let convert_top = function
     None
   | Syntax.GlobalVariable (var) ->
     Some(GlobalVariable(var))
+  | Syntax.Array (signature) ->
+    Some(Array(signature))
 
 let convert ts =
   let result = concat_map (function Some(x) -> [x] | None -> []) (List.map convert_top ts) in

@@ -13,6 +13,7 @@ type statement =
 type t =
   | Function of Syntax.function_signature * statement
   | GlobalVariable of Syntax.variable
+  | Array of Syntax.array_signature
     deriving (Show)
 
 let assign_const const =
@@ -95,6 +96,8 @@ let convert_top = function
     Function(fun_sig, convert_statement {continue = None; break = None} stat)
   | FlatExp.GlobalVariable (var) ->
     GlobalVariable(var)
+  | FlatExp.Array (array_sig) ->
+    Array(array_sig)
 
 let convert =
   List.map convert_top

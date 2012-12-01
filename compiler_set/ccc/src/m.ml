@@ -14,5 +14,9 @@ let add_list2 xs ys env = List.fold_left2 (fun env x y -> add x y env) env xs ys
 let from_list l = add_list l M.empty
 
 let show env =
-  String.concat ", " (List.map (function (Id.V k, v) -> k ^ ": " ^ v
-    | (Id.G k, v) -> "G" ^ k ^ ": " ^ v )(M.bindings env))
+  let show_id = function
+    | (Id.V k, v) -> k ^ ": " ^ v
+    | (Id.G k, v) -> "G" ^ k ^ ": " ^ v
+    | (Id.A k, v) -> "A" ^ k ^ ": " ^ v
+  in
+  String.concat ", " (List.map show_id (M.bindings env))

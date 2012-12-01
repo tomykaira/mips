@@ -6,6 +6,7 @@ exception UndefinedVariable of Id.v
 exception UndefinedFunction of Id.l
 exception NotFunction of Syntax.exp * Type.t
 exception NotPrimitive of Syntax.exp
+exception NotArray of Id.v
 
 module FunTypeMap =
   Map.Make
@@ -20,6 +21,7 @@ let extract_bodies t =
   let body = function
     | GlobalVariable(_) -> []
     | FunctionDeclaration(_) -> []
+    | Array(_) -> []
     | Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
   in
   concat_map body t
@@ -30,7 +32,7 @@ let unify typ1 typ2 =
   else
     raise (Unify(typ1, typ2))
 
-let rec binding (Define(name, typ, const_value)) =
+let rec binding (Variable(name, typ, const_value)) =
     let typ = convert_syntactic_type typ in
     unify (typ) (const_type const_value);
     (name, typ)
@@ -50,21 +52,30 @@ let rec get_exp_type env exp =
       None
   in
   let find_variable v =
-    let { variables = vs; _ } = env in
-    if M.mem v vs then
-      Some(M.find v vs)
+    if M.mem v (env.variables) then
+      M.find v env.variables
     else
-      None
+      raise (UndefinedVariable(v))
+  in
+  let assignee_type = function
+    | VarSet(v) -> find_variable v
+    | ArraySet(a, e) ->
+      match find_variable a with
+        | Type.Array(t) -> t
+        | _ -> raise (NotArray(a))
   in
   match exp with
   | Var(id) ->
-    (match find_variable id with
-      | Some(t) -> t
-      | None -> raise (UndefinedVariable(id)))
+    find_variable id
   | Const(value) -> const_type value
-  | Assign(e1, e2) ->
+  | ArrayRef(id, index) ->
+    unify Type.Int (go index);
+    (match find_variable id with
+      | Type.Array(t) -> t
+      | _ -> raise (NotArray(id)))
+  | Assign(assignee, e2) ->
     let t2 = go e2 in
-    unify (go e1) t2;
+    unify (assignee_type assignee) t2;
     t2
   | And(e1, e2) | Or(e1, e2)
   | Equal(e1, e2) | LessThan(e1, e2) | GreaterThan(e1, e2) ->
@@ -130,17 +141,16 @@ let rec check_statement env return_type stat =
       unify Type.Void return_type
     | _ -> ()
 
-let check_top {variables = vs; functions = fs} t =
+let check_top ({variables = vs; functions = fs} as env) t =
   let add_function_type {name = label; return_type = return_type; parameters = params} =
-    let param_type (Parameter (typ, _)) = typ in
     let return_type = convert_syntactic_type return_type in
     let fun_typ = Type.Fun (return_type,
-                            List.map (convert_syntactic_type $ param_type) params) in
-    { variables = vs; functions = FunTypeMap.add label fun_typ fs }
+                            List.map parameter_type params) in
+    { env with functions = FunTypeMap.add label fun_typ fs }
   in
   let add_parameters { variables = vs; functions = fs } params =
-    let param_binds = List.map (fun (Parameter(typ, var)) -> (var, convert_syntactic_type typ)) params in
-    { variables = M.add_list param_binds vs; functions = fs }
+    let param_binds = List.map (fun p -> (parameter_id p, parameter_type p)) params in
+    { env with variables = M.add_list param_binds vs }
   in
   match t with
     | Function({return_type = return_type; parameters = params; _} as signature, stat) ->
@@ -151,7 +161,9 @@ let check_top {variables = vs; functions = fs} t =
     | FunctionDeclaration(signature) ->
       add_function_type signature
     | GlobalVariable(var) ->
-      { variables = M.add_pair (binding var) vs; functions = fs }
+      { env with variables = M.add_pair (binding var) vs }
+    | Array({id = id; content_type = typ; _}) ->
+      { env with variables = M.add id (Type.Array (convert_syntactic_type typ)) vs }
 
 let check ts =
   ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);

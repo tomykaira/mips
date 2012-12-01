@@ -23,6 +23,9 @@ let int_zero = `I 0
 let frame = `I 1
 let heap_pointer = `I 2
 
+(* To calculate store address in MemoryAllocation *)
+let address = `I 30
+
 let show = function
   | `I(num) -> "$r" ^ string_of_int num
   | `F(num) -> "$f" ^ string_of_int num
