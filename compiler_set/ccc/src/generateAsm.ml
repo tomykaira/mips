@@ -31,11 +31,11 @@ let convert_instruction = function
     else
       [Exec(CALL(l))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Heap(off)) ->
-    [Exec(STI(reg, Reg.int_zero, off))]
+    [Exec(STI(reg, Reg.heap_pointer, off))]
   | MemoryAllocation.Store (reg, MemoryAllocation.Stack(off)) ->
     [Exec(STI(reg, Reg.frame, -off))]
   | MemoryAllocation.Load (reg, MemoryAllocation.Heap(off)) ->
-    [AssignInt(reg, LDI(Reg.int_zero, off))]
+    [AssignInt(reg, LDI(Reg.heap_pointer, off))]
   | MemoryAllocation.Load (reg, MemoryAllocation.Stack(off)) ->
     [AssignInt(reg, LDI(Reg.frame, -off))]
   | MemoryAllocation.Label(l) ->
