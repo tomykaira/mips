@@ -6,8 +6,6 @@ let counter = ref 0
 let pg0 = ("%g0", Type.Unit)
 
 
-(* コンパイラで出力するライブラリ関数。emit.mlでインラインに展開され,退避不要 *)
-let inl = ["min_caml_print_char" ; "min_caml_input_char" ; "min_caml_read_char"]
 
 type alloc_result = (* allocにおいてspillingがあったかどうかを表すデータ型 *)
   | Alloc of Id.t (* allocated register *)
@@ -62,13 +60,13 @@ let rec alloc cont regenv graph x t =
 
 (* 式が関数呼び出しか判定 *)
 let is_call = function
-  | CallDir(Id.L(l), _, _) when List.mem l inl -> false
   | CallCls _ | CallDir _ -> true
   | _ -> false
 (* 式が分岐か判定 *)
 let is_br = function
   | IfEq _ | IfLE _ | IfLT _ | IfFEq _ | IfFLE _ | IfFLT _ -> true
   | _ -> false 
+
 
 (* 命令列から,関数呼び出しから関数呼び出しまでの一直線の区間を切り出す関数
    ついでにpreferの情報も集めておく.
@@ -106,7 +104,6 @@ and simple' dest cont = function
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLE(x,y,e1,e2))) e1 e2
   | IfFLT(x,y,e1,e2) ->
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLT(x,y,e1,e2))) e1 e2
-  | CallDir(Id.L(l),_,_) as exp when List.mem l inl -> (false, Ans(exp), M.empty)
   | CallCls(_,x,ys,zs) as c ->
       let rec f x y = match (x,y) with
 	| ([],_) | (_,[]) -> []
@@ -151,8 +148,8 @@ let rec gc dest cont regenv ifprefer e =
   let (_, e', prefer') = simple pg0 cont' in
   let prefer = if ecall e then prefer' else M.fold addm prefer' ifprefer in
   let (gr1, gf1) = make e' in
-  let (gr2, sr) = spill gr1 (List.length allregs) in
-  let (gf2, sf) = spill gf1 (List.length allfregs) in
+  let (gr2, sr) = spill regenv prefer gr1 (List.length allregs) in
+  let (gf2, sf) = spill regenv prefer gf1 (List.length allfregs) in
   let gr3 = color allregs regenv prefer gr2 sr in
   let gf3 = color allfregs regenv prefer gf2 sf in
   let graph = M.fold M.add gr3 gf3 in
@@ -204,7 +201,7 @@ let rec gc dest cont regenv ifprefer e =
 (* 使用される変数をスタックからレジスタへRestore *)
     and g'_and_restore dest cont regenv graph ifprefer exp = 
       try g' dest cont regenv graph ifprefer exp
-      with NoReg(x, t) ->
+      with NoReg(x, t) -> 
 	g dest cont regenv graph ifprefer (Let((x, t), Restore(x), Ans(exp)))
     and g' dest cont regenv graph ifprefer = function (* 各命令のレジスタ割り当て *)
       | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | SAlloc _ | Inputb as exp -> (Ans(exp), regenv, graph)
@@ -248,11 +245,6 @@ let rec gc dest cont regenv ifprefer e =
 
       | CallCls(l, x, ys, zs) ->
 	  g'_call dest cont regenv graph (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
-      | CallDir(Id.L l, ys, zs) when List.mem l inl ->
-	  (Ans(CallDir(Id.L l,
-		       (List.map (fun y -> find y Type.Int regenv) ys),
-	               (List.map (fun z -> find z Type.Float regenv) zs))),
-	   regenv, graph)
       | CallDir(Id.L l, ys, zs) ->
 	  g'_call dest cont regenv graph (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
       | _ -> assert false
