@@ -2,6 +2,16 @@
 open Util
 open Asm
 
+let header =
+  [Exec(NOP);
+   AssignInt(Reg.frame, Int(0x1fffff));
+   AssignInt(Reg.heap_pointer, Int(0))]
+
+let before_asm =
+  [Exec(CALL (Id.L "main"));
+   Exec(HALT);
+   Label(Id.L "asm_here")]
+
 let convert_exp = function
   | RegisterAllocation.Mov(r)             -> ADD(Reg.int_zero, r)
   | RegisterAllocation.Add(a, b)          -> ADD(a, b)
@@ -50,4 +60,4 @@ let convert_function (name, code) =
   Label(name) :: concat_map convert_instruction code
 
 let convert { MemoryAllocation.functions = funs; MemoryAllocation.initialize_code = code } =
-  concat_map convert_instruction code @ concat_map convert_function funs
+  header @ concat_map convert_instruction code @ before_asm @ concat_map convert_function funs
