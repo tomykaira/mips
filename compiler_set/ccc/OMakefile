@@ -26,8 +26,8 @@ clean:
 
 .BUILD_SUCCESS:
 	@git add -u || true
-	@printf "Success\n\n%s" "`git diff --cached`" | git commit -F - || true
+	(printf "Success\n\n%s"; git diff --cached) | git commit -F - || true
 
 .BUILD_FAILURE:
-	@git add -u
-	@printf "Failure\n\n%s" "`git diff --cached`" | git commit -F -
+	@git add -u || true
+	(printf "Success\n\n%s"; git diff --cached) | git commit -F - || true
