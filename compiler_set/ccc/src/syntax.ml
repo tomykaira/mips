@@ -89,7 +89,7 @@ let parameter_id = function
 
 let parameter_type = function
   | Parameter(typ, _) -> convert_syntactic_type typ
-  | PointerParameter(typ, _) -> Type.Pointer(convert_syntactic_type typ)
+  | PointerParameter(typ, _) -> Type.Array(convert_syntactic_type typ)
 
 type function_signature = { name: Id.l; return_type: type_class; parameters: parameter list }
     deriving (Show)

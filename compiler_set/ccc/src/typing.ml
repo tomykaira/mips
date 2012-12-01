@@ -162,9 +162,28 @@ let check_top ({variables = vs; functions = fs} as env) t =
       add_function_type signature
     | GlobalVariable(var) ->
       { env with variables = M.add_pair (binding var) vs }
-    | Array({id = id; content_type = typ; _}) ->
-      { env with variables = M.add id (Type.Array (convert_syntactic_type typ)) vs }
+
+    (* TODO: limit array label to `A *)
+    | Array({id = Id.A id; content_type = typ; _}) ->
+      (* There are both Id.A and Id.V before alpha-transformation *)
+      let array_label = (Id.A id,  (Type.Array (convert_syntactic_type typ))) in
+      let variable_label = (Id.V id,  (Type.Array (convert_syntactic_type typ))) in
+      { env with variables = M.add_list [array_label; variable_label] vs }
 
 let check ts =
-  ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);
-  ts
+  try
+    ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);
+    ts
+  with
+    | Unify(t1, t2) ->
+      failwith (Printf.sprintf "Failed to unify types %s %s" (Show.show<Type.t> t1) (Show.show<Type.t> t2))
+    | UndefinedVariable(v) ->
+      failwith (Printf.sprintf "Undefined variable %s" (Show.show<Id.v> v))
+    | UndefinedFunction(l) ->
+      failwith (Printf.sprintf "Undefined function %s" (Show.show<Id.l> l))
+    | NotFunction(exp, _) ->
+      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Syntax.exp> exp))
+    | NotPrimitive(exp) ->
+      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Syntax.exp> exp))
+    | NotArray(v) ->
+      failwith (Printf.sprintf "Array expected, but not an array: %s" (Show.show<Id.v> v))
