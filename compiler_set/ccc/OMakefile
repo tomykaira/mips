@@ -1,0 +1,33 @@
+.PHONY: all clean check
+
+USE_OCAMLFIND = true
+OCAML_FLAGS=-w A -warn-error A
+
+OCAMLPACKS[] =
+	deriving
+	num
+	batteries
+
+if $(not $(OCAMLFIND_EXISTS))
+   eprintln(This project requires ocamlfind, but is was not found.)
+   eprintln(You need to install ocamlfind and run "omake --configure".)
+   exit 1
+
+NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
+BYTE_ENABLED = $(not $(OCAMLOPT_EXISTS))
+
+OCAMLPPFLAGS  += -pp 'deriving'
+OCAMLDEPFLAGS += $(OCAMLPPFLAGS)
+
+.SUBDIRS: src test
+
+clean:
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc
+
+.BUILD_SUCCESS:
+	@git add -u || true
+	(printf "Success\n\n%s"; git diff --cached) | git commit -F - || true
+
+.BUILD_FAILURE:
+	@git add -u || true
+	(printf "Success\n\n%s"; git diff --cached) | git commit -F - || true
