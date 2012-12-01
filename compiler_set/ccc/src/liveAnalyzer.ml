@@ -49,15 +49,12 @@ let successors (E(_, inst)) = match inst with
 exception LabelNotFound of Id.l
 exception NoSuccessor of Id.l
 
-let find_labeled context label =
-  let list_matcher = function
+let find_label context label =
+  let label_matcher = function
     | E(_, Label(l)) when l = label -> true
     | _ -> false
   in
-  match BatList.drop_while list_matcher context with
-    | [] -> raise(LabelNotFound(label))
-    | l :: [] -> raise(NoSuccessor(label))
-    | l :: next :: _ -> next
+  List.find label_matcher context
 
 let rec live_instruction inst (env, next, context) =
   let find_or_empty inst =
@@ -73,7 +70,7 @@ let rec live_instruction inst (env, next, context) =
   in
   let find_successor = function
     | Next   -> next
-    | Jump l -> Some(find_labeled context l)
+    | Jump l -> Some(find_label context l)
   in
   let live = (S.unions $ List.map (for_instruction $ find_successor) $ successors) inst in
   (LiveMap.add inst live env, Some(inst), context)
