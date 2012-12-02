@@ -8,6 +8,21 @@ type v = V of string                    (* variable *)
 type l = L of string                    (* label for GOTO *)
     deriving (Show)
 
+module TStruct = struct
+  type t = string
+  let compare = compare
+end
+
+module VStruct = struct
+  type t = v
+  let compare = compare
+end
+
+module LStruct = struct
+  type t = l
+  let compare = compare
+end
+
 let counter = ref 0
 let unique s =
   incr counter;

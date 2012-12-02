@@ -8,4 +8,10 @@ module Make(Ord:Set.OrderedType) = struct
     | Some(i) -> singleton i
     | None -> empty
   let unions = List.fold_left union empty
+
+  let pop s =
+    let item = choose s in
+    (item, remove item s)
+
+  let not_empty = Util.(not $ is_empty)
 end

@@ -2,11 +2,13 @@
 
 FILES[] =
 	id
+	extendedSet
+	extendedMap
+	entity
 	syntax
 	lexer
 	parser
 	main
-	m
 	type
 	typing
 	util
@@ -21,7 +23,6 @@ FILES[] =
 	memoryAllocation
 	generateAsm
 	macroExpand
-	extendedSet
 
 LIB = ccc
 PROGRAM = main

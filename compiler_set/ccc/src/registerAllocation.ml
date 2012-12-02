@@ -1,38 +1,17 @@
+open LiveAnalyzer
 open Util
-
-module S = ExtendedSet.Make
-  (struct
-    type t = Id.t
-    let compare = compare
-   end)
-
 module Heap = HeapAllocation
-
-type exp =
-  | Mov            of Reg.i
-  | Const          of Syntax.const_value
-  | And            of Reg.i * Reg.i
-  | Or             of Reg.i * Reg.i
-  | Add            of Reg.i * Reg.i
-  | Sub            of Reg.i * Reg.i
-  | Negate         of Reg.i
-  | LoadHeap       of Reg.i
-  | LoadHeapImm    of int
-    deriving (Show)
 
 type call_context = { to_save: (Reg.i * Id.t) list; to_restore: (Reg.i * Id.t) list }
     deriving (Show)
 
-type argument = Reg of Reg.i | Pointer of Id.t
-    deriving (Show)
-
 type instruction =
-  | Assignment  of Reg.i * exp
+  | Assignment  of Reg.i * Reg.i Heap.exp
   | BranchZero  of Reg.i * Id.l
   | BranchEqual of Reg.i * Reg.i * Id.l
   | BranchLT    of Reg.i * Reg.i * Id.l
-  | Call        of Id.l * argument list * call_context
-  | CallAndSet  of Reg.i * Id.l * argument list * call_context
+  | Call        of Id.l * Reg.i list * call_context
+  | CallAndSet  of Reg.i * Id.l * Reg.i list * call_context
   | Spill       of Reg.i * Id.t
   | Restore     of Reg.i * Id.t
   | Label       of Id.l
@@ -41,169 +20,333 @@ type instruction =
   | ArraySet    of Id.t * Reg.i * Reg.i
     deriving (Show)
 
-type t =
-  | Function of Id.l * instruction list
-  | GlobalVariable of Syntax.variable
-  | Array of Syntax.array_signature
-    deriving (Show)
+type t = { functions : (Syntax.function_signature * instruction list) list;
+           initialize_code : instruction list }
+      deriving (Show)
 
-let rev_assoc value xs =
-  try
-    fst (List.find (fun (k, v) -> v = value) xs)
-  with
-      Not_found ->
-        failwith (Printf.sprintf "%s is not found in allocation list %s"
-                    (Show.show<Id.t> value) (Show.show<(Reg.i * Id.t) list> xs))
 
-let spilled_arguments spilled allocation inst =
-  let use = LiveAnalyzer.use_instruction inst in
-  let allocated = List.map snd allocation in
-  S.elements (S.inter spilled (S.diff (S.of_list use) (S.of_list allocated)))
+(* local types *)
 
-let is_allocated alloc id =
-  List.exists (fun (_, v) -> id = v) alloc
+module M = ExtendedMap.Make (Id.TStruct)
 
-let new_assignment usage inst =
-  match LiveAnalyzer.def_instruction inst with
-    | None -> []
-    | Some(id) ->
-      if is_allocated usage id then
-        []
-      else
-        [id]
+module S = ExtendedSet.Make (Id.TStruct)
 
-let spill_LRU usage count =
-  let to_spill = BatList.take count (List.rev usage) in
-  (List.map fst to_spill, to_spill)
+module RegS = Reg.RegS
 
-let using_registers live usage =
-  let live_usage = List.filter (fun (reg, var) -> S.exists ((=) var) live) usage in
-  List.map fst live_usage
+module MoveS = ExtendedSet.Make
+  (struct
+    type t = (Id.t * Id.t)
+    let compare = compare
+   end)
 
-let allocate live usage to_allocate =
-  let not_used = Reg.rest (using_registers live usage) in
-  let available = List.length not_used in
-  let required = List.length to_allocate in
-  if available >= required then
-    (zip not_used to_allocate, [])
+
+
+type register_allocation = (Id.t * Reg.i) list
+
+let precolored         = ref []         (* variables, preassigned a register *)
+let simplify_worklist  = ref S.empty    (* list of low-degree non-move-related nodes *)
+let freeze_worklist    = ref S.empty    (* low-degree move-related nodes *)
+let spill_worklist     = ref S.empty    (* high-degree nodes *)
+let spilled_nodes      = ref S.empty    (* nodes marked for spilling during this round *)
+let coalesced_map      = ref []         (* coalesced variables, (u, v) means v should be replaced with u *)
+let move_list          = ref M.empty    (* list of moves *)
+let interference_edges = ref []         (* interference graph represented by list of edges *)
+let select_stack       = ref []         (* stack containing removed variables *)
+let worklist_moves     = ref MoveS.empty (* moves currently working on *)
+let active_moves       = ref MoveS.empty
+let frozen_moves       = ref MoveS.empty
+
+let reset _ =
+  precolored         := [];
+  simplify_worklist  := S.empty;
+  freeze_worklist    := S.empty;
+  spill_worklist     := S.empty;
+  spilled_nodes      := S.empty;
+  coalesced_map      := [];
+  move_list          := M.empty;
+  interference_edges := [];
+  select_stack       := [];
+  active_moves       := MoveS.empty;
+  worklist_moves     := MoveS.empty;
+  frozen_moves       := MoveS.empty
+
+
+let add_move node move =
+  let to_add = if M.mem node !move_list then
+      MoveS.add move (M.find node !move_list)
+    else
+      MoveS.singleton move
+  in
+  move_list := M.add node to_add !move_list
+
+let register_move = function
+  | Entity.E(_, Heap.Assignment(to_node, Heap.Mov(from_node))) as inst ->
+    let move = (to_node, from_node) in
+    worklist_moves := MoveS.add move !worklist_moves;
+    List.iter (fun id -> add_move id move) (use_instruction inst @ option_to_list (def_instruction inst))
+  | _ -> ()
+
+let add_edge u v =
+  if u != v && not (List.mem (u, v) !interference_edges) then
+    interference_edges := (u, v) :: (v, u) :: !interference_edges
   else
-    let (freed, to_spill) = spill_LRU usage (required - available) in
-    (zip (not_used @ freed) to_allocate, to_spill)
+    ()
 
-let restore_instruction allocation id =
-  let reg = rev_assoc id allocation in
-  Restore(reg, id)
-
-let spill_instruction (reg, id) =
-  Spill(reg, id)
-
-let replace_exp allocation exp =
-  let r v = rev_assoc v allocation in
-  match exp with
-    | Heap.Mov(v)                -> Mov(r v)
-    | Heap.Const(const)          -> Const(const)
-    | Heap.And(id1, id2)         -> And(r id1, r id2)
-    | Heap.Or(id1, id2)          -> Or(r id1, r id2)
-    | Heap.Add(id1, id2)         -> Add(r id1, r id2)
-    | Heap.Sub(id1, id2)         -> Sub(r id1, r id2)
-    | Heap.Negate(id)            -> Negate(r id)
-    | Heap.LoadHeap(id)          -> LoadHeap(r id)
-    | Heap.LoadHeapImm(offset)   -> LoadHeapImm(offset)
-
-let replace allocation call_context (Heap.E(_, inst)) =
-  let reg_of v = rev_assoc v allocation in
-  let regs_of = List.map reg_of in
-  let remove_assignee ({ to_save = s; to_restore = r}) id =
-    let remove = List.filter (fun (_, i) -> id != i) in
-    { to_save = remove s; to_restore = remove r}
+let construct_graph live inst =
+  let live_here = match inst with
+    | Entity.E(_, Heap.Assignment(_, Heap.Mov(_))) ->
+      S.diff (LiveMap.find inst live) (S.of_list (use_instruction inst))
+    | inst ->
+      LiveMap.find inst live
   in
-  match inst with
-  | Heap.Assignment(id, exp) ->
-    [Assignment(reg_of id, replace_exp allocation exp)]
+  List.iter (fun d ->
+    S.iter (fun l ->
+      add_edge l d) live_here) (option_to_list (def_instruction inst))
 
-  | Heap.Call(l, args) ->
-    [Call(l, regs_of args, call_context)]
+let setup_for_function live insts =
+  worklist_moves := MoveS.empty;
+  interference_edges := [];
+  move_list := M.empty;
+  List.iter (fun inst -> construct_graph live inst; register_move inst) insts
 
-  | Heap.CallAndSet(id, l, args) ->
-    [CallAndSet(reg_of id, l, regs_of args, remove_assignee call_context id)]
 
-  | Heap.Definition(Heap.Variable(id, typ, init)) ->
-    [Assignment(reg_of id, Const(init))]
 
-  | Heap.BranchZero(id, l) ->
-    [BranchZero(reg_of id, l)]
+let adjacent_nodes v =
+  let nodes = List.map snd (List.filter (fun (self, other) -> v = self) !interference_edges) in
+  S.diff (S.of_list nodes) (S.union (S.of_list !select_stack) (S.of_list (List.map snd !coalesced_map)))
 
-  | Heap.BranchEqual(id1, id2, l) ->
-    [BranchEqual(reg_of id1, reg_of id2, l)]
+let is_significant node =
+  S.cardinal (adjacent_nodes node) < Reg.available_count
 
-  | Heap.BranchLT(id1, id2, l) ->
-    [BranchLT(reg_of id1, reg_of id2, l)]
+(* just moved significant to not-significant *)
+let just_not_significant node =
+  S.cardinal (adjacent_nodes node) = Reg.available_count - 1
 
-  | Heap.Return(id) ->
-    let reg = rev_assoc id allocation in
-    [Return; Assignment(Reg.ret, Mov(reg))]
+let node_moves v =
+  try
+    MoveS.inter (M.find v !move_list) (MoveS.union !active_moves !worklist_moves)
+  with
+    | Not_found -> MoveS.empty
 
-  | Heap.ArraySet(id, index, value) ->
-    [ArraySet(id, reg_of index, reg_of value)]
+let move_related v =
+  not (MoveS.is_empty (node_moves v))
 
-  | Heap.Label(l) -> [Label(l)]
-  | Heap.Goto(l) -> [Goto(l)]
-  | Heap.ReturnVoid -> [Return]
+let make_worklist not_colored_nodes =
+  let for_each_node v =
+    if is_significant v then
+      spill_worklist := S.add v !spill_worklist
+    else if move_related v then
+      freeze_worklist := S.add v !freeze_worklist
+    else
+      simplify_worklist := S.add v !simplify_worklist
+  in
+  spill_worklist    := S.empty;
+  freeze_worklist   := S.empty;
+  simplify_worklist := S.empty;
+  S.iter for_each_node not_colored_nodes
 
-type replacement_context = {live : S.t LiveAnalyzer.LiveMap.t; usage : (Reg.i * Id.t) list; spilled : S.t}
 
-let update_usage usage live =
-  List.filter (fun (_, id) -> S.mem id live) usage
+let push_select_stack node =
+  select_stack := node :: !select_stack
 
-let replace_variables ({live = live; usage = usage; spilled = spilled}, new_insts) inst =
-  let to_restore               = spilled_arguments spilled usage inst in
-  let to_assign                = new_assignment usage inst in
+let enable_moves node_set =
+  let update_moves move =
+    if MoveS.mem move !active_moves then begin
+      active_moves := MoveS.remove move !active_moves;
+      worklist_moves := MoveS.add move !worklist_moves
+    end else
+      ()
+  in
+  S.iter (fun node -> MoveS.iter update_moves (node_moves node)) node_set
 
-  print_endline (Show.show<Id.t list> to_restore);
-  print_endline (Show.show<Id.t list> to_assign);
+let remove_edges node =
+  let (updated, removed) = List.partition (fun (u, v) -> u != node && v != node) !interference_edges in
+  interference_edges := updated;
+  let neighbors = List.map (fun (u, v) -> if u = node then v else u) removed in
+  (* corresponds to DecrementDegree *)
+  let update_worklist node =
+    if just_not_significant node then begin
+      enable_moves (S.add node (adjacent_nodes node));
+      spill_worklist := S.remove node !spill_worklist;
+      if move_related node then
+        freeze_worklist := S.add node !freeze_worklist
+      else
+        simplify_worklist := S.add node !simplify_worklist
+    end else ()
+  in
+  List.iter update_worklist neighbors
 
-  let this_living              = LiveAnalyzer.LiveMap.find inst live in
-  let (new_alloc, to_spill)    = allocate this_living usage (to_assign @ to_restore) in
-  let new_usage                = update_usage (new_alloc @ usage) this_living in
+let simplify () =
+  let (node, new_worklist) = S.pop !simplify_worklist in
+  simplify_worklist := new_worklist;
+  push_select_stack node;
+  remove_edges node
 
-  print_endline (Show.show<Id.t list> (S.elements this_living));
-  print_endline (Show.show<(Reg.i * Id.t) list> (new_alloc @ usage));
+let precolored_nodes () =
+  S.of_list (List.map (fun (n, r) -> n) !precolored)
 
-  (* registers to be saved and restored *)
-  let call_context =
-    let inter usage new_usage =
-      List.filter (fun (reg, id) -> List.exists (fun (r, i) -> i = id) usage) new_usage
+let is_precolored node =
+  List.exists (fun (n, r) -> n = node) !precolored
+
+let prepare_simplify node =
+  if not (is_precolored node) && not (move_related node) && not (is_significant node) then begin
+    freeze_worklist := S.remove node !freeze_worklist;
+    simplify_worklist := S.add node !simplify_worklist
+  end else
+    ()
+
+let is_coalescable_conservative nodes =
+  S.cardinal (S.filter is_significant nodes) < Reg.available_count
+
+let resolve_alias node =
+  try
+    rev_assoc node !coalesced_map
+  with
+    | Not_found -> node
+
+let combine (u, v) =
+  freeze_worklist := S.remove v !freeze_worklist;
+  spill_worklist := S.remove v !spill_worklist;
+  coalesced_map := (u, v) :: !coalesced_map;
+  S.iter (add_edge u) (adjacent_nodes v);
+  remove_edges v;
+  if is_significant u && S.mem u !freeze_worklist then begin
+    freeze_worklist := S.remove u !freeze_worklist;
+    spill_worklist := S.add u !spill_worklist
+  end else
+    ()
+
+let is_adjacent (u, v) =
+  List.mem (u, v) !interference_edges
+
+let coalesce () =
+  let ((x, y), new_worklist) = MoveS.pop !worklist_moves in
+  let (x, y) = (resolve_alias x, resolve_alias y) in
+  let (u, v) = if is_precolored y then (y, x) else (x, y) in
+  worklist_moves := new_worklist;
+  if u = v then begin
+    prepare_simplify u
+  end else if is_precolored v || is_adjacent (u, v) then begin
+    prepare_simplify u;
+    prepare_simplify v;
+  (* in my data structure, no need to use different algorithm for precolored *)
+  end else if is_coalescable_conservative (S.union (adjacent_nodes u) (adjacent_nodes v)) then begin
+        combine (u, v);
+        prepare_simplify u
+      end else
+      active_moves := MoveS.add (x, y) !active_moves
+
+
+let freeze_moves node =
+  let inner ((x, y) as move) =
+    active_moves := MoveS.remove move !active_moves;
+    frozen_moves := MoveS.add move !frozen_moves;
+    let other_node =
+      if resolve_alias y = resolve_alias node then
+        resolve_alias x
+      else
+        resolve_alias y
     in
-    let f u = concat_map (fun var -> List.find_all (fun (_, v) -> v = var) u) (S.elements this_living) in
-    { to_save = f usage; to_restore = f (inter usage new_usage) } (* restore variables stored, and used afterward *)
+    if MoveS.is_empty (node_moves other_node) && not (is_significant other_node) then begin
+      freeze_worklist := S.remove other_node !freeze_worklist;
+      simplify_worklist := S.add other_node !simplify_worklist
+    end else
+      ()
   in
+  (List.iter inner $ MoveS.elements $ node_moves) node
 
-  (* newly allocated registers are available, and registers die here are still allocated *)
-  let new_inst                 = replace (new_alloc @ usage) call_context inst in
-  let spill_insts              = List.map spill_instruction to_spill in
-  let restore_insts            = List.map (restore_instruction new_alloc) to_restore in
+let freeze () =
+  let (node, new_worklist) = S.pop !freeze_worklist in
+  freeze_worklist := new_worklist;
+  simplify_worklist := S.add node !simplify_worklist;
+  freeze_moves node
 
-  let spilled_vars             = S.of_list (List.map snd to_spill) in
 
-  Printf.printf "%s\t%s\t%s\n" (Show.show<instruction list> new_inst)
-    (Show.show<(Reg.i * Id.t) list> usage)
-    (Show.show<(Reg.i * Id.t) list> new_usage);
-  ({live = live;
-    usage = new_usage;
-    spilled = S.union spilled_vars spilled},
-   new_inst @ restore_insts @ spill_insts @ new_insts)
 
-(* Initialize context with function parameters *)
-let initialize f params heap_variables =
-  let usage = Reg.assign_params (List.map Syntax.parameter_id params) in
-  { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.of_list heap_variables }
+let select_spill () =
+  (* TODO: better spill selection algorithm *)
+  let (node, new_worklist) = S.pop !spill_worklist in
+  spill_worklist := new_worklist;
+  simplify_worklist := S.add node !simplify_worklist;
+  freeze_moves node
 
-let convert_function (({Syntax.name = name; Syntax.parameters = params; _}, insts) as f) =
-  let env = initialize f params heap_variables in
-  let insts = snd (List.fold_left replace_variables (env, []) insts) in
-  (Function(name, List.rev insts) :: result, heap_variables)
+let assign_colors () =
+  (* It must be from top to bottom *)
+  let colored_nodes = ref [] in
+  let color_node _ node =
+    let available = ref Reg.available_registers in
+    let remove_filled node =
+      let actual = resolve_alias node in
+      try
+        let (var, reg) = List.find (fun (v, r) -> v = actual) (!colored_nodes @ !precolored) in
+        available := RegS.remove reg !available
+      with
+        | Not_found -> ()
+    in
+    S.iter remove_filled (adjacent_nodes node);
+    if RegS.is_empty !available then
+      spilled_nodes := S.add node !spilled_nodes
+    else begin
+      let (reg, _) = RegS.pop !available in
+      colored_nodes := (node, reg) :: !colored_nodes
+    end
+  in
+  List.fold_left color_node () !select_stack;
+  !colored_nodes
+(* TODO: color coalesced nodes *)
 
-let convert ({Heap.functions = funs; Heap.initialize_code = init} as top) =
-  let result = List.map convert_function in
-  print_endline (Show.show<t list> result);
-  { functions = result; initialize_code = init }
+let rewrite_program _ _ =
+  failwith "Oh sorry, you cannot retry."
+
+let replace_registers colored_nodes insts =
+  failwith "Oh sorry, you cannot retry."
+
+let rec retry insts =
+  color_variables (rewrite_program !spilled_nodes insts)
+and color_variables insts =
+  reset ();
+  let other_nodes = S.diff (extract_nodes insts) (precolored_nodes ()) in
+  setup_for_function (live_t insts) insts;
+  make_worklist other_nodes;
+  while S.is_empty !simplify_worklist && MoveS.is_empty !worklist_moves &&
+    S.is_empty !freeze_worklist && S.is_empty !spill_worklist do
+    if S.not_empty !simplify_worklist then
+      simplify ()
+    else if MoveS.not_empty !worklist_moves then
+      coalesce ()
+    else if S.not_empty !freeze_worklist then
+      freeze ()
+    else if S.not_empty !spill_worklist then
+      select_spill ()
+    else
+      ()
+  done;
+  let colored_nodes = assign_colors () in
+  if S.is_empty !spilled_nodes then
+    replace_registers colored_nodes insts
+  else
+    retry insts
+
+let insert_precolored_to_return insts =
+  let replace inst (accumulate, pairs) = match inst with
+    | Heap.Return (t) ->
+      let id = Id.unique "return" in
+      (Heap.Assignment(id, Heap.Mov(t)) :: Heap.Return(id) :: accumulate,
+       (id, Reg.ret) :: pairs)
+    | inst ->
+      (inst :: accumulate, pairs)
+  in
+  List.fold_right replace insts ([], [])
+
+let get_abi_constraint { Syntax.parameters = params; _ } : (Id.t * Reg.i) list =
+  Reg.assign_params (List.map (Id.raw $ Syntax.parameter_id) params)
+
+let convert_function (signature, insts) =
+  let (insts, return_precoloring) = insert_precolored_to_return insts in
+  let parameter_precoloring = get_abi_constraint signature in
+  precolored := parameter_precoloring @ return_precoloring;
+  let identified_insts = Entity.identify insts in
+  color_variables identified_insts
+
+let convert { Heap.functions = funs; Heap.initialize_code = init } =
+  { functions = List.map convert_function funs; initialize_code = init }

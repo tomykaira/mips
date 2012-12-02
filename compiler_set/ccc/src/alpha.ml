@@ -2,6 +2,8 @@
 open Syntax
 open Util
 
+module M = ExtendedMap.Make (Id.VStruct)
+
 let rename_variable env (Variable(name, typ, const)) =
   let new_name = Id.unique (Id.raw name) in
   (M.add name (Id.V new_name) env, Variable((Id.V new_name), typ, const))

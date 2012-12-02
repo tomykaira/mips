@@ -8,14 +8,10 @@ exception NotFunction of Syntax.exp * Type.t
 exception NotPrimitive of Syntax.exp
 exception NotArray of Id.v
 
-module FunTypeMap =
-  Map.Make
-    (struct
-      type t = Id.l
-      let compare = compare
-     end)
+module FunM = ExtendedMap.Make (Id.LStruct)
+module M = ExtendedMap.Make (Id.VStruct)
 
-type environment = { variables: Type.t M.t; functions: Type.fun_type FunTypeMap.t }
+type environment = { variables: Type.t M.t; functions: Type.fun_type FunM.t }
 
 let extract_bodies t =
   let body = function
@@ -46,8 +42,8 @@ let rec get_exp_type env exp =
   in
   let find_function f =
     let { functions = fs; _ } = env in
-    if FunTypeMap.mem f fs then
-      Some(FunTypeMap.find f fs)
+    if FunM.mem f fs then
+      Some(FunM.find f fs)
     else
       None
   in
@@ -146,7 +142,7 @@ let check_top ({variables = vs; functions = fs} as env) t =
     let return_type = convert_syntactic_type return_type in
     let fun_typ = Type.Fun (return_type,
                             List.map parameter_type params) in
-    { env with functions = FunTypeMap.add label fun_typ fs }
+    { env with functions = FunM.add label fun_typ fs }
   in
   let add_parameters { variables = vs; functions = fs } params =
     let param_binds = List.map (fun p -> (parameter_id p, parameter_type p)) params in
@@ -172,7 +168,7 @@ let check_top ({variables = vs; functions = fs} as env) t =
 
 let check ts =
   try
-    ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);
+    ignore (List.fold_left (check_top) {variables = M.empty; functions = FunM.empty} ts);
     ts
   with
     | Unify(t1, t2) ->

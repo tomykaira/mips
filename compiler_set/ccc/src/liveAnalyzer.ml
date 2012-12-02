@@ -1,4 +1,5 @@
 open HeapAllocation
+open Entity
 open Util
 
 (* Live variable analysis, per function *)
@@ -6,15 +7,11 @@ open Util
 module LiveMap =
   Map.Make
     (struct
-      type t = HeapAllocation.instruction_entity
+      type t = HeapAllocation.instruction Entity.entity
       let compare = compare
      end)
 
-module S = ExtendedSet.Make
-  (struct
-    type t = Id.t
-    let compare = compare
-   end)
+module S = ExtendedSet.Make(Id.TStruct)
 
 let calculate_next live def use =
   S.union (S.diff live (S.of_option def)) (S.of_list use)
@@ -89,9 +86,12 @@ let live_t instructions =
   let rec loop last_env =
     let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
     if unpack env = unpack last_env then
-      (print_endline (Show.show<(HeapAllocation.instruction_entity * Id.t list) list> (unpack env));
+      (print_endline (Show.show<(instruction entity * Id.t list) list> (unpack env));
        last_env)
     else
       loop env
   in
   loop LiveMap.empty
+
+let extract_nodes insts =
+  S.of_list (concat_map use_instruction insts @ concat_option (List.map def_instruction insts))

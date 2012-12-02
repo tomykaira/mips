@@ -1,14 +1,14 @@
 open Util
 
-type exp =
-  | Mov            of Id.t
+type 'a exp =
+  | Mov            of 'a
   | Const          of Syntax.const_value
-  | And            of Id.t * Id.t
-  | Or             of Id.t * Id.t
-  | Add            of Id.t * Id.t
-  | Sub            of Id.t * Id.t
-  | Negate         of Id.t
-  | LoadHeap       of Id.t
+  | And            of 'a * 'a
+  | Or             of 'a * 'a
+  | Add            of 'a * 'a
+  | Sub            of 'a * 'a
+  | Negate         of 'a
+  | LoadHeap       of 'a
   | LoadHeapImm    of int
     deriving (Show)
 
@@ -18,7 +18,7 @@ type variable =
 
 type instruction =
   | Label        of Id.l
-  | Assignment   of Id.t * exp
+  | Assignment   of Id.t * Id.t exp
   | CallAndSet   of Id.t * Id.l * Id.t list      (* with variable binding *)
   | Call         of Id.l * Id.t list      (* just calling *)
   | Definition   of variable
@@ -32,25 +32,20 @@ type instruction =
   | StoreHeapImm of Id.t * int
     deriving (Show)
 
-type id = int
-      deriving (Show)
-
-type instruction_entity =
-  | E of id * instruction
-      deriving (Show)
-
-type t = { functions : (Syntax.function_signature * instruction_entity list) list;
-           initialize_code : instruction_entity list }
+type t = { functions : (Syntax.function_signature * instruction list) list;
+           initialize_code : instruction list }
       deriving (Show)
 
 (* local types *)
+
+module M = ExtendedMap.Make (Id.VStruct)
 
 (* memory management *)
 type memory_area = { mutable allocation : int M.t; mutable size : int }
 let heap = { allocation = M.empty; size = 0 }
 
 (* return from convert_exp *)
-type converted_exp = Exp of exp | Insts of instruction list * exp
+type converted_exp = Exp of Id.t exp | Insts of instruction list * Id.t exp
 
 let find_heap var =
   try
@@ -180,10 +175,6 @@ let convert_instruction = function
 
 let temp_name = Id.unique "pointer"
 
-let id_counter = ref 0
-let identify insts =
-  List.map (fun i -> id_counter := !id_counter + 1; E(!id_counter, i)) insts
-
 let assign_global { functions = funs; initialize_code = code } t =
   let assign_and_save value location =
     [Assignment(temp_name, Const(value));
@@ -194,18 +185,18 @@ let assign_global { functions = funs; initialize_code = code } t =
   in
   match t with
     | Flow.Function(signature, insts) ->
-      let new_insts = identify (concat_map convert_instruction insts) in
+      let new_insts = concat_map convert_instruction insts in
       { functions = funs @ [(signature, new_insts)]; initialize_code = code }
     | Flow.GlobalVariable(Syntax.Variable(id, typ, initial)) ->
       let top = heap.size in
       heap.size <- heap.size + 1;
       heap.allocation <- M.add id top heap.allocation;
-      { functions = funs; initialize_code = code @ identify (assign_and_save initial top) }
+      { functions = funs; initialize_code = code @ assign_and_save initial top }
     | Flow.Array({ Syntax.id = id; Syntax.size = size; _ }) ->
       let top = heap.size in
       heap.size <- heap.size + size;
       heap.allocation <- M.add id top heap.allocation;
-      { functions = funs; initialize_code = code @ identify (push_zeros top size) }
+      { functions = funs; initialize_code = code @ push_zeros top size }
 
 let convert ts =
   let result = List.fold_left assign_global { functions = []; initialize_code = []} ts in
