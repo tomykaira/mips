@@ -1,4 +1,4 @@
-open Flow
+open HeapAllocation
 open Util
 
 (* Live variable analysis, per function *)
@@ -6,20 +6,23 @@ open Util
 module LiveMap =
   Map.Make
     (struct
-      type t = Flow.instruction_entity
+      type t = HeapAllocation.instruction_entity
       let compare = compare
      end)
+
+module S = ExtendedSet.Make
+  (struct
+    type t = Id.t
+    let compare = compare
+   end)
 
 let calculate_next live def use =
   S.union (S.diff live (S.of_option def)) (S.of_list use)
 
 let use_exp = function
-  | Mov(i) -> [i]
-  | And(id1, id2) | Or(id1, id2)
-  | Add(id1, id2) | Sub(id1, id2)
-  | ArrayGet(id1, id2) -> [id1; id2]
-  | Negate(id1) -> [id1]
-  | Const(_) -> []
+  | Mov(i) | LoadHeap(i) | Negate(i) -> [i]
+  | And(id1, id2) | Or(id1, id2) | Add(id1, id2) | Sub(id1, id2) -> [id1; id2]
+  | LoadHeapImm(_) | Const(_) -> []
 
 let use_instruction (E(_, inst)) = match inst with
   | Assignment(id, exp) ->
@@ -29,12 +32,13 @@ let use_instruction (E(_, inst)) = match inst with
   | BranchZero(id, _) -> [id]
   | BranchEqual(id1, id2, _) | BranchLT(id1, id2, _) -> [id1; id2]
   | Return(id) -> [id]
-  | ArraySet(id1, id2, id3) -> [id1; id2; id3]
+  | StoreHeap(id1, id2) -> [id1; id2]
+  | StoreHeapImm(id1, _) -> [id1]
   | _ -> []
 
 let def_instruction (E(_, inst)) = match inst with
   | Assignment(id, _) -> Some(id)
-  | Definition(Syntax.Variable(id, _, _)) -> Some(id)
+  | Definition(Variable(id, _, _)) -> Some(id)
   | CallAndSet(id, _, _) -> Some(id)
   | _ -> None
 
@@ -77,20 +81,17 @@ let rec live_instruction inst (env, next, context) =
   let live = (S.unions $ List.map (for_instruction $ find_successor) $ successors) inst in
   (LiveMap.add inst live env, Some(inst), context)
 
-let live_t = function
-  | Function(_, instructions) ->
+let live_t instructions =
     (* to compare data structure *)
-    let unpack env =
-      (List.map (fun (x, y) -> (x, S.elements y))(LiveMap.bindings env))
-    in
-    let rec loop last_env =
-      let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
-      if unpack env = unpack last_env then
-        (print_endline (Show.show<(Flow.instruction_entity * Id.v list) list> (unpack env));
-        last_env)
-      else
-        loop env
-    in
-    loop LiveMap.empty
-  | GlobalVariable(v) -> LiveMap.empty
-  | Array(v) -> LiveMap.empty
+  let unpack env =
+    (List.map (fun (x, y) -> (x, S.elements y))(LiveMap.bindings env))
+  in
+  let rec loop last_env =
+    let (env, _, _) = List.fold_right live_instruction instructions (last_env, None, instructions) in
+    if unpack env = unpack last_env then
+      (print_endline (Show.show<(HeapAllocation.instruction_entity * Id.t list) list> (unpack env));
+       last_env)
+    else
+      loop env
+  in
+  loop LiveMap.empty

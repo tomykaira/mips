@@ -1,5 +1,13 @@
 open Util
 
+module S = ExtendedSet.Make
+  (struct
+    type t = Id.t
+    let compare = compare
+   end)
+
+module Heap = HeapAllocation
+
 type exp =
   | Mov            of Reg.i
   | Const          of Syntax.const_value
@@ -8,13 +16,14 @@ type exp =
   | Add            of Reg.i * Reg.i
   | Sub            of Reg.i * Reg.i
   | Negate         of Reg.i
-  | ArrayGet       of Id.v * Reg.i      (* TODO: force array by types *)
+  | LoadHeap       of Reg.i
+  | LoadHeapImm    of int
     deriving (Show)
 
-type call_context = { to_save: (Reg.i * Id.v) list; to_restore: (Reg.i * Id.v) list }
+type call_context = { to_save: (Reg.i * Id.t) list; to_restore: (Reg.i * Id.t) list }
     deriving (Show)
 
-type argument = Reg of Reg.i | Pointer of Id.v
+type argument = Reg of Reg.i | Pointer of Id.t
     deriving (Show)
 
 type instruction =
@@ -24,12 +33,12 @@ type instruction =
   | BranchLT    of Reg.i * Reg.i * Id.l
   | Call        of Id.l * argument list * call_context
   | CallAndSet  of Reg.i * Id.l * argument list * call_context
-  | Spill       of Reg.i * Id.v
-  | Restore     of Reg.i * Id.v
+  | Spill       of Reg.i * Id.t
+  | Restore     of Reg.i * Id.t
   | Label       of Id.l
   | Return
   | Goto        of Id.l
-  | ArraySet    of Id.v * Reg.i * Reg.i
+  | ArraySet    of Id.t * Reg.i * Reg.i
     deriving (Show)
 
 type t =
@@ -44,7 +53,7 @@ let rev_assoc value xs =
   with
       Not_found ->
         failwith (Printf.sprintf "%s is not found in allocation list %s"
-                    (Show.show<Id.v> value) (Show.show<(Reg.i * Id.v) list> xs))
+                    (Show.show<Id.t> value) (Show.show<(Reg.i * Id.t) list> xs))
 
 let spilled_arguments spilled allocation inst =
   let use = LiveAnalyzer.use_instruction inst in
@@ -91,67 +100,57 @@ let spill_instruction (reg, id) =
 let replace_exp allocation exp =
   let r v = rev_assoc v allocation in
   match exp with
-    | Flow.Mov(v)                -> Mov(r v)
-    | Flow.Const(const)          -> Const(const)
-    | Flow.And(id1, id2)         -> And(r id1, r id2)
-    | Flow.Or(id1, id2)          -> Or(r id1, r id2)
-    | Flow.Add(id1, id2)         -> Add(r id1, r id2)
-    | Flow.Sub(id1, id2)         -> Sub(r id1, r id2)
-    | Flow.Negate(id)            -> Negate(r id)
-    | Flow.ArrayGet(array, id)   -> ArrayGet(array, r id)
+    | Heap.Mov(v)                -> Mov(r v)
+    | Heap.Const(const)          -> Const(const)
+    | Heap.And(id1, id2)         -> And(r id1, r id2)
+    | Heap.Or(id1, id2)          -> Or(r id1, r id2)
+    | Heap.Add(id1, id2)         -> Add(r id1, r id2)
+    | Heap.Sub(id1, id2)         -> Sub(r id1, r id2)
+    | Heap.Negate(id)            -> Negate(r id)
+    | Heap.LoadHeap(id)          -> LoadHeap(r id)
+    | Heap.LoadHeapImm(offset)   -> LoadHeapImm(offset)
 
-let write_back_global reg id =
-  match id with
-    | Id.V(_) -> []
-    | Id.A(_) -> []
-    | Id.G(_) -> [Spill(reg, id)]
-
-let replace allocation call_context (Flow.E(_, inst)) =
+let replace allocation call_context (Heap.E(_, inst)) =
   let reg_of v = rev_assoc v allocation in
-  let pointer_or_reg_of id = match id with
-    | Id.V(_) | Id.G(_) -> Reg(reg_of id)
-    | Id.A(_) -> Pointer(id)
-  in
-  let regs_of = List.map pointer_or_reg_of in
+  let regs_of = List.map reg_of in
   let remove_assignee ({ to_save = s; to_restore = r}) id =
     let remove = List.filter (fun (_, i) -> id != i) in
     { to_save = remove s; to_restore = remove r}
   in
   match inst with
-  | Flow.Assignment(id, exp) ->
-    write_back_global (reg_of id) id @ [Assignment(reg_of id, replace_exp allocation exp)]
+  | Heap.Assignment(id, exp) ->
+    [Assignment(reg_of id, replace_exp allocation exp)]
 
-  | Flow.Call(l, args) ->
+  | Heap.Call(l, args) ->
     [Call(l, regs_of args, call_context)]
 
-  | Flow.CallAndSet(id, l, args) ->
-    write_back_global (reg_of id) id @
-      [CallAndSet(reg_of id, l, regs_of args, remove_assignee call_context id)]
+  | Heap.CallAndSet(id, l, args) ->
+    [CallAndSet(reg_of id, l, regs_of args, remove_assignee call_context id)]
 
-  | Flow.Definition(Syntax.Variable(id, typ, init)) ->
+  | Heap.Definition(Heap.Variable(id, typ, init)) ->
     [Assignment(reg_of id, Const(init))]
 
-  | Flow.BranchZero(id, l) ->
+  | Heap.BranchZero(id, l) ->
     [BranchZero(reg_of id, l)]
 
-  | Flow.BranchEqual(id1, id2, l) ->
+  | Heap.BranchEqual(id1, id2, l) ->
     [BranchEqual(reg_of id1, reg_of id2, l)]
 
-  | Flow.BranchLT(id1, id2, l) ->
+  | Heap.BranchLT(id1, id2, l) ->
     [BranchLT(reg_of id1, reg_of id2, l)]
 
-  | Flow.Return(id) ->
+  | Heap.Return(id) ->
     let reg = rev_assoc id allocation in
     [Return; Assignment(Reg.ret, Mov(reg))]
 
-  | Flow.ArraySet(id, index, value) ->
+  | Heap.ArraySet(id, index, value) ->
     [ArraySet(id, reg_of index, reg_of value)]
 
-  | Flow.Label(l) -> [Label(l)]
-  | Flow.Goto(l) -> [Goto(l)]
-  | Flow.ReturnVoid -> [Return]
+  | Heap.Label(l) -> [Label(l)]
+  | Heap.Goto(l) -> [Goto(l)]
+  | Heap.ReturnVoid -> [Return]
 
-type replacement_context = {live : S.t LiveAnalyzer.LiveMap.t; usage : (Reg.i * Id.v) list; spilled : S.t}
+type replacement_context = {live : S.t LiveAnalyzer.LiveMap.t; usage : (Reg.i * Id.t) list; spilled : S.t}
 
 let update_usage usage live =
   List.filter (fun (_, id) -> S.mem id live) usage
@@ -160,15 +159,15 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
   let to_restore               = spilled_arguments spilled usage inst in
   let to_assign                = new_assignment usage inst in
 
-  print_endline (Show.show<Id.v list> to_restore);
-  print_endline (Show.show<Id.v list> to_assign);
+  print_endline (Show.show<Id.t list> to_restore);
+  print_endline (Show.show<Id.t list> to_assign);
 
   let this_living              = LiveAnalyzer.LiveMap.find inst live in
   let (new_alloc, to_spill)    = allocate this_living usage (to_assign @ to_restore) in
   let new_usage                = update_usage (new_alloc @ usage) this_living in
 
-  print_endline (Show.show<Id.v list> (S.elements this_living));
-  print_endline (Show.show<(Reg.i * Id.v) list> (new_alloc @ usage));
+  print_endline (Show.show<Id.t list> (S.elements this_living));
+  print_endline (Show.show<(Reg.i * Id.t) list> (new_alloc @ usage));
 
   (* registers to be saved and restored *)
   let call_context =
@@ -187,8 +186,8 @@ let replace_variables ({live = live; usage = usage; spilled = spilled}, new_inst
   let spilled_vars             = S.of_list (List.map snd to_spill) in
 
   Printf.printf "%s\t%s\t%s\n" (Show.show<instruction list> new_inst)
-    (Show.show<(Reg.i * Id.v) list> usage)
-    (Show.show<(Reg.i * Id.v) list> new_usage);
+    (Show.show<(Reg.i * Id.t) list> usage)
+    (Show.show<(Reg.i * Id.t) list> new_usage);
   ({live = live;
     usage = new_usage;
     spilled = S.union spilled_vars spilled},
@@ -199,18 +198,12 @@ let initialize f params heap_variables =
   let usage = Reg.assign_params (List.map Syntax.parameter_id params) in
   { live = LiveAnalyzer.live_t f; usage = usage; spilled = S.of_list heap_variables }
 
-let convert_top (result, heap_variables) = function
-  | (Flow.Function({Syntax.name = name; Syntax.parameters = params; _}, insts) as f) ->
-    let env = initialize f params heap_variables in
-    let insts = snd (List.fold_left replace_variables (env, []) insts) in
-    (Function(name, List.rev insts) :: result, heap_variables)
-  | Flow.GlobalVariable(Syntax.Variable(id, _, _) as v) ->
-    (GlobalVariable(v) :: result, id :: heap_variables)
-  | Flow.Array(array_sig) ->
-    (Array(array_sig) :: result, heap_variables)
+let convert_function (({Syntax.name = name; Syntax.parameters = params; _}, insts) as f) =
+  let env = initialize f params heap_variables in
+  let insts = snd (List.fold_left replace_variables (env, []) insts) in
+  (Function(name, List.rev insts) :: result, heap_variables)
 
-let convert ts =
-  let (result, _) = List.fold_left convert_top ([], []) ts in
-  let result = List.rev result in
+let convert ({Heap.functions = funs; Heap.initialize_code = init} as top) =
+  let result = List.map convert_function in
   print_endline (Show.show<t list> result);
-  result
+  { functions = result; initialize_code = init }

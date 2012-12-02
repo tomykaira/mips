@@ -16,12 +16,12 @@ FILES[] =
 	simpleControl
 	alpha
 	flow
-	registerAllocation
+	heapAllocation
 	liveAnalyzer
-	s
 	memoryAllocation
 	generateAsm
 	macroExpand
+	extendedSet
 
 LIB = ccc
 PROGRAM = main

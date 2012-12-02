@@ -30,7 +30,6 @@ let show = function
   | `I(num) -> "$r" ^ string_of_int num
   | `F(num) -> "$f" ^ string_of_int num
 
-let rec range i j = if i > j then [] else i :: (range (i+1) j)
 let all_registers = of_list (List.map (fun num -> `I(num)) (range 3 29))
 
 let rest used = elements (RegSet.diff all_registers (of_list used))
