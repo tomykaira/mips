@@ -62,7 +62,11 @@ let rec assign_local inst =
   let load_after_call   = concat_map (fun (reg, id) -> assign_local (RegisterAllocation.Restore(reg, id))) in
   let move_args args =
     let mapping = Reg.assign_params args in
-    List.map (fun (to_reg, from_reg) -> Assignment(to_reg, RegisterAllocation.Mov(from_reg))) mapping
+    let move_reg = function
+      | (to_reg, RegisterAllocation.Reg from_reg) -> Assignment(to_reg, RegisterAllocation.Mov(from_reg))
+      | (to_reg, RegisterAllocation.Pointer id) -> Assignment(to_reg, RegisterAllocation.Const(Syntax.IntVal(address id)))
+    in
+    List.map move_reg mapping
   in
   match inst with
     | RegisterAllocation.Call(l, args, { RegisterAllocation.to_save = to_save; RegisterAllocation.to_restore = to_restore}) ->

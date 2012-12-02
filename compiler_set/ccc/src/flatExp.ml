@@ -88,7 +88,7 @@ let rec expand_exp assign_to exp =
     let { result = exp_id; chain = exp_chain } = expand_exp None exp in
     let dummy_id = Id.gen () in
     { result = exp_id;
-      chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: exp_chain @ index_chain }
+      chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: index_chain @ exp_chain }
 
   | Syntax.And (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> And (t1, t2))
   | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))

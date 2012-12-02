@@ -14,13 +14,16 @@ type exp =
 type call_context = { to_save: (Reg.i * Id.v) list; to_restore: (Reg.i * Id.v) list }
     deriving (Show)
 
+type argument = Reg of Reg.i | Pointer of Id.v
+    deriving (Show)
+
 type instruction =
   | Assignment  of Reg.i * exp
   | BranchZero  of Reg.i * Id.l
   | BranchEqual of Reg.i * Reg.i * Id.l
   | BranchLT    of Reg.i * Reg.i * Id.l
-  | Call        of Id.l * Reg.i list * call_context
-  | CallAndSet  of Reg.i * Id.l * Reg.i list * call_context
+  | Call        of Id.l * argument list * call_context
+  | CallAndSet  of Reg.i * Id.l * argument list * call_context
   | Spill       of Reg.i * Id.v
   | Restore     of Reg.i * Id.v
   | Label       of Id.l
@@ -105,7 +108,11 @@ let write_back_global reg id =
 
 let replace allocation call_context (Flow.E(_, inst)) =
   let reg_of v = rev_assoc v allocation in
-  let regs_of = List.map reg_of in
+  let pointer_or_reg_of id = match id with
+    | Id.V(_) | Id.G(_) -> Reg(reg_of id)
+    | Id.A(_) -> Pointer(id)
+  in
+  let regs_of = List.map pointer_or_reg_of in
   let remove_assignee ({ to_save = s; to_restore = r}) id =
     let remove = List.filter (fun (_, i) -> id != i) in
     { to_save = remove s; to_restore = remove r}
