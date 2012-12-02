@@ -6,6 +6,7 @@ let space = [' ' '\t' '\n' '\r']
 let digit = ['0'-'9']
 let lower = ['a'-'z']
 let upper = ['A'-'Z']
+let ascii = [' ' - '~']              (* 0 - 127 *)
 
   rule token = parse
     | space+
@@ -132,7 +133,7 @@ let upper = ['A'-'Z']
     | "unsigned"
         { TYPE_CLASS(Syntax.Unsigned) }
 
-    | '\'' (space|digit|lower|upper|'_') '\''
+    | '\'' ascii '\''
         { CHAR_VAL((Lexing.lexeme lexbuf).[1]) }
     | "'\\n\'"
         { CHAR_VAL('\n') }

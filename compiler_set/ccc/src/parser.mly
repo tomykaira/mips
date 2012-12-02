@@ -94,8 +94,8 @@ function_definition:
 parameter_list:
 | parameter
     { [$1] }
-| parameter_list parameter
-    { $1 @ [$2] }
+| parameter_list COMMA parameter
+    { $1 @ [$3] }
 
 parameter:
 | type_class ID

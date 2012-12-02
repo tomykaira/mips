@@ -35,8 +35,6 @@ let lexbuf outchan l =
       $ (notify "flat exp")
       $ Alpha.convert
       $ (notify "alpha")
-      $ Typing.check
-      $ (notify "typing")
       $ MacroExpand.convert
       $ (notify "macro expand")
   ) (parse_buf_exn l)
