@@ -9,6 +9,7 @@ module S' =
       let compare = compare
     end)
 
+
 (* 引数を渡すのに使えるレジスタの数 *)
 let rn = 25
 let fn = 31
@@ -73,7 +74,7 @@ let rec gsup = function
   | t -> t
 let gsup2 (a,r) (c,d) =
   match d with
-  | [x] -> (a@[c], r)
+  | [_] -> (a@[c], r)
   | l -> let xts = List.map (fun t -> (Id.genid c, gsup t)) l in
          (a@(List.map fst xts), (xts, c)::r)
 (* プログラム本体の関数呼び出しの引数のタプルを展開する関数 *)
@@ -93,6 +94,7 @@ let rec g env = function
 	(fun a (xts, c) -> LetTuple(xts, c, a))
         (MakeCls((x, Type.Fun(List.map gsup (List.concat yenv), gsup t)), {entry = Id.L(l); actual_fv = fvs'}, g (M.add x (yenv, []) env) e))
 	r
+  | MakeCls(_, _, _) -> assert false
   | LetTuple(xts, y, e) ->
       let a = List.fold_left
 	        (fun a (x,t) -> match t with
@@ -161,15 +163,24 @@ let h env { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
             e
             (yunf@zunf) in
   ({ name = (Id.L(x), Type.Fun(List.map (fun x -> gsup (snd x)) yts', gsup b)); args = List.map (fun (y,t) -> (y, gsup t)) yts'; formal_fv = List.map (fun (z,t) -> (z, gsup t)) zts'; body = g env'' e' }, env')
-  | _ -> failwith "type error"
+  | _ -> assert false
+
+
+(* グローバル配列の型の引数タプルの展開と,グローバルクロージャの自由変数タプルの展開 *)
+let i env { gname = (Id.L(x), t); length = l } =
+  let l' =
+    try
+      List.length (List.concat (snd (M.find x env))) + 1
+    with Not_found -> l in
+  { gname = (Id.L(x), gsup t); length = l' }
 
 
 (* 本体 *)
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   Format.eprintf "unfolding tuples...@.";
   let (toplevel', env) =
     List.fold_left
       (fun (x, y) fu -> let (a,b) = h y fu in (x@[a], b))
       ([], M.empty)
       toplevel in
-  Prog(toplevel', g env e)
+  Prog(List.map (i env) globals, toplevel', g env e)

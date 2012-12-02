@@ -19,6 +19,19 @@ CREATE_ARRAY_CONTINUE:
 	addi $r2, $r2, 1
 	j CREATE_ARRAY_LOOP
 
+# * array_init
+min_caml_array_init:
+	add	$r4, $r3, $r4
+ARRAY_INIT_LOOP:
+	blt	$r3, $r4, ARRAY_INIT_CONTINUE
+	nop
+	nop
+	return
+ARRAY_INIT_CONTINUE:
+	sti	$r5, $r3, 0
+	addi	$r3, $r3, 1
+	j	ARRAY_INIT_LOOP
+
 # * create_float_array
 min_caml_create_float_array:
 	add $r4, $r3, $r2
@@ -33,6 +46,19 @@ CREATE_FLOAT_ARRAY_CONTINUE:
 	addi $r2, $r2, 1
 	j CREATE_FLOAT_ARRAY_LOOP
 
+# * float_array_init
+min_caml_float_array_init:
+	add	$r4, $r3, $r4
+FLOAT_ARRAY_INIT_LOOP:
+	blt	$r3, $r4, FLOAT_ARRAY_INIT_CONTINUE
+	nop
+	nop
+	return
+FLOAT_ARRAY_INIT_CONTINUE:	
+	fsti	$f1, $r3, 0
+	addi	$r3, $r3, 1
+	j	FLOAT_ARRAY_INIT_LOOP
+
 # * int_tuple_array
 min_caml_int_tuple_array:
 	ble	$r2, $r4, INT_TUPLE_ARRAY_RETURN
@@ -44,6 +70,17 @@ min_caml_int_tuple_array:
 INT_TUPLE_ARRAY_RETURN:
 	return
 
+# * int_tuple_array_init
+min_caml_int_tuple_array_init:
+	ble	$r6, $r4, INT_TUPLE_ARRAY_RETURN
+	nop
+	nop
+	sti	$r3, $r4, 0
+	add	$r4, $r4, $r5
+	j	min_caml_int_tuple_array
+INT_TUPLE_ARRAY_INIT_RETURN:
+	return
+
 # * float_tuple_array
 min_caml_float_tuple_array:
 	ble	$r2, $r3, FLOAT_TUPLE_ARRAY_RETURN
@@ -53,6 +90,17 @@ min_caml_float_tuple_array:
 	add	$r3, $r3, $r4
 	j	min_caml_float_tuple_array
 FLOAT_TUPLE_ARRAY_RETURN:
+	return
+
+# * float_tuple_array_init
+min_caml_float_tuple_array_init:
+	ble	$r5, $r3, FLOAT_TUPLE_ARRAY_RETURN
+	nop
+	nop
+	fsti	$f1, $r3, 0
+	add	$r3, $r3, $r4
+	j	min_caml_float_tuple_array
+FLOAT_TUPLE_ARRAY_INIT_RETURN:
 	return
 
 
@@ -484,341 +532,72 @@ lsr_return:
 
 #mul_sub for min_caml_mul
 mul_sub:
-	beq	$r4, $r0, mul_beq_taken.1325
+	beq	$r4, $r0, div_beq_taken.6783
 	nop
 	nop
 	srai	$r5, $r4, 1
 	slli	$r6, $r5, 1
 	sub	$r4, $r4, $r6
-	beq	$r4, $r0, mul_beq_taken.1274
+	beq	$r4, $r0, div_beq_taken.6777
 	nop
 	nop
-	slli	$r4, $r3, 1
-	beq	$r5, $r0, mul_return.1374
+	slli	$r6, $r3, 1
+	beq	$r5, $r0, div_return.7189
 	nop
 	nop
-	srai	$r8, $r5, 1
-	slli	$r6, $r8, 1
-	sub	$r5, $r5, $r6
-	beq	$r5, $r0, mul_beq_taken.1276
-	nop
-	nop
-	slli	$r6, $r4, 1
-	beq	$r8, $r0, mul_beq_taken.1285
-	nop
-	nop
-	srai	$r7, $r8, 1
-	slli	$r5, $r7, 1
-	sub	$r5, $r8, $r5
-	beq	$r5, $r0, mul_beq_taken.1278
-	nop
-	nop
-	slli	$r5, $r6, 1
-	sti	$r3, $r1, 0
-	sti	$r4, $r1, -1
-	beq	$r7, $r0, mul_beq_taken.1279
-	nop
-	nop
-	srai	$r4, $r7, 1
-	slli	$r3, $r4, 1
-	sub	$r3, $r7, $r3
-	sti	$r6, $r1, -2
-	beq	$r3, $r0, mul_beq_taken.1281
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -3
-	subi	$r1, $r1, 4
-	call	mul_sub
-	addi	$r1, $r1, 4
-	ldi	$r5, $r1, -3
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1282
-mul_beq_taken.1281:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 4
-	call	mul_sub
-	addi	$r1, $r1, 4
-	addi	$r27, $r3, 0
-mul_beq_cont.1282:
-	ldi	$r6, $r1, -2
-	add	$r5, $r27, $r6
-	j	mul_beq_cont.1280
-mul_beq_taken.1279:
-	addi	$r5, $r6, 0
-mul_beq_cont.1280:
-	ldi	$r4, $r1, -1
-	add	$r4, $r5, $r4
-	ldi	$r3, $r1, 0
-	add	$r3, $r4, $r3
-	return
-mul_beq_taken.1278:
-	slli	$r5, $r6, 1
-	beq	$r7, $r0, mul_beq_taken.1285
-	nop
-	nop
-	sti	$r4, $r1, -1
-	srai	$r4, $r7, 1
-	sti	$r3, $r1, 0
-	slli	$r3, $r4, 1
-	sub	$r3, $r7, $r3
-	beq	$r3, $r0, mul_beq_taken.1286
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -4
-	subi	$r1, $r1, 5
-	call	mul_sub
-	addi	$r1, $r1, 5
-	ldi	$r5, $r1, -4
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1287
-mul_beq_taken.1286:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 5
-	call	mul_sub
-	addi	$r1, $r1, 5
-	addi	$r27, $r3, 0
-mul_beq_cont.1287:
-	ldi	$r4, $r1, -1
-	add	$r4, $r27, $r4
-	ldi	$r3, $r1, 0
-	add	$r3, $r4, $r3
-	return
-mul_beq_taken.1285:
-	add	$r3, $r4, $r3
-	return
-mul_beq_taken.1276:
-	slli	$r7, $r4, 1
-	beq	$r8, $r0, mul_return.1374
-	nop
-	nop
-	srai	$r6, $r8, 1
-	slli	$r4, $r6, 1
-	sub	$r4, $r8, $r4
-	beq	$r4, $r0, mul_beq_taken.1291
-	nop
-	nop
-	slli	$r5, $r7, 1
-	sti	$r3, $r1, 0
-	beq	$r6, $r0, mul_beq_taken.1292
-	nop
-	nop
-	srai	$r4, $r6, 1
-	slli	$r3, $r4, 1
-	sub	$r3, $r6, $r3
-	sti	$r7, $r1, -5
-	beq	$r3, $r0, mul_beq_taken.1294
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -6
-	subi	$r1, $r1, 7
-	call	mul_sub
-	addi	$r1, $r1, 7
-	ldi	$r5, $r1, -6
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1295
-mul_beq_taken.1294:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 7
-	call	mul_sub
-	addi	$r1, $r1, 7
-	addi	$r27, $r3, 0
-mul_beq_cont.1295:
-	ldi	$r7, $r1, -5
-	add	$r4, $r27, $r7
-	j	mul_beq_cont.1293
-mul_beq_taken.1292:
-	addi	$r4, $r7, 0
-mul_beq_cont.1293:
-	ldi	$r3, $r1, 0
-	add	$r3, $r4, $r3
-	return
-mul_beq_taken.1291:
-	slli	$r5, $r7, 1
-	beq	$r6, $r0, mul_return.1374
-	nop
-	nop
-	srai	$r4, $r6, 1
-	sti	$r3, $r1, 0
-	slli	$r3, $r4, 1
-	sub	$r3, $r6, $r3
-	beq	$r3, $r0, mul_beq_taken.1299
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -7
-	subi	$r1, $r1, 8
-	call	mul_sub
-	addi	$r1, $r1, 8
-	ldi	$r5, $r1, -7
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1300
-mul_beq_taken.1299:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 8
-	call	mul_sub
-	addi	$r1, $r1, 8
-	addi	$r27, $r3, 0
-mul_beq_cont.1300:
-	ldi	$r3, $r1, 0
-	add	$r3, $r27, $r3
-	return
-mul_return.1374:
-	return
-mul_beq_taken.1274:
-	slli	$r3, $r3, 1
-	beq	$r5, $r0, mul_beq_taken.1325
-	nop
-	nop
-	srai	$r7, $r5, 1
-	slli	$r4, $r7, 1
-	sub	$r4, $r5, $r4
-	beq	$r4, $r0, mul_beq_taken.1304
-	nop
-	nop
-	slli	$r4, $r3, 1
-	beq	$r7, $r0, mul_return.1374
-	nop
-	nop
-	srai	$r6, $r7, 1
-	slli	$r5, $r6, 1
-	sub	$r5, $r7, $r5
-	beq	$r5, $r0, mul_beq_taken.1306
-	nop
-	nop
-	slli	$r5, $r4, 1
-	sti	$r3, $r1, -8
-	beq	$r6, $r0, mul_beq_cont.1308
-	nop
-	nop
-	sti	$r4, $r1, -9
-	srai	$r4, $r6, 1
-	slli	$r3, $r4, 1
-	sub	$r3, $r6, $r3
-	beq	$r3, $r0, mul_beq_taken.1309
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -10
-	subi	$r1, $r1, 11
-	call	mul_sub
-	addi	$r1, $r1, 11
-	ldi	$r5, $r1, -10
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1310
-mul_beq_taken.1309:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 11
-	call	mul_sub
-	addi	$r1, $r1, 11
-	addi	$r27, $r3, 0
-mul_beq_cont.1310:
-	ldi	$r4, $r1, -9
-	add	$r4, $r27, $r4
-mul_beq_cont.1308:
-	ldi	$r3, $r1, -8
-	add	$r3, $r4, $r3
-	return
-mul_beq_taken.1306:
-	slli	$r5, $r4, 1
-	beq	$r6, $r0, mul_return.1374
-	nop
-	nop
-	srai	$r4, $r6, 1
-	sti	$r3, $r1, -8
-	slli	$r3, $r4, 1
-	sub	$r3, $r6, $r3
-	beq	$r3, $r0, mul_beq_taken.1314
-	nop
-	nop
-	slli	$r3, $r5, 1
-	sti	$r5, $r1, -11
-	subi	$r1, $r1, 12
-	call	mul_sub
-	addi	$r1, $r1, 12
-	ldi	$r5, $r1, -11
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1315
-mul_beq_taken.1314:
-	slli	$r3, $r5, 1
-	subi	$r1, $r1, 12
-	call	mul_sub
-	addi	$r1, $r1, 12
-	addi	$r27, $r3, 0
-mul_beq_cont.1315:
-	ldi	$r3, $r1, -8
-	add	$r3, $r27, $r3
-	return
-mul_beq_taken.1304:
-	slli	$r4, $r3, 1
-	beq	$r7, $r0, mul_beq_taken.1325
-	nop
-	nop
-	srai	$r5, $r7, 1
-	slli	$r3, $r5, 1
-	sub	$r3, $r7, $r3
-	beq	$r3, $r0, mul_beq_taken.1319
-	nop
-	nop
-	slli	$r3, $r4, 1
-	beq	$r5, $r0, mul_beq_taken.1320
-	nop
-	nop
-	sti	$r4, $r1, -12
 	srai	$r4, $r5, 1
-	slli	$r6, $r4, 1
-	sub	$r5, $r5, $r6
-	beq	$r5, $r0, mul_beq_taken.1321
-	nop
-	nop
-	sti	$r3, $r1, -13
-	slli	$r3, $r3, 1
-	subi	$r1, $r1, 14
-	call	mul_sub
-	addi	$r1, $r1, 14
-	ldi	$r5, $r1, -13
-	add	$r27, $r3, $r5
-	j	mul_beq_cont.1322
-mul_beq_taken.1321:
-	slli	$r3, $r3, 1
-	subi	$r1, $r1, 14
-	call	mul_sub
-	addi	$r1, $r1, 14
-	addi	$r27, $r3, 0
-mul_beq_cont.1322:
-	ldi	$r4, $r1, -12
-	add	$r3, $r27, $r4
-	return
-mul_beq_taken.1320:
-	addi	$r3, $r4, 0
-	return
-mul_beq_taken.1319:
+	sti	$r3, $r1, 0
 	slli	$r3, $r4, 1
-	beq	$r5, $r0, mul_beq_taken.1325
+	sub	$r3, $r5, $r3
+	beq	$r3, $r0, div_beq_taken.6779
+	nop
+	nop
+	slli	$r3, $r6, 1
+	sti	$r6, $r1, -1
+	subi	$r1, $r1, 2
+	call	mul_sub
+	addi	$r1, $r1, 2
+	ldi	$r6, $r1, -1
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6780
+div_beq_taken.6779:
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 2
+	call	mul_sub
+	addi	$r1, $r1, 2
+	addi	$r27, $r3, 0
+div_beq_cont.6780:
+	ldi	$r3, $r1, 0
+	add	$r3, $r27, $r3
+	return
+div_return.7189:
+	return
+div_beq_taken.6777:
+	slli	$r3, $r3, 1
+	beq	$r5, $r0, div_beq_taken.6783
 	nop
 	nop
 	srai	$r4, $r5, 1
 	slli	$r6, $r4, 1
 	sub	$r5, $r5, $r6
-	beq	$r5, $r0, mul_beq_taken.1326
+	beq	$r5, $r0, div_beq_taken.6784
 	nop
 	nop
-	sti	$r3, $r1, -14
+	sti	$r3, $r1, -2
 	slli	$r3, $r3, 1
-	subi	$r1, $r1, 15
+	subi	$r1, $r1, 3
 	call	mul_sub
-	addi	$r1, $r1, 15
-	ldi	$r4, $r1, -14
+	addi	$r1, $r1, 3
+	ldi	$r4, $r1, -2
 	add	$r3, $r3, $r4
 	return
-mul_beq_taken.1326:
+div_beq_taken.6784:
 	slli	$r3, $r3, 1
 	j	mul_sub
-mul_beq_taken.1325:
+div_beq_taken.6783:
 	addi	$r3, $r0, 0
 	return
+	
 
 #min_caml_mul
 min_caml_mul:
@@ -840,483 +619,220 @@ min_caml_div_binary_search:
 	sti	$r3, $r1, -2
 	sti	$r5, $r1, -3
 	sti	$r6, $r1, -4
+	blt	$r4, $r0, div_blt_taken.6786
+	nop
+	nop
 	subi	$r1, $r1, 5
-	call	min_caml_mul
+	call	mul_sub
 	addi	$r1, $r1, 5
-	ldi	$r7, $r1, -3
-	ldi	$r9, $r1, -4
-	sub	$r5, $r9, $r7
-	ble	$r5, $r30, div_ble_taken.1899
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6787
+div_blt_taken.6786:
+	sub	$r3, $r0, $r3
+	sub	$r4, $r0, $r4
+	subi	$r1, $r1, 5
+	call	mul_sub
+	addi	$r1, $r1, 5
+	addi	$r27, $r3, 0
+div_blt_cont.6787:
+	ldi	$r3, $r1, -3
+	ldi	$r8, $r1, -4
+	sub	$r4, $r8, $r3
+	ble	$r4, $r30, div_return.7189
 	nop
 	nop
-	ldi	$r6, $r1, 0
-	blt	$r3, $r6, div_blt_taken.1900
+	ldi	$r5, $r1, 0
+	blt	$r27, $r5, div_blt_taken.6791
 	nop
 	nop
-	beq	$r3, $r6, div_beq_taken.1901
+	beq	$r27, $r5, div_beq_taken.6792
 	nop
 	nop
-	ldi	$r8, $r1, -2
-	add	$r3, $r7, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -5
+	ldi	$r7, $r1, -2
+	add	$r3, $r3, $r7
+	srai	$r5, $r3, 1
+	ldi	$r6, $r1, -1
+	sti	$r5, $r1, -5
+	blt	$r6, $r0, div_blt_taken.6793
+	nop
+	nop
+	beq	$r6, $r0, div_beq_taken.6795
+	nop
+	nop
+	srai	$r4, $r6, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r6, $r3
+	beq	$r3, $r0, div_beq_taken.6797
+	nop
+	nop
+	slli	$r3, $r5, 1
 	subi	$r1, $r1, 6
-	call	min_caml_mul
+	call	mul_sub
 	addi	$r1, $r1, 6
-	ldi	$r8, $r1, -3
-	ldi	$r9, $r1, -2
-	sub	$r6, $r9, $r8
-	ble	$r6, $r30, div_ble_taken.1919
+	ldi	$r6, $r1, -5
+	add	$r27, $r3, $r6
+	j	div_blt_cont.6794
+div_beq_taken.6797:
+	slli	$r3, $r5, 1
+	subi	$r1, $r1, 6
+	call	mul_sub
+	addi	$r1, $r1, 6
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6794
+div_beq_taken.6795:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6794
+div_blt_taken.6793:
+	sub	$r3, $r0, $r5
+	sub	$r5, $r0, $r6
+	beq	$r5, $r0, div_beq_taken.6795
 	nop
 	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1904
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6803
 	nop
 	nop
-	beq	$r3, $r5, div_beq_taken.1905
-	nop
-	nop
-	ldi	$r7, $r1, -5
-	add	$r3, $r8, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
 	sti	$r3, $r1, -6
+	slli	$r3, $r3, 1
 	subi	$r1, $r1, 7
-	call	min_caml_mul
+	call	mul_sub
 	addi	$r1, $r1, 7
-	ldi	$r9, $r1, -3
-	ldi	$r8, $r1, -5
-	sub	$r6, $r8, $r9
-	ble	$r6, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1908
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1909
-	nop
-	nop
-	ldi	$r7, $r1, -6
-	add	$r3, $r9, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -7
-	subi	$r1, $r1, 8
-	call	min_caml_mul
-	addi	$r1, $r1, 8
+	ldi	$r8, $r1, -6
+	add	$r27, $r3, $r8
+	j	div_blt_cont.6794
+div_beq_taken.6803:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 7
+	call	mul_sub
+	addi	$r1, $r1, 7
+	addi	$r27, $r3, 0
+div_blt_cont.6794:
 	ldi	$r5, $r1, -3
-	ldi	$r9, $r1, -6
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
+	ldi	$r8, $r1, -2
+	sub	$r7, $r8, $r5
+	ble	$r7, $r30, div_ble_taken.6807
 	nop
 	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1912
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6808
 	nop
 	nop
-	beq	$r3, $r7, div_beq_taken.1913
+	beq	$r27, $r3, div_beq_taken.6809
 	nop
 	nop
 	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -7
-	addi	$r3, $r7, 0
+	ldi	$r6, $r1, -5
 	j	min_caml_div_binary_search
-div_beq_taken.1913:
-	ldi	$r6, $r1, -7
+div_beq_taken.6809:
+	ldi	$r6, $r1, -5
 	addi	$r3, $r6, 0
 	return
-div_blt_taken.1912:
+div_blt_taken.6808:
 	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -7
+	ldi	$r6, $r1, -5
 	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
+	addi	$r6, $r8, 0
 	j	min_caml_div_binary_search
-div_ble_taken.1911:
+div_ble_taken.6807:
 	addi	$r3, $r5, 0
 	return
-div_beq_taken.1909:
-	ldi	$r7, $r1, -6
+div_beq_taken.6792:
+	ldi	$r7, $r1, -2
 	addi	$r3, $r7, 0
 	return
-div_blt_taken.1908:
-	ldi	$r7, $r1, -6
+div_blt_taken.6791:
+	ldi	$r7, $r1, -2
 	add	$r3, $r7, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
+	srai	$r5, $r3, 1
+	ldi	$r6, $r1, -1
+	sti	$r5, $r1, -7
+	blt	$r6, $r0, div_blt_taken.6810
+	nop
+	nop
+	beq	$r6, $r0, div_beq_taken.6812
+	nop
+	nop
+	srai	$r4, $r6, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r6, $r3
+	beq	$r3, $r0, div_beq_taken.6814
+	nop
+	nop
+	slli	$r3, $r5, 1
+	subi	$r1, $r1, 8
+	call	mul_sub
+	addi	$r1, $r1, 8
+	ldi	$r5, $r1, -7
+	add	$r27, $r3, $r5
+	j	div_blt_cont.6811
+div_beq_taken.6814:
+	slli	$r3, $r5, 1
+	subi	$r1, $r1, 8
+	call	mul_sub
+	addi	$r1, $r1, 8
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6811
+div_beq_taken.6812:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6811
+div_blt_taken.6810:
+	sub	$r3, $r0, $r5
+	sub	$r5, $r0, $r6
+	beq	$r5, $r0, div_beq_taken.6812
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6820
+	nop
+	nop
 	sti	$r3, $r1, -8
+	slli	$r3, $r3, 1
 	subi	$r1, $r1, 9
-	call	min_caml_mul
+	call	mul_sub
 	addi	$r1, $r1, 9
-	ldi	$r5, $r1, -6
-	ldi	$r9, $r1, -5
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1916
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1917
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -8
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1917:
-	ldi	$r6, $r1, -8
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1916:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -8
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_ble_taken.1907:
-	addi	$r3, $r9, 0
-	return
-div_beq_taken.1905:
-	ldi	$r7, $r1, -5
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1904:
-	ldi	$r7, $r1, -5
-	add	$r3, $r7, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -9
-	subi	$r1, $r1, 10
-	call	min_caml_mul
-	addi	$r1, $r1, 10
-	ldi	$r8, $r1, -5
-	ldi	$r9, $r1, -2
-	sub	$r6, $r9, $r8
-	ble	$r6, $r30, div_ble_taken.1919
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1920
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1921
-	nop
-	nop
-	ldi	$r7, $r1, -9
-	add	$r3, $r8, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -10
-	subi	$r1, $r1, 11
-	call	min_caml_mul
-	addi	$r1, $r1, 11
-	ldi	$r5, $r1, -5
-	ldi	$r9, $r1, -9
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1924
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1925
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -10
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1925:
-	ldi	$r6, $r1, -10
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1924:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -10
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1921:
-	ldi	$r7, $r1, -9
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1920:
-	ldi	$r7, $r1, -9
-	add	$r3, $r7, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -11
-	subi	$r1, $r1, 12
-	call	min_caml_mul
-	addi	$r1, $r1, 12
-	ldi	$r5, $r1, -9
-	ldi	$r9, $r1, -2
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1928
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1929
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -11
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1929:
-	ldi	$r6, $r1, -11
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1928:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -11
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_ble_taken.1919:
-	addi	$r3, $r8, 0
-	return
-div_beq_taken.1901:
-	ldi	$r8, $r1, -2
-	addi	$r3, $r8, 0
-	return
-div_blt_taken.1900:
-	ldi	$r8, $r1, -2
-	add	$r3, $r8, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -12
-	subi	$r1, $r1, 13
-	call	min_caml_mul
-	addi	$r1, $r1, 13
-	ldi	$r8, $r1, -2
-	ldi	$r9, $r1, -4
-	sub	$r6, $r9, $r8
-	ble	$r6, $r30, div_ble_taken.1919
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1932
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1933
-	nop
-	nop
-	ldi	$r7, $r1, -12
-	add	$r3, $r8, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -13
-	subi	$r1, $r1, 14
-	call	min_caml_mul
-	addi	$r1, $r1, 14
-	ldi	$r9, $r1, -2
-	ldi	$r8, $r1, -12
-	sub	$r6, $r8, $r9
-	ble	$r6, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1936
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1937
-	nop
-	nop
-	ldi	$r7, $r1, -13
-	add	$r3, $r9, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -14
-	subi	$r1, $r1, 15
-	call	min_caml_mul
-	addi	$r1, $r1, 15
+	ldi	$r10, $r1, -8
+	add	$r27, $r3, $r10
+	j	div_blt_cont.6811
+div_beq_taken.6820:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 9
+	call	mul_sub
+	addi	$r1, $r1, 9
+	addi	$r27, $r3, 0
+div_blt_cont.6811:
 	ldi	$r5, $r1, -2
-	ldi	$r9, $r1, -13
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
+	ldi	$r8, $r1, -4
+	sub	$r7, $r8, $r5
+	ble	$r7, $r30, div_ble_taken.6807
 	nop
 	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1940
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6825
 	nop
 	nop
-	beq	$r3, $r7, div_beq_taken.1941
+	beq	$r27, $r3, div_beq_taken.6826
 	nop
 	nop
 	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -14
-	addi	$r3, $r7, 0
+	ldi	$r6, $r1, -7
 	j	min_caml_div_binary_search
-div_beq_taken.1941:
-	ldi	$r6, $r1, -14
+div_beq_taken.6826:
+	ldi	$r6, $r1, -7
 	addi	$r3, $r6, 0
 	return
-div_blt_taken.1940:
+div_blt_taken.6825:
 	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -14
+	ldi	$r6, $r1, -7
 	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
+	addi	$r6, $r8, 0
 	j	min_caml_div_binary_search
-div_beq_taken.1937:
-	ldi	$r7, $r1, -13
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1936:
-	ldi	$r7, $r1, -13
-	add	$r3, $r7, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -15
-	subi	$r1, $r1, 16
-	call	min_caml_mul
-	addi	$r1, $r1, 16
-	ldi	$r5, $r1, -13
-	ldi	$r9, $r1, -12
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1944
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1945
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -15
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1945:
-	ldi	$r6, $r1, -15
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1944:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -15
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1933:
-	ldi	$r7, $r1, -12
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1932:
-	ldi	$r7, $r1, -12
-	add	$r3, $r7, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -16
-	subi	$r1, $r1, 17
-	call	min_caml_mul
-	addi	$r1, $r1, 17
-	ldi	$r8, $r1, -12
-	ldi	$r9, $r1, -4
-	sub	$r6, $r9, $r8
-	ble	$r6, $r30, div_ble_taken.1919
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1948
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1949
-	nop
-	nop
-	ldi	$r7, $r1, -16
-	add	$r3, $r8, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -17
-	subi	$r1, $r1, 18
-	call	min_caml_mul
-	addi	$r1, $r1, 18
-	ldi	$r5, $r1, -12
-	ldi	$r9, $r1, -16
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1952
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1953
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -17
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1953:
-	ldi	$r6, $r1, -17
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1952:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -17
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1949:
-	ldi	$r7, $r1, -16
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1948:
-	ldi	$r7, $r1, -16
-	add	$r3, $r7, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -18
-	subi	$r1, $r1, 19
-	call	min_caml_mul
-	addi	$r1, $r1, 19
-	ldi	$r5, $r1, -16
-	ldi	$r9, $r1, -4
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1956
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1957
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -18
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1957:
-	ldi	$r6, $r1, -18
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1956:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -18
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_ble_taken.1899:
-	addi	$r3, $r7, 0
-	return
+
+	
+
 
 
 #div_sub for min_caml_div
@@ -1324,431 +840,928 @@ div_sub:
 	sti	$r3, $r1, 0
 	slli	$r3, $r4, 1
 	sti	$r4, $r1, -1
-	sti	$r5, $r1, -2
-	addi	$r4, $r5, 0
-	subi	$r1, $r1, 3
-	call	min_caml_mul
-	addi	$r1, $r1, 3
-	ldi	$r5, $r1, 0
-	ble	$r3, $r5, div_ble_taken.1959
-	nop
-	nop
-	ldi	$r7, $r1, -2
-	slli	$r3, $r7, 1
+	addi	$r4, $r0, 0
+	sti	$r4, $r1, -2
 	sti	$r3, $r1, -3
-	add	$r3, $r7, $r3
-	srai	$r3, $r3, 1
-	ldi	$r6, $r1, -1
-	sti	$r3, $r1, -4
-	addi	$r4, $r6, 0
+	sti	$r5, $r1, -4
+	blt	$r5, $r0, div_blt_taken.6827
+	nop
+	nop
+	addi	$r4, $r5, 0
 	subi	$r1, $r1, 5
-	call	min_caml_mul
+	call	mul_sub
 	addi	$r1, $r1, 5
-	ldi	$r9, $r1, -2
-	ldi	$r5, $r1, -3
-	sub	$r7, $r5, $r9
-	ble	$r7, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r6, $r1, 0
-	blt	$r3, $r6, div_blt_taken.1962
-	nop
-	nop
-	beq	$r3, $r6, div_beq_taken.1963
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6828
+div_blt_taken.6827:
+	sub	$r3, $r0, $r3
+	sub	$r4, $r0, $r5
+	subi	$r1, $r1, 5
+	call	mul_sub
+	addi	$r1, $r1, 5
+	addi	$r27, $r3, 0
+div_blt_cont.6828:
+	ldi	$r7, $r1, 0
+	ble	$r27, $r7, div_ble_taken.6831
 	nop
 	nop
 	ldi	$r8, $r1, -4
-	add	$r3, $r9, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
+	slli	$r3, $r8, 1
 	sti	$r3, $r1, -5
-	subi	$r1, $r1, 6
-	call	min_caml_mul
-	addi	$r1, $r1, 6
-	ldi	$r9, $r1, -2
-	ldi	$r8, $r1, -4
-	sub	$r6, $r8, $r9
-	ble	$r6, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r5, $r1, 0
-	blt	$r3, $r5, div_blt_taken.1966
-	nop
-	nop
-	beq	$r3, $r5, div_beq_taken.1967
-	nop
-	nop
-	ldi	$r7, $r1, -5
-	add	$r3, $r9, $r7
-	srai	$r3, $r3, 1
+	add	$r3, $r8, $r3
+	srai	$r6, $r3, 1
 	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -6
-	subi	$r1, $r1, 7
-	call	min_caml_mul
-	addi	$r1, $r1, 7
-	ldi	$r5, $r1, -2
-	ldi	$r9, $r1, -5
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
+	sti	$r6, $r1, -6
+	blt	$r4, $r0, div_blt_taken.6832
 	nop
 	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1970
+	beq	$r4, $r0, div_beq_taken.6834
 	nop
 	nop
-	beq	$r3, $r7, div_beq_taken.1971
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -6
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1971:
-	ldi	$r6, $r1, -6
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1970:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -6
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1967:
-	ldi	$r7, $r1, -5
-	addi	$r3, $r7, 0
-	return
-div_blt_taken.1966:
-	ldi	$r7, $r1, -5
-	add	$r3, $r7, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -7
-	subi	$r1, $r1, 8
-	call	min_caml_mul
-	addi	$r1, $r1, 8
-	ldi	$r5, $r1, -5
-	ldi	$r9, $r1, -4
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1974
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1975
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -7
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1975:
-	ldi	$r6, $r1, -7
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1974:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -7
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1963:
-	ldi	$r8, $r1, -4
-	addi	$r3, $r8, 0
-	return
-div_blt_taken.1962:
-	ldi	$r8, $r1, -4
-	add	$r3, $r8, $r5
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -8
-	subi	$r1, $r1, 9
-	call	min_caml_mul
-	addi	$r1, $r1, 9
-	ldi	$r9, $r1, -4
-	ldi	$r5, $r1, -3
-	sub	$r7, $r5, $r9
-	ble	$r7, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r6, $r1, 0
-	blt	$r3, $r6, div_blt_taken.1978
-	nop
-	nop
-	beq	$r3, $r6, div_beq_taken.1979
-	nop
-	nop
-	ldi	$r8, $r1, -8
-	add	$r3, $r9, $r8
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -9
-	subi	$r1, $r1, 10
-	call	min_caml_mul
-	addi	$r1, $r1, 10
-	ldi	$r5, $r1, -4
-	ldi	$r9, $r1, -8
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1982
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1983
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -9
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1983:
-	ldi	$r6, $r1, -9
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1982:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -9
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1979:
-	ldi	$r8, $r1, -8
-	addi	$r3, $r8, 0
-	return
-div_blt_taken.1978:
-	ldi	$r8, $r1, -8
-	add	$r3, $r8, $r5
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -10
-	subi	$r1, $r1, 11
-	call	min_caml_mul
-	addi	$r1, $r1, 11
-	ldi	$r9, $r1, -8
-	ldi	$r6, $r1, -3
-	sub	$r8, $r6, $r9
-	ble	$r8, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1986
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.1987
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r5, $r1, -10
-	addi	$r6, $r5, 0
-	addi	$r3, $r7, 0
-	addi	$r5, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1987:
-	ldi	$r5, $r1, -10
-	addi	$r3, $r5, 0
-	return
-div_blt_taken.1986:
-	ldi	$r4, $r1, -1
-	ldi	$r5, $r1, -10
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_ble_taken.1959:
-	ldi	$r7, $r1, -2
-	slli	$r4, $r7, 1
-	ldi	$r6, $r1, -1
-	slli	$r3, $r6, 1
-	sti	$r4, $r1, -11
-	subi	$r1, $r1, 12
-	call	min_caml_mul
-	addi	$r1, $r1, 12
-	ldi	$r6, $r1, 0
-	ble	$r3, $r6, div_ble_taken.1989
-	nop
-	nop
-	ldi	$r5, $r1, -11
+	srai	$r5, $r4, 1
 	slli	$r3, $r5, 1
-	sti	$r3, $r1, -12
-	add	$r3, $r5, $r3
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -13
-	subi	$r1, $r1, 14
-	call	min_caml_mul
-	addi	$r1, $r1, 14
-	ldi	$r5, $r1, -11
-	ldi	$r7, $r1, -12
-	sub	$r8, $r7, $r5
-	ble	$r8, $r30, div_ble_taken.1911
+	sub	$r3, $r4, $r3
+	beq	$r3, $r0, div_beq_taken.6836
 	nop
 	nop
-	ldi	$r6, $r1, 0
-	blt	$r3, $r6, div_blt_taken.1992
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 7
+	call	mul_sub
+	addi	$r1, $r1, 7
+	ldi	$r5, $r1, -6
+	add	$r27, $r3, $r5
+	j	div_blt_cont.6833
+div_beq_taken.6836:
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 7
+	call	mul_sub
+	addi	$r1, $r1, 7
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6833
+div_beq_taken.6834:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6833
+div_blt_taken.6832:
+	sub	$r3, $r0, $r6
+	sub	$r5, $r0, $r4
+	beq	$r5, $r0, div_beq_taken.6834
 	nop
 	nop
-	beq	$r3, $r6, div_beq_taken.1993
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6842
 	nop
 	nop
-	ldi	$r9, $r1, -13
-	add	$r3, $r5, $r9
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -14
-	subi	$r1, $r1, 15
-	call	min_caml_mul
-	addi	$r1, $r1, 15
-	ldi	$r5, $r1, -11
-	ldi	$r9, $r1, -13
-	sub	$r8, $r9, $r5
-	ble	$r8, $r30, div_ble_taken.1911
+	sti	$r3, $r1, -7
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 8
+	call	mul_sub
+	addi	$r1, $r1, 8
+	ldi	$r9, $r1, -7
+	add	$r27, $r3, $r9
+	j	div_blt_cont.6833
+div_beq_taken.6842:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 8
+	call	mul_sub
+	addi	$r1, $r1, 8
+	addi	$r27, $r3, 0
+div_blt_cont.6833:
+	ldi	$r8, $r1, -4
+	ldi	$r6, $r1, -5
+	sub	$r7, $r6, $r8
+	ble	$r7, $r30, div_ble_taken.6846
 	nop
 	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.1996
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6847
 	nop
 	nop
-	beq	$r3, $r7, div_beq_taken.1997
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -14
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1997:
-	ldi	$r6, $r1, -14
-	addi	$r3, $r6, 0
-	return
-div_blt_taken.1996:
-	ldi	$r4, $r1, -1
-	ldi	$r6, $r1, -14
-	addi	$r5, $r6, 0
-	addi	$r3, $r7, 0
-	addi	$r6, $r9, 0
-	j	min_caml_div_binary_search
-div_beq_taken.1993:
-	ldi	$r9, $r1, -13
-	addi	$r3, $r9, 0
-	return
-div_blt_taken.1992:
-	ldi	$r9, $r1, -13
-	add	$r3, $r9, $r7
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -15
-	subi	$r1, $r1, 16
-	call	min_caml_mul
-	addi	$r1, $r1, 16
-	ldi	$r9, $r1, -13
-	ldi	$r6, $r1, -12
-	sub	$r8, $r6, $r9
-	ble	$r8, $r30, div_ble_taken.1907
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.2000
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.2001
+	beq	$r27, $r3, div_beq_taken.6848
 	nop
 	nop
 	ldi	$r4, $r1, -1
-	ldi	$r5, $r1, -15
+	ldi	$r5, $r1, -6
 	addi	$r6, $r5, 0
-	addi	$r3, $r7, 0
-	addi	$r5, $r9, 0
+	addi	$r5, $r8, 0
 	j	min_caml_div_binary_search
-div_beq_taken.2001:
-	ldi	$r5, $r1, -15
+div_beq_taken.6848:
+	ldi	$r5, $r1, -6
 	addi	$r3, $r5, 0
 	return
-div_blt_taken.2000:
+div_blt_taken.6847:
 	ldi	$r4, $r1, -1
-	ldi	$r5, $r1, -15
-	addi	$r3, $r7, 0
+	ldi	$r5, $r1, -6
 	j	min_caml_div_binary_search
-div_ble_taken.1989:
-	ldi	$r5, $r1, -11
-	slli	$r5, $r5, 1
-	ldi	$r4, $r1, -1
-	slli	$r3, $r4, 1
-	sti	$r5, $r1, -16
-	addi	$r4, $r5, 0
-	subi	$r1, $r1, 17
-	call	min_caml_mul
-	addi	$r1, $r1, 17
-	ldi	$r5, $r1, 0
-	ble	$r3, $r5, div_ble_taken.2003
-	nop
-	nop
-	ldi	$r6, $r1, -16
-	slli	$r3, $r6, 1
-	sti	$r3, $r1, -17
-	add	$r3, $r6, $r3
-	srai	$r3, $r3, 1
-	ldi	$r4, $r1, -1
-	sti	$r3, $r1, -18
-	subi	$r1, $r1, 19
-	call	min_caml_mul
-	addi	$r1, $r1, 19
-	ldi	$r5, $r1, -16
-	ldi	$r6, $r1, -17
-	sub	$r8, $r6, $r5
-	ble	$r8, $r30, div_ble_taken.1911
-	nop
-	nop
-	ldi	$r7, $r1, 0
-	blt	$r3, $r7, div_blt_taken.2006
-	nop
-	nop
-	beq	$r3, $r7, div_beq_taken.2007
-	nop
-	nop
-	ldi	$r4, $r1, -1
-	ldi	$r9, $r1, -18
-	addi	$r6, $r9, 0
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_beq_taken.2007:
-	ldi	$r9, $r1, -18
-	addi	$r3, $r9, 0
+div_ble_taken.6846:
+	addi	$r3, $r8, 0
 	return
-div_blt_taken.2006:
-	ldi	$r4, $r1, -1
-	ldi	$r9, $r1, -18
-	addi	$r5, $r9, 0
-	addi	$r3, $r7, 0
-	j	min_caml_div_binary_search
-div_ble_taken.2003:
-	ldi	$r6, $r1, -16
-	slli	$r5, $r6, 1
-	ldi	$r4, $r1, -1
-	slli	$r3, $r4, 1
-	sti	$r5, $r1, -19
-	addi	$r4, $r5, 0
-	subi	$r1, $r1, 20
-	call	min_caml_mul
-	addi	$r1, $r1, 20
+div_ble_taken.6831:
+	ldi	$r8, $r1, -4
+	slli	$r5, $r8, 1
+	blt	$r5, $r0, div_blt_taken.6849
+	nop
+	nop
+	beq	$r5, $r0, div_beq_taken.6850
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sti	$r5, $r1, -8
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6851
+	nop
+	nop
+	ldi	$r3, $r1, -3
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 9
+	call	mul_sub
+	addi	$r1, $r1, 9
+	ldi	$r6, $r1, -3
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6852
+div_beq_taken.6851:
+	ldi	$r3, $r1, -3
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 9
+	call	mul_sub
+	addi	$r1, $r1, 9
+	addi	$r27, $r3, 0
+div_beq_cont.6852:
 	ldi	$r7, $r1, 0
-	ble	$r3, $r7, div_ble_taken.2009
+	ble	$r27, $r7, div_ble_taken.6855
 	nop
 	nop
-	ldi	$r5, $r1, -19
+	ldi	$r5, $r1, -8
 	slli	$r6, $r5, 1
 	ldi	$r4, $r1, -1
 	addi	$r3, $r7, 0
 	j	min_caml_div_binary_search
-div_ble_taken.2009:
-	ldi	$r5, $r1, -19
+div_ble_taken.6855:
+	ldi	$r5, $r1, -8
+	slli	$r4, $r5, 1
+	sti	$r4, $r1, -9
+	blt	$r4, $r0, div_blt_taken.6856
+	nop
+	nop
+	ldi	$r3, $r1, -3
+	subi	$r1, $r1, 10
+	call	mul_sub
+	addi	$r1, $r1, 10
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6857
+div_blt_taken.6856:
+	ldi	$r3, $r1, -3
+	sub	$r3, $r0, $r3
+	sub	$r4, $r0, $r4
+	subi	$r1, $r1, 10
+	call	mul_sub
+	addi	$r1, $r1, 10
+	addi	$r27, $r3, 0
+div_blt_cont.6857:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6860
+	nop
+	nop
+	ldi	$r8, $r1, -9
+	slli	$r3, $r8, 1
+	sti	$r3, $r1, -10
+	add	$r3, $r8, $r3
+	srai	$r6, $r3, 1
+	ldi	$r4, $r1, -1
+	sti	$r6, $r1, -11
+	blt	$r4, $r0, div_blt_taken.6861
+	nop
+	nop
+	beq	$r4, $r0, div_beq_taken.6863
+	nop
+	nop
+	srai	$r5, $r4, 1
+	slli	$r3, $r5, 1
+	sub	$r3, $r4, $r3
+	beq	$r3, $r0, div_beq_taken.6865
+	nop
+	nop
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 12
+	call	mul_sub
+	addi	$r1, $r1, 12
+	ldi	$r5, $r1, -11
+	add	$r27, $r3, $r5
+	j	div_blt_cont.6862
+div_beq_taken.6865:
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 12
+	call	mul_sub
+	addi	$r1, $r1, 12
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6862
+div_beq_taken.6863:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6862
+div_blt_taken.6861:
+	sub	$r3, $r0, $r6
+	sub	$r5, $r0, $r4
+	beq	$r5, $r0, div_beq_taken.6863
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6871
+	nop
+	nop
+	sti	$r3, $r1, -12
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 13
+	call	mul_sub
+	addi	$r1, $r1, 13
+	ldi	$r9, $r1, -12
+	add	$r27, $r3, $r9
+	j	div_blt_cont.6862
+div_beq_taken.6871:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 13
+	call	mul_sub
+	addi	$r1, $r1, 13
+	addi	$r27, $r3, 0
+div_blt_cont.6862:
+	ldi	$r5, $r1, -9
+	ldi	$r6, $r1, -10
+	sub	$r7, $r6, $r5
+	ble	$r7, $r30, div_ble_taken.6807
+	nop
+	nop
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6876
+	nop
+	nop
+	beq	$r27, $r3, div_beq_taken.6877
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -11
+	addi	$r6, $r8, 0
+	j	min_caml_div_binary_search
+div_beq_taken.6877:
+	ldi	$r8, $r1, -11
+	addi	$r3, $r8, 0
+	return
+div_blt_taken.6876:
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -11
+	addi	$r5, $r8, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6860:
+	ldi	$r8, $r1, -9
+	slli	$r5, $r8, 1
+	blt	$r5, $r0, div_blt_taken.6878
+	nop
+	nop
+	beq	$r5, $r0, div_beq_taken.6879
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r5, $r3
+	sti	$r5, $r1, -13
+	beq	$r3, $r0, div_beq_taken.6880
+	nop
+	nop
+	ldi	$r7, $r1, -3
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 14
+	call	mul_sub
+	addi	$r1, $r1, 14
+	ldi	$r6, $r1, -3
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6881
+div_beq_taken.6880:
+	ldi	$r7, $r1, -3
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 14
+	call	mul_sub
+	addi	$r1, $r1, 14
+	addi	$r27, $r3, 0
+div_beq_cont.6881:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6884
+	nop
+	nop
+	ldi	$r5, $r1, -13
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6884:
+	ldi	$r5, $r1, -13
 	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6879:
+	ble	$r0, $r3, div_ble_taken.6885
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r6, $r1, -2
+	addi	$r5, $r6, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6885:
+	ldi	$r4, $r1, -1
+	ldi	$r6, $r1, -2
+	addi	$r5, $r6, 0
+	j	div_sub
+div_blt_taken.6878:
+	ldi	$r7, $r1, -3
+	sub	$r6, $r0, $r7
+	sub	$r7, $r0, $r5
+	beq	$r7, $r0, div_beq_taken.6886
+	nop
+	nop
+	srai	$r4, $r7, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r7, $r3
+	sti	$r5, $r1, -13
+	beq	$r3, $r0, div_beq_taken.6887
+	nop
+	nop
+	slli	$r3, $r6, 1
+	sti	$r6, $r1, -14
+	subi	$r1, $r1, 15
+	call	mul_sub
+	addi	$r1, $r1, 15
+	ldi	$r6, $r1, -14
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6888
+div_beq_taken.6887:
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 15
+	call	mul_sub
+	addi	$r1, $r1, 15
+	addi	$r27, $r3, 0
+div_beq_cont.6888:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6891
+	nop
+	nop
+	ldi	$r5, $r1, -13
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6891:
+	ldi	$r5, $r1, -13
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6886:
+	ble	$r0, $r3, div_ble_taken.6892
+	nop
+	nop
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6892:
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6850:
+	ble	$r0, $r7, div_ble_taken.6893
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r6, $r1, -2
+	addi	$r5, $r6, 0
+	addi	$r3, $r7, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6893:
+	ldi	$r3, $r1, -3
+	ldi	$r6, $r1, -2
+	addi	$r4, $r6, 0
+	subi	$r1, $r1, 15
+	call	mul_sub
+	addi	$r1, $r1, 15
+	ldi	$r7, $r1, 0
+	ble	$r3, $r7, div_ble_taken.6895
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	blt	$r4, $r0, div_blt_taken.6896
+	nop
+	nop
+	beq	$r4, $r0, div_beq_taken.6783
+	nop
+	nop
+	addi	$r3, $r0, 0
+	return
+div_blt_taken.6896:
+	sub	$r3, $r0, $r4
+	beq	$r3, $r0, div_beq_taken.6783
+	nop
+	nop
+	addi	$r3, $r0, 0
+	return
+div_ble_taken.6895:
+	addi	$r5, $r0, 0
+	ble	$r0, $r7, div_ble_taken.6899
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	addi	$r6, $r5, 0
+	addi	$r3, $r7, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6899:
 	ldi	$r4, $r1, -1
 	addi	$r3, $r7, 0
 	j	div_sub
+div_blt_taken.6849:
+	ldi	$r3, $r1, -3
+	sub	$r6, $r0, $r3
+	sub	$r8, $r0, $r5
+	beq	$r8, $r0, div_beq_taken.6900
+	nop
+	nop
+	srai	$r4, $r8, 1
+	sti	$r5, $r1, -8
+	slli	$r5, $r4, 1
+	sub	$r5, $r8, $r5
+	sti	$r6, $r1, -15
+	beq	$r5, $r0, div_beq_taken.6901
+	nop
+	nop
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 16
+	call	mul_sub
+	addi	$r1, $r1, 16
+	ldi	$r8, $r1, -15
+	add	$r27, $r3, $r8
+	j	div_beq_cont.6902
+div_beq_taken.6901:
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 16
+	call	mul_sub
+	addi	$r1, $r1, 16
+	addi	$r27, $r3, 0
+div_beq_cont.6902:
+	ldi	$r7, $r1, 0
+	ble	$r27, $r7, div_ble_taken.6905
+	nop
+	nop
+	ldi	$r5, $r1, -8
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	addi	$r3, $r7, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6905:
+	ldi	$r5, $r1, -8
+	slli	$r4, $r5, 1
+	sti	$r4, $r1, -16
+	blt	$r4, $r0, div_blt_taken.6906
+	nop
+	nop
+	ldi	$r3, $r1, -3
+	subi	$r1, $r1, 17
+	call	mul_sub
+	addi	$r1, $r1, 17
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6907
+div_blt_taken.6906:
+	sub	$r4, $r0, $r4
+	ldi	$r6, $r1, -15
+	addi	$r3, $r6, 0
+	subi	$r1, $r1, 17
+	call	mul_sub
+	addi	$r1, $r1, 17
+	addi	$r27, $r3, 0
+div_blt_cont.6907:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6910
+	nop
+	nop
+	ldi	$r9, $r1, -16
+	slli	$r3, $r9, 1
+	sti	$r3, $r1, -17
+	add	$r3, $r9, $r3
+	srai	$r6, $r3, 1
+	ldi	$r4, $r1, -1
+	sti	$r6, $r1, -18
+	blt	$r4, $r0, div_blt_taken.6911
+	nop
+	nop
+	beq	$r4, $r0, div_beq_taken.6913
+	nop
+	nop
+	srai	$r5, $r4, 1
+	slli	$r3, $r5, 1
+	sub	$r3, $r4, $r3
+	beq	$r3, $r0, div_beq_taken.6915
+	nop
+	nop
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 19
+	call	mul_sub
+	addi	$r1, $r1, 19
+	ldi	$r5, $r1, -18
+	add	$r27, $r3, $r5
+	j	div_blt_cont.6912
+div_beq_taken.6915:
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 19
+	call	mul_sub
+	addi	$r1, $r1, 19
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6912
+div_beq_taken.6913:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6912
+div_blt_taken.6911:
+	sub	$r3, $r0, $r6
+	sub	$r5, $r0, $r4
+	beq	$r5, $r0, div_beq_taken.6913
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6921
+	nop
+	nop
+	sti	$r3, $r1, -19
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 20
+	call	mul_sub
+	addi	$r1, $r1, 20
+	ldi	$r8, $r1, -19
+	add	$r27, $r3, $r8
+	j	div_blt_cont.6912
+div_beq_taken.6921:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 20
+	call	mul_sub
+	addi	$r1, $r1, 20
+	addi	$r27, $r3, 0
+div_blt_cont.6912:
+	ldi	$r5, $r1, -16
+	ldi	$r6, $r1, -17
+	sub	$r7, $r6, $r5
+	ble	$r7, $r30, div_ble_taken.6807
+	nop
+	nop
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6926
+	nop
+	nop
+	beq	$r27, $r3, div_beq_taken.6927
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -18
+	addi	$r6, $r8, 0
+	j	min_caml_div_binary_search
+div_beq_taken.6927:
+	ldi	$r8, $r1, -18
+	addi	$r3, $r8, 0
+	return
+div_blt_taken.6926:
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -18
+	addi	$r5, $r8, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6910:
+	ldi	$r9, $r1, -16
+	slli	$r5, $r9, 1
+	blt	$r5, $r0, div_blt_taken.6928
+	nop
+	nop
+	beq	$r5, $r0, div_beq_taken.6929
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r5, $r3
+	sti	$r5, $r1, -20
+	beq	$r3, $r0, div_beq_taken.6930
+	nop
+	nop
+	ldi	$r7, $r1, -3
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 21
+	call	mul_sub
+	addi	$r1, $r1, 21
+	ldi	$r6, $r1, -3
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6931
+div_beq_taken.6930:
+	ldi	$r7, $r1, -3
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 21
+	call	mul_sub
+	addi	$r1, $r1, 21
+	addi	$r27, $r3, 0
+div_beq_cont.6931:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6934
+	nop
+	nop
+	ldi	$r5, $r1, -20
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6934:
+	ldi	$r5, $r1, -20
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6929:
+	ble	$r0, $r3, div_ble_taken.6935
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r6, $r1, -2
+	addi	$r5, $r6, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6935:
+	ldi	$r4, $r1, -1
+	ldi	$r6, $r1, -2
+	addi	$r5, $r6, 0
+	j	div_sub
+div_blt_taken.6928:
+	sub	$r6, $r0, $r5
+	beq	$r6, $r0, div_beq_taken.6936
+	nop
+	nop
+	srai	$r4, $r6, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r6, $r3
+	sti	$r5, $r1, -20
+	beq	$r3, $r0, div_beq_taken.6937
+	nop
+	nop
+	ldi	$r8, $r1, -15
+	slli	$r3, $r8, 1
+	subi	$r1, $r1, 21
+	call	mul_sub
+	addi	$r1, $r1, 21
+	ldi	$r6, $r1, -15
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6938
+div_beq_taken.6937:
+	ldi	$r8, $r1, -15
+	slli	$r3, $r8, 1
+	subi	$r1, $r1, 21
+	call	mul_sub
+	addi	$r1, $r1, 21
+	addi	$r27, $r3, 0
+div_beq_cont.6938:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6941
+	nop
+	nop
+	ldi	$r5, $r1, -20
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6941:
+	ldi	$r5, $r1, -20
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6936:
+	ble	$r0, $r3, div_ble_taken.6942
+	nop
+	nop
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6942:
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6900:
+	ble	$r0, $r7, div_ble_taken.6943
+	nop
+	nop
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	addi	$r3, $r7, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6943:
+	slli	$r4, $r5, 1
+	sti	$r6, $r1, -15
+	sti	$r4, $r1, -21
+	blt	$r4, $r0, div_blt_taken.6944
+	nop
+	nop
+	subi	$r1, $r1, 22
+	call	mul_sub
+	addi	$r1, $r1, 22
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6945
+div_blt_taken.6944:
+	sub	$r4, $r0, $r4
+	addi	$r3, $r6, 0
+	subi	$r1, $r1, 22
+	call	mul_sub
+	addi	$r1, $r1, 22
+	addi	$r27, $r3, 0
+div_blt_cont.6945:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6948
+	nop
+	nop
+	ldi	$r8, $r1, -21
+	slli	$r3, $r8, 1
+	sti	$r3, $r1, -22
+	add	$r3, $r8, $r3
+	srai	$r6, $r3, 1
+	ldi	$r4, $r1, -1
+	sti	$r6, $r1, -23
+	blt	$r4, $r0, div_blt_taken.6949
+	nop
+	nop
+	beq	$r4, $r0, div_beq_taken.6951
+	nop
+	nop
+	srai	$r5, $r4, 1
+	slli	$r3, $r5, 1
+	sub	$r3, $r4, $r3
+	beq	$r3, $r0, div_beq_taken.6953
+	nop
+	nop
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 24
+	call	mul_sub
+	addi	$r1, $r1, 24
+	ldi	$r5, $r1, -23
+	add	$r27, $r3, $r5
+	j	div_blt_cont.6950
+div_beq_taken.6953:
+	slli	$r3, $r6, 1
+	addi	$r4, $r5, 0
+	subi	$r1, $r1, 24
+	call	mul_sub
+	addi	$r1, $r1, 24
+	addi	$r27, $r3, 0
+	j	div_blt_cont.6950
+div_beq_taken.6951:
+	addi	$r27, $r0, 0
+	j	div_blt_cont.6950
+div_blt_taken.6949:
+	sub	$r3, $r0, $r6
+	sub	$r5, $r0, $r4
+	beq	$r5, $r0, div_beq_taken.6951
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r6, $r4, 1
+	sub	$r5, $r5, $r6
+	beq	$r5, $r0, div_beq_taken.6959
+	nop
+	nop
+	sti	$r3, $r1, -24
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 25
+	call	mul_sub
+	addi	$r1, $r1, 25
+	ldi	$r9, $r1, -24
+	add	$r27, $r3, $r9
+	j	div_blt_cont.6950
+div_beq_taken.6959:
+	slli	$r3, $r3, 1
+	subi	$r1, $r1, 25
+	call	mul_sub
+	addi	$r1, $r1, 25
+	addi	$r27, $r3, 0
+div_blt_cont.6950:
+	ldi	$r5, $r1, -21
+	ldi	$r6, $r1, -22
+	sub	$r7, $r6, $r5
+	ble	$r7, $r30, div_ble_taken.6807
+	nop
+	nop
+	ldi	$r3, $r1, 0
+	blt	$r27, $r3, div_blt_taken.6964
+	nop
+	nop
+	beq	$r27, $r3, div_beq_taken.6965
+	nop
+	nop
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -23
+	addi	$r6, $r8, 0
+	j	min_caml_div_binary_search
+div_beq_taken.6965:
+	ldi	$r8, $r1, -23
+	addi	$r3, $r8, 0
+	return
+div_blt_taken.6964:
+	ldi	$r4, $r1, -1
+	ldi	$r8, $r1, -23
+	addi	$r5, $r8, 0
+	j	min_caml_div_binary_search
+div_ble_taken.6948:
+	ldi	$r8, $r1, -21
+	slli	$r8, $r8, 1
+	blt	$r8, $r0, div_blt_taken.6966
+	nop
+	nop
+	beq	$r8, $r0, div_beq_taken.6967
+	nop
+	nop
+	srai	$r4, $r8, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r8, $r3
+	sti	$r8, $r1, -25
+	beq	$r3, $r0, div_beq_taken.6968
+	nop
+	nop
+	ldi	$r6, $r1, -3
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 26
+	call	mul_sub
+	addi	$r1, $r1, 26
+	ldi	$r6, $r1, -3
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6969
+div_beq_taken.6968:
+	ldi	$r6, $r1, -3
+	slli	$r3, $r6, 1
+	subi	$r1, $r1, 26
+	call	mul_sub
+	addi	$r1, $r1, 26
+	addi	$r27, $r3, 0
+div_beq_cont.6969:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6972
+	nop
+	nop
+	ldi	$r5, $r1, -25
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6972:
+	ldi	$r5, $r1, -25
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6967:
+	ldi	$r4, $r1, -1
+	ldi	$r5, $r1, -2
+	j	div_sub
+div_blt_taken.6966:
+	sub	$r5, $r0, $r8
+	beq	$r5, $r0, div_beq_taken.6973
+	nop
+	nop
+	srai	$r4, $r5, 1
+	slli	$r3, $r4, 1
+	sub	$r3, $r5, $r3
+	sti	$r8, $r1, -25
+	beq	$r3, $r0, div_beq_taken.6974
+	nop
+	nop
+	ldi	$r7, $r1, -15
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 26
+	call	mul_sub
+	addi	$r1, $r1, 26
+	ldi	$r6, $r1, -15
+	add	$r27, $r3, $r6
+	j	div_beq_cont.6975
+div_beq_taken.6974:
+	ldi	$r7, $r1, -15
+	slli	$r3, $r7, 1
+	subi	$r1, $r1, 26
+	call	mul_sub
+	addi	$r1, $r1, 26
+	addi	$r27, $r3, 0
+div_beq_cont.6975:
+	ldi	$r3, $r1, 0
+	ble	$r27, $r3, div_ble_taken.6978
+	nop
+	nop
+	ldi	$r5, $r1, -25
+	slli	$r6, $r5, 1
+	ldi	$r4, $r1, -1
+	j	min_caml_div_binary_search
+div_ble_taken.6978:
+	ldi	$r5, $r1, -25
+	slli	$r5, $r5, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
+div_beq_taken.6973:
+	slli	$r5, $r8, 1
+	ldi	$r4, $r1, -1
+	j	div_sub
 
+
+	
 
 # $r3: devidee $r4: devider
 min_caml_div:
@@ -1811,6 +1824,7 @@ ans_direct:
 zero_div:
 	addi $r3, $r0, 0
 	return
+
 
 # display 命令を呼び直す
 # display y x char

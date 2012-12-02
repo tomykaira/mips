@@ -429,7 +429,7 @@ int simulate(simulation_options * opt)
 				FRT = ((uint32_t)IMM << 16);
 				break;
 			case J:
-				jump_logger.push_back(pc);
+			  jump_logger.push_back(pc);
 				pc = get_address(inst);
 
 				break;
@@ -452,17 +452,17 @@ int simulate(simulation_options * opt)
 				if (asF(FRS) <= asF(FRT)) pc += IMM + (-1);
 				break;
 			case JR:
-				jump_logger.push_back(pc);
+			  	jump_logger.push_back(pc);
 				pc = IRS;
 				break;
 			case CALL:
-				jump_logger.push_back(pc);
+			        jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
 				break;
 			case CALLR:
-				jump_logger.push_back(pc);
+			        jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = IRS;

@@ -85,7 +85,7 @@ and g' ret = function
    | [] -> List.rev ret
    | Label l::xs -> g (Label l::ret) xs
    | Comment s::xs -> g (Comment s::ret) xs
-   | x::xs -> g' ret xs
+   | _::xs -> g' ret xs
 
 (* 無駄なラベルを削除する関数 *)
 let rec h'' r s = function
@@ -95,7 +95,7 @@ let rec h'' r s = function
 let rec h' s = function
   | [] -> s
   | (SetL(_,l) | BEq(_,_,l) | BLE(_,_,l) | BLT(_,_,l) | FBEq(_,_,l) | FBLE(_,_,l)  | FBLT(_,_,l) | J l | Call l)::xs  -> h' (S.add l s) xs
-  | x::xs -> h' s xs
+  | _::xs -> h' s xs
 let h all = h'' [] (h' S.empty all) all
     
 

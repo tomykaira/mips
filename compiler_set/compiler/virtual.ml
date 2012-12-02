@@ -2,6 +2,10 @@
 
 open Asm
 
+(* グローバル配列の集合 *)
+let globals = ref M.empty
+
+
 (* その数が2の何乗か返す(切り上げ) *)
 let rec log2_sub n i =
   if 1 lsl i >= n then i
@@ -105,11 +109,17 @@ let rec g tail env = function
       let z = Id.genid "l" in
       (match t with
       | Type.Fun(_,_) ->
-	  Let((x, t), AddI(reg_hp, 0),
-	      Let((reg_hp, Type.Int), AddI(reg_hp, offset),
-		  Let((z, Type.Int), SetL(l),
-		      seq(StI(z, x, 0),
-			  store_fv))))
+	  if M.mem x !globals then
+	    Let((x, t), Int(M.find x !globals),
+		Let((z, Type.Int), SetL(l),
+		    seq(StI(z, x, 0),
+			store_fv)))
+	  else
+	    Let((x, t), AddI(reg_hp, 0),
+	        Let((reg_hp, Type.Int), AddI(reg_hp, offset),
+	  	    Let((z, Type.Int), SetL(l),
+		        seq(StI(z, x, 0),
+		  	    store_fv))))
       | _ -> assert false)
   | Closure.LetTuple(xts, y, e2) ->
       let (_, load) =
@@ -199,12 +209,16 @@ and g' tail env = function
       | "min_caml_xor" -> Ans(Xor(List.nth int 0, List.nth int 1))
       | "min_caml_sqrt" -> Ans(FSqrt(List.hd float))
       | "min_caml_not" -> Ans(Xor(List.hd int, reg_1))
+      | "min_caml_print_char" -> Ans(Outputb(List.hd int))
+      | "min_caml_input_char" | "min_caml_read_char" -> Ans(Inputb)
       | "min_caml_create_tuple_array" ->
-	  let z = fst (List.hd ayts) in
+	  let z = List.hd ays in
 	  let yts = List.tl ayts in
 	  let r = Id.genid "t" in
 	  let t = Id.genid "T" in
 	  let l = List.length yts in
+	  let ll = log2 l in
+	  let l' = 1 lsl ll in
 	  let (_, store) =
 	    expand
 	      yts
@@ -213,18 +227,46 @@ and g' tail env = function
 		let off = Id.genid "Off" in
 		let n = Id.genid "n" in
 	      	Let((off, Type.Int), AddI(r, offset),
-		    Let((n, Type.Int), Int(l),
+		    Let((n, Type.Int), Int(l'),
 			seq(CallDir(Id.L("min_caml_float_tuple_array"), [off; n], [y]), store))))
 	      (fun y _ offset store ->
 		let off = Id.genid "Off" in
 		let n = Id.genid "n" in
-		Let((off, Type.Int), AddI(r, offset),
-		    Let((n, Type.Int), Int(l),
+	      	Let((off, Type.Int), AddI(r, offset),
+		    Let((n, Type.Int), Int(l'),
 			seq(CallDir(Id.L("min_caml_int_tuple_array"), [y; off; n], []), store)))) in
 	  Let((r, Type.Array(Type.Tuple(List.map snd yts))), AddI(reg_hp, 0),
-	      Let((t, Type.Int), SllI(z, log2 l),
+	      Let((t, Type.Int), SllI(z, ll),
 		  (Let((reg_hp, Type.Int), Add(reg_hp, t),
-		  	  store))))
+		  	   store))))
+      | "min_caml_tuple_array_init" ->
+	  let r = List.hd ays in
+	  let z = List.nth ays 1 in
+	  let yts = List.tl (List.tl ayts) in
+	  let t = Id.genid "T" in
+	  let l = List.length yts in
+	  let ll = log2 l in
+	  let l' = 1 lsl ll in
+	  let addr = Id.genid "addr" in
+	  let (_, store) =
+	    expand
+	      yts
+	      (0, Ans(Nop))
+	      (fun y offset store ->
+		let off = Id.genid "Off" in
+		let n = Id.genid "n" in
+	      	Let((off, Type.Int), AddI(r, offset),
+		    Let((n, Type.Int), Int(l'),
+			seq(CallDir(Id.L("min_caml_float_tuple_array_init"), [off; n; addr], [y]), store))))
+	      (fun y _ offset store ->
+		let off = Id.genid "Off" in
+		let n = Id.genid "n" in
+	      	Let((off, Type.Int), AddI(r, offset),
+		    Let((n, Type.Int), Int(l'),
+			seq(CallDir(Id.L("min_caml_int_tuple_array_init"), [y; off; n; addr], []), store)))) in
+	  Let((t, Type.Int), SllI(z, ll),
+	      (Let((addr, Type.Int), Add(r, t),
+		   store)))
       | _ -> Ans(CallDir(Id.L(x), int, float)))
   | Closure.Tuple(xs) -> (* 組の生成 *)
       let y = Id.genid "t" in
@@ -263,7 +305,6 @@ and g' tail env = function
       | Type.Array(Type.Tuple(ts)) ->
           let ind = Id.genid "Index" in
 	  let l = List.length ts in
-	  let i = log2 l in
 	  Let((ind, Type.Int), SllI(y, log2 l), (Ans(Add(x, ind))))
       | _ -> assert false)
 	(* タプルを配列に埋め込む時に使う命令 *)
@@ -273,7 +314,6 @@ and g' tail env = function
           let ind = Id.genid "Index" in
           let addr = Id.genid "Addr" in
 	  let l = List.length ts in
-	  let i = log2 l in
           let (_, store) =
 	    expand
 	      (List.map (fun x -> (x, M.find x env)) zs)
@@ -283,6 +323,8 @@ and g' tail env = function
 	  Let((ind, Type.Int), SllI(y, log2 l),
 	      (Let((addr, Type.Tuple(ts)), Add(x, ind), store)))
       | _ -> assert false)
+  | Closure.ExtArray(Id.L(x)) when M.mem x !globals
+    -> Ans(Int(M.find x !globals))
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
   | Closure.Nil ->
       let new_list = Id.genid "li" in
@@ -305,22 +347,36 @@ and g' tail env = function
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
   let (int, float) = separate yts in
   let tail = if S.mem x !CollectDanger.danger then false else true in
+  let (x', head) =
+    if M.mem x !globals then
+      let x' = Id.genid x in
+      (x', (fun p -> (Let((x', t), Int(M.find x !globals), p))))
+    else (x, (fun t -> t)) in
   let (_, load) =
     expand
       zts
       (1, g tail (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load ->
-	insert_load z (fun a -> Let((z, Type.Float), FLdI(x, offset), a)) load)
+	insert_load z (fun a -> Let((z, Type.Float), FLdI(x', offset), a)) load)
       (fun z t offset load ->
-	insert_load z (fun a -> Let((z, t), LdI(x, offset), a)) load) in
+	insert_load z (fun a -> Let((z, t), LdI(x', offset), a)) load) in
   match t with
   | Type.Fun(_, t2) ->
-      { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }
+      { name = Id.L(x); args = int; fargs = float; body = head load; ret = t2 }
   | _ -> assert false
 
+
+(* グローバル配列の仮想マシンコード生成 *)
+let i { Closure.gname = (Id.L(x), _); Closure.length = l } =
+  let hp_back = !hp in
+  hp := !hp + l;
+  globals := M.add x hp_back !globals
+
+
 (* プログラム全体の仮想マシンコード生成 *)
-let f (Closure.Prog(fundefs, e)) =
+let f (Closure.Prog(gls, fundefs, e)) =
   Format.eprintf "generating virtual assembly...@.";
+  List.iter i gls;
   let fundefs = List.map h fundefs in
   let e = g false M.empty e in
   Prog (fundefs, e)

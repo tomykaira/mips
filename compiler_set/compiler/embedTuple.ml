@@ -6,6 +6,8 @@ let rec a = function
   | (x, Type.Array(Type.Tuple(ts)))::xs -> (x, ts)::a xs
   | _::xs -> a xs
 
+
+
 (* 配列の中のタプルを展開する関数 *)
 let rec g env env' = function
   | Let((x, t), exp, e) ->
@@ -29,6 +31,12 @@ and g' env env' = function
       | Type.Tuple(ts) ->
 	  let xts = List.map (fun t -> (Id.genid y, t)) ts in
 	  LetTuple(xts, y, Ans(AppDir(l, x::(List.map fst xts))))
+      | _ -> assert false)
+  | AppDir((Id.L("min_caml_tuple_array_init") as l), [v;x;y]) ->
+      (match M.find y env' with
+      | Type.Tuple(ts) ->
+	  let xts = List.map (fun t -> (Id.genid y, t)) ts in
+	  LetTuple(xts, y, Ans(AppDir(l, v::x::(List.map fst xts))))
       | _ -> assert false)
   | Get(x,y) when M.mem x env -> 
       let z = Id.genid x in
@@ -64,12 +72,26 @@ let rec at = function
   | _ -> false
 
 
+(* その数が2の何乗か返す(切り上げ) *)
+let rec log2_sub n i =
+  if 1 lsl i >= n then i
+  else log2_sub n (i+1)
+let log2 n = log2_sub n 0
+
+(* グローバル配列のタプルを展開 *)
+let rec i { gname = (x, t); length = l } =
+  let l' = match t with
+  | Type.Array(Type.Tuple(ts)) -> (1 lsl (log2 (List.length ts))) * l
+  | _ -> l in
+  { gname = (x, t); length = l' }
+
+
 (* 本体 *)
-let f (Prog(toplevel, e)) =
+let f (Prog(globals, toplevel, e)) =
   (* 外部関数や配列に1つでもArray(Tuple(_))の形を持つものがあったら諦める *)
-  if M.exists (fun _ -> at) !Typing.extenv then Prog(toplevel,e) else
+  if M.exists (fun _ -> at) !Typing.extenv then Prog(globals,toplevel,e) else
   (Format.eprintf "embedding tuples into array...@.";
-  Prog(List.map h toplevel, g M.empty M.empty e))
+  Prog(List.map i globals, List.map h toplevel, g M.empty M.empty e))
 
   
   
