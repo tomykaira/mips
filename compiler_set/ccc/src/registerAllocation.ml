@@ -2,25 +2,23 @@ open LiveAnalyzer
 open Util
 module Heap = HeapAllocation
 
-type call_context = { to_save: (Reg.i * Id.t) list; to_restore: (Reg.i * Id.t) list }
-    deriving (Show)
-
 type instruction =
-  | Assignment  of Reg.i * Reg.i Heap.exp
-  | BranchZero  of Reg.i * Id.l
-  | BranchEqual of Reg.i * Reg.i * Id.l
-  | BranchLT    of Reg.i * Reg.i * Id.l
-  | Call        of Id.l * Reg.i list * call_context
-  | CallAndSet  of Reg.i * Id.l * Reg.i list * call_context
-  | Spill       of Reg.i * Id.t
-  | Restore     of Reg.i * Id.t
-  | Label       of Id.l
+  | Assignment   of Reg.i * Reg.i Heap.exp
+  | BranchZero   of Reg.i * Id.l
+  | BranchEqual  of Reg.i * Reg.i * Id.l
+  | BranchLT     of Reg.i * Reg.i * Id.l
+  | Call         of Id.l * Reg.i list * (Reg.i * Id.t) list
+  | CallAndSet   of Reg.i * Id.l * Reg.i list * (Reg.i * Id.t) list
+  | Spill        of Reg.i * Id.t
+  | Restore      of Reg.i * Id.t
+  | Label        of Id.l
   | Return
-  | Goto        of Id.l
-  | ArraySet    of Id.t * Reg.i * Reg.i
+  | Goto         of Id.l
+  | StoreHeap    of Reg.i * Reg.i
+  | StoreHeapImm of Reg.i * int
     deriving (Show)
 
-type t = { functions : (Syntax.function_signature * instruction list) list;
+type t = { functions : (Id.l * instruction list) list;
            initialize_code : instruction list }
       deriving (Show)
 
@@ -292,21 +290,69 @@ let assign_colors () =
     end
   in
   List.fold_left color_node () !select_stack;
+  List.iter (fun (name_to, name_from) ->
+    colored_nodes := (name_from, List.assoc name_to !colored_nodes) :: !colored_nodes) !coalesced_map;
   !colored_nodes
-(* TODO: color coalesced nodes *)
 
 let rewrite_program _ _ =
   failwith "Oh sorry, you cannot retry."
 
-let replace_registers colored_nodes insts =
-  failwith "Oh sorry, you cannot retry."
+let replace_registers live colored_nodes insts =
+  let r id = List.assoc id colored_nodes in
+  let replace_exp = function
+    | Heap.Mov(id)          -> Heap.Mov(r id)
+    | Heap.Const(c)         -> Heap.Const(c)
+    | Heap.And(id1, id2)    -> Heap.And(r id1, r id2)
+    | Heap.Or(id1, id2)     -> Heap.Or(r id1, r id2)
+    | Heap.Add(id1, id2)    -> Heap.Add(r id1, r id2)
+    | Heap.Sub(id1, id2)    -> Heap.Sub(r id1, r id2)
+    | Heap.Negate(id1)      -> Heap.Negate(r id1)
+    | Heap.LoadHeap(id1)    -> Heap.LoadHeap(r id1)
+    | Heap.LoadHeapImm(int) -> Heap.LoadHeapImm(int)
+
+  in
+  let replace (Entity.E(_, inst) as identified) =
+    match inst with
+      | Heap.Assignment(id, exp) ->
+        [Assignment(r id, replace_exp exp)]
+      | Heap.Call(l, args) ->
+        let live = LiveMap.find identified live in
+        let allocation = S.map_list (fun name -> (r name, name)) live in
+        [Call(l, List.map r args, allocation)]
+      | Heap.CallAndSet(to_set, l, args) ->
+        let live = LiveMap.find identified live in
+        let allocation = S.map_list (fun name -> (r name, name)) (S.remove to_set live) in
+        [CallAndSet(r to_set, l, List.map r args, allocation)]
+      | Heap.BranchZero(id, l) ->
+        [BranchZero(r id, l)]
+      | Heap.BranchEqual(id1, id2, l) ->
+        [BranchEqual(r id1, r id2, l)]
+      | Heap.BranchLT(id1, id2, l) ->
+        [BranchLT(r id1, r id2, l)]
+      | Heap.Return(id) ->
+        if r id = Reg.ret then
+          [Return]
+        else
+          failwith "return address is not return register"
+      | Heap.StoreHeap(id1, id2) ->
+        [StoreHeap(r id1, r id2)]
+      | Heap.StoreHeapImm(id1, imm) ->
+        [StoreHeapImm(r id1, imm)]
+
+      | Heap.ReturnVoid    -> [Return]
+      | Heap.Label(l)      -> [Label(l)]
+      | Heap.Goto(l)       -> [Goto(l)]
+      | Heap.Definition(_) -> []
+  in
+  concat_map replace insts
 
 let rec retry insts =
   color_variables (rewrite_program !spilled_nodes insts)
 and color_variables insts =
   reset ();
   let other_nodes = S.diff (extract_nodes insts) (precolored_nodes ()) in
-  setup_for_function (live_t insts) insts;
+  let live = live_t insts in
+  setup_for_function live insts;
   make_worklist other_nodes;
   while S.is_empty !simplify_worklist && MoveS.is_empty !worklist_moves &&
     S.is_empty !freeze_worklist && S.is_empty !spill_worklist do
@@ -323,16 +369,35 @@ and color_variables insts =
   done;
   let colored_nodes = assign_colors () in
   if S.is_empty !spilled_nodes then
-    replace_registers colored_nodes insts
+    replace_registers live colored_nodes insts
   else
     retry insts
 
-let insert_precolored_to_return insts =
+let insert_precolored_variables insts =
+  let create_assignment (old_id, new_id, _) =
+    Heap.Assignment(new_id, Heap.Mov(old_id))
+  in
+  let register_binding (_, new_id, num) =
+    (new_id, Reg.(`I num))
+  in
+  let get_new (_, n, _) = n in
   let replace inst (accumulate, pairs) = match inst with
     | Heap.Return (t) ->
       let id = Id.unique "return" in
       (Heap.Assignment(id, Heap.Mov(t)) :: Heap.Return(id) :: accumulate,
        (id, Reg.ret) :: pairs)
+    | Heap.CallAndSet (old_id, l, args) ->
+      let mapping = List.mapi (fun num old_id -> (old_id, Id.unique "arg", num + 3)) args in
+      let return_id = Id.unique "receiver" in
+      (List.map create_assignment mapping
+       @ [Heap.CallAndSet(return_id, l, List.map get_new mapping);
+          Heap.Assignment(old_id, Heap.Mov(return_id))]
+       @ accumulate,
+       (return_id, Reg.ret) :: List.map register_binding mapping @ pairs)
+    | Heap.Call (l, args) ->
+      let mapping = List.mapi (fun num old_id -> (old_id, Id.unique "arg", num + 3)) args in
+      (List.map create_assignment mapping @ [Heap.Call(l, List.map get_new mapping)] @ accumulate,
+       List.map register_binding mapping @ pairs)
     | inst ->
       (inst :: accumulate, pairs)
   in
@@ -341,12 +406,12 @@ let insert_precolored_to_return insts =
 let get_abi_constraint { Syntax.parameters = params; _ } : (Id.t * Reg.i) list =
   Reg.assign_params (List.map (Id.raw $ Syntax.parameter_id) params)
 
-let convert_function (signature, insts) =
-  let (insts, return_precoloring) = insert_precolored_to_return insts in
+let convert_function ({Syntax.name = name} as signature, insts) =
+  let (insts, return_precoloring) = insert_precolored_variables insts in
   let parameter_precoloring = get_abi_constraint signature in
   precolored := parameter_precoloring @ return_precoloring;
   let identified_insts = Entity.identify insts in
-  color_variables identified_insts
+  (name, color_variables identified_insts)
 
 let convert { Heap.functions = funs; Heap.initialize_code = init } =
-  { functions = List.map convert_function funs; initialize_code = init }
+  { functions = List.map convert_function funs; initialize_code = color_variables (Entity.identify init) }

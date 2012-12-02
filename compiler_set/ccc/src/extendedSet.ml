@@ -14,4 +14,6 @@ module Make(Ord:Set.OrderedType) = struct
     (item, remove item s)
 
   let not_empty = Util.(not $ is_empty)
+
+  let map_list f = Util.(List.map f $ elements)
 end

@@ -27,6 +27,8 @@ let lexbuf outchan l =
       $ (notify "memory allocation")
       $ RegisterAllocation.convert
       $ (notify "register allocation")
+      $ HeapAllocation.convert
+      $ (notify "heap allocation")
       $ Flow.convert
       $ (notify "flow")
       $ SimpleControl.convert
