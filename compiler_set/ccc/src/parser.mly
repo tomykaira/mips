@@ -47,8 +47,9 @@ open Syntax
 %token GOTO
 %token IF
 %token RETURN
-%token STRUCT
+%token SHARP_DEFINE
 %token SIZEOF
+%token STRUCT
 %token SWITCH
 %token WHILE
 
@@ -77,6 +78,8 @@ external_decl:
     { GlobalVariable($1) }
 | array_definition
     { $1 }
+| macro_definition
+    { DefineMacro($1) }
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
@@ -107,6 +110,19 @@ type_class:
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
     { Array({id = Id.A $2; content_type = $1; size = $4}) }
+
+macro_definition:
+| SHARP_DEFINE ID const
+    { ConstMacro($2, $3) }
+| SHARP_DEFINE ID L_PAREN id_list R_PAREN L_PAREN exp R_PAREN
+    { ExpMacro($2, $4, $7) }
+
+id_list:
+| ID
+    { [$1] }
+| id_list COMMA ID
+    { $1 @ [$3] }
+
 
 variable_definition_list:
 | variable_definition

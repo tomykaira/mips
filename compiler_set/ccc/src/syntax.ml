@@ -97,6 +97,9 @@ type function_signature = { name: Id.l; return_type: type_class; parameters: par
 type array_signature = { id: Id.v; content_type: type_class; size: int }
     deriving (Show)
 
+type macro = ConstMacro of Id.t * const_value | ExpMacro of Id.t * Id.t list * exp
+    deriving (Show)
+
 let signature id return_type params =
   { name = Id.L id; return_type = return_type; parameters = params }
 
@@ -105,4 +108,5 @@ type t =
   | FunctionDeclaration of function_signature
   | GlobalVariable of variable
   | Array of array_signature
+  | DefineMacro of macro
     deriving (Show)

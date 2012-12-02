@@ -21,6 +21,7 @@ FILES[] =
 	s
 	memoryAllocation
 	generateAsm
+	macroExpand
 
 LIB = ccc
 PROGRAM = main

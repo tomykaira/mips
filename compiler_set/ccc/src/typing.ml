@@ -19,10 +19,10 @@ type environment = { variables: Type.t M.t; functions: Type.fun_type FunTypeMap.
 
 let extract_bodies t =
   let body = function
-    | GlobalVariable(_) -> []
-    | FunctionDeclaration(_) -> []
-    | Array(_) -> []
-    | Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
+    | MacroExpand.GlobalVariable(_) -> []
+    | MacroExpand.FunctionDeclaration(_) -> []
+    | MacroExpand.Array(_) -> []
+    | MacroExpand.Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
   in
   concat_map body t
 
@@ -153,18 +153,18 @@ let check_top ({variables = vs; functions = fs} as env) t =
     { env with variables = M.add_list param_binds vs }
   in
   match t with
-    | Function({return_type = return_type; parameters = params; _} as signature, stat) ->
+    | MacroExpand.Function({return_type = return_type; parameters = params; _} as signature, stat) ->
       let new_env = add_function_type signature in
       let local_env = add_parameters new_env params in
       check_statement local_env (convert_syntactic_type return_type) stat;
       new_env
-    | FunctionDeclaration(signature) ->
+    | MacroExpand.FunctionDeclaration(signature) ->
       add_function_type signature
-    | GlobalVariable(var) ->
+    | MacroExpand.GlobalVariable(var) ->
       { env with variables = M.add_pair (binding var) vs }
 
     (* TODO: limit array label to `A *)
-    | Array({id = Id.A id; content_type = typ; _}) ->
+    | MacroExpand.Array({id = Id.A id; content_type = typ; _}) ->
       (* There are both Id.A and Id.V before alpha-transformation *)
       let array_label = (Id.A id,  (Type.Array (convert_syntactic_type typ))) in
       let variable_label = (Id.V id,  (Type.Array (convert_syntactic_type typ))) in

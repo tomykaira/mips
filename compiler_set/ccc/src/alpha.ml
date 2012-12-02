@@ -20,10 +20,10 @@ let rename_array env ({id = id; } as signature) =
   (M.add_list [variable_map; array_map] env, { signature with id = new_name})
 
 let rename_parameter env = function
-  | Parameter(typ, name) -> 
+  | Parameter(typ, name) ->
     let new_name = Id.unique (Id.raw name) in
     (M.add name (Id.V new_name) env, Parameter(typ, (Id.V new_name)))
-  | PointerParameter(typ, name) -> 
+  | PointerParameter(typ, name) ->
     let new_name = Id.unique (Id.raw name) in
     (M.add name (Id.V new_name) env, PointerParameter(typ, (Id.V new_name)))
 
@@ -42,7 +42,7 @@ let rec convert_exp env e =
       VarSet(M.find v env)
     | ArraySet(v, exp) when M.mem v env ->
       ArraySet(M.find v env, go exp)
-    | ass -> 
+    | ass ->
       failwith ("You cannot set to an unknown variable " ^ (Show.show<Syntax.assignee> ass) ^ ".")
   in
   match e with
@@ -97,24 +97,24 @@ let rec convert_statement env stat =
 let convert ts =
   let convert_t (env, definitions) t =
     match t with
-      | Function ({ name = name; return_type = return_type; parameters = params } , stat) ->
+      | MacroExpand.Function ({ name = name; return_type = return_type; parameters = params } , stat) ->
         let (new_env, new_params) = List.fold_right fold_rename_parameter params (env, []) in
         let new_stat = convert_statement new_env stat in
-        (env, Function({ name = name; return_type = return_type; parameters = new_params }, new_stat) :: definitions)
+        (env, MacroExpand.Function({ name = name; return_type = return_type; parameters = new_params }, new_stat) :: definitions)
 
-      | FunctionDeclaration (_) ->
+      | MacroExpand.FunctionDeclaration (_) ->
         (env, t :: definitions)
 
-      | GlobalVariable(variable) ->
+      | MacroExpand.GlobalVariable(variable) ->
         let (new_env, v) = rename_global_variable env variable in
-        (new_env, GlobalVariable(v) :: definitions)
+        (new_env, MacroExpand.GlobalVariable(v) :: definitions)
 
-      | Array(signature) ->
+      | MacroExpand.Array(signature) ->
         let (new_env, new_sig) = rename_array env signature in
-        (new_env, Array(new_sig) :: definitions)
+        (new_env, MacroExpand.Array(new_sig) :: definitions)
 
   in
   let (env, result) = List.fold_left convert_t (M.empty, []) ts in
   let result = List.rev result in
-  List.iter (print_endline $ Show.show<t>) result;
+  List.iter (print_endline $ Show.show<MacroExpand.t>) result;
   result

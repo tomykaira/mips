@@ -145,13 +145,13 @@ and convert_statement = function
     Return (rev_expand_exp exp)
 
 let convert_top = function
-  | Syntax.Function (signature, stat) ->
+  | MacroExpand.Function (signature, stat) ->
     Some(Function(signature, convert_statement stat))
-  | Syntax.FunctionDeclaration (_) ->
+  | MacroExpand.FunctionDeclaration (_) ->
     None
-  | Syntax.GlobalVariable (var) ->
+  | MacroExpand.GlobalVariable (var) ->
     Some(GlobalVariable(var))
-  | Syntax.Array (signature) ->
+  | MacroExpand.Array (signature) ->
     Some(Array(signature))
 
 let convert ts =

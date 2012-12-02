@@ -97,6 +97,8 @@ let upper = ['A'-'Z']
         { RETURN }
     | "struct"
         { STRUCT }
+    | "#define"
+        { SHARP_DEFINE }
     | "sizeof"
         { SIZEOF }
     | "switch"
@@ -136,7 +138,7 @@ let upper = ['A'-'Z']
         { CHAR_VAL('\n') }
     | eof
         { EOF }
-    | lower (digit|lower|upper|'_')*
+    | (digit|lower|upper|'_')+
         { ID(Lexing.lexeme lexbuf) }
     | _
         { failwith
