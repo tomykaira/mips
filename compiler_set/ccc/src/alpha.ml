@@ -15,7 +15,9 @@ let rename_global_variable env (Variable(name, typ, const)) =
 let rename_array env ({id = id; } as signature) =
   let raw = Id.raw id in
   let new_name = Id.A(Id.unique raw) in
-  (M.add (Id.V raw) new_name env, { signature with id = new_name})
+  let variable_map = ((Id.V raw), new_name) in (* FIXME *)
+  let array_map = ((Id.A raw), new_name) in
+  (M.add_list [variable_map; array_map] env, { signature with id = new_name})
 
 let rename_parameter env = function
   | Parameter(typ, name) -> 
