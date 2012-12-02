@@ -272,4 +272,4 @@ let f e =
   globals := [];
   let e' = g M.empty S.empty M.empty true e in
   List.iter (fun { name = (Id.L(x), t) } -> Format.eprintf "%s@." x) !toplevel;
-  Prog(!globals, !toplevel, e')
+  Prog(!globals, List.rev !toplevel, e')
