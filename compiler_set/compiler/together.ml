@@ -65,4 +65,4 @@ let f (Prog(toplevel, e)) =
   Format.eprintf "gathering instructions...@.";
   Prog(List.map (fun { name = l; args = ys; fargs = zs; body = e; ret = t } ->
     { name = l; args = ys; fargs = zs; body = g M.empty e; ret = t }) toplevel,
-    g M.empty e)
+       g M.empty e)

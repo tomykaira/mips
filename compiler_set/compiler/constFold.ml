@@ -33,18 +33,30 @@ let findl x env =
     | _ -> raise Not_found
 
 
+(* 即値の葉があるか調べる関数 *)
+let rec immans  = function
+  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> immans e
+  | Ans(exp) -> immans' exp
+and immans' = function
+  | Int _ | Float _ -> true
+  | _ -> false
+(* 主幹の葉を返す関数 *)
+let rec imm  = function
+  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> imm e
+  | Ans(exp) -> exp
+
 let rec g env envle envne envif = function (* 定数畳み込み等を行うルーチン本体 *)
   | Let((x, t) as xt, exp, e) -> (* letのケース *)
       let e1' = g' env envle envne envif exp in
       let (env', envif') =
 	(match e1' with
         | Ans(Int _ | Float _ | Tuple _ | Nil | Cons _ | Neg _ | FNeg _ | ExtFunApp("not",_) as exp') -> (M.add x exp' env, envif)
-	| Ans(IfEq(y,z,Ans(Int _ | Float _ as exp1),Ans(Int _ | Float _ as exp2))) ->
-	    (env, M.add x ((fun p q -> IfEq(y,z,p,q)), exp1, exp2) envif)
-	| Ans(IfLE(y,z,Ans(Int _ | Float _ as exp1),Ans(Int _ | Float _ as exp2))) ->
-	    (env, M.add x ((fun p q -> IfLE(y,z,p,q)), exp1, exp2) envif)
-	| Ans(IfLT(y,z,Ans(Int _ | Float _ as exp1),Ans(Int _ | Float _ as exp2))) ->
-	    (env, M.add x ((fun p q -> IfLT(y,z,p,q)), exp1, exp2) envif)
+	| Ans(IfEq(y,z,e1,e2)) when immans e1 && immans e2 ->
+	    (env, M.add x ((fun p q -> IfEq(y,z,p,q)), imm e1, imm e2) envif)
+	| Ans(IfLE(y,z,e1,e2)) when immans e1 && immans e2 ->
+	    (env, M.add x ((fun p q -> IfLE(y,z,p,q)), imm e1, imm e2) envif)
+	| Ans(IfLT(y,z,e1,e2)) when immans e1 && immans e2 ->
+	    (env, M.add x ((fun p q -> IfLT(y,z,p,q)), imm e1, imm e2) envif)
 	| _ -> (env, envif)) in
       let e' = g env' envle envne envif' e in
       concat e1' xt e'
@@ -78,7 +90,7 @@ and g' env envle envne envif = function
   | Mul(x, y) when memi x env && findi x env = 0 -> Ans(Int(0))
   | Mul(x, y) when memi y env && findi y env = 0 -> Ans(Int(0))
 
-  | Sll(x, y) when memi x env ->
+  | Sll(x, y) when memi x env -> (* 安全そうなら畳み込み *)
       let i = findi x env in
       if (Int32.shift_left (Int32.of_int i) y) = Int32.of_int (i lsl y) then
 	Ans(Int(i lsl y))
@@ -162,6 +174,7 @@ and g' env envle envne envif = function
   | IfLE(x, y, _, e2) when S'.mem (y,x) envle && (S'.mem (x,y) envne || S'.mem (y,x) envne) -> g env envle envne envif e2
   | IfLE(x, y, e1, e2) -> Ans(IfLE(x, y, g env (S'.add (x,y) envle) envne envif e1, g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e2))
 
+
   | IfLT(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
       (match M.find x envif with
       | (con, Int(i), Int(j)) ->
@@ -188,6 +201,7 @@ and g' env envle envne envif = function
   | IfLT(x, y, e1, _) when S'.mem (x,y) envle && (S'.mem (x,y) envne || S'.mem (y,x) envne) -> g env envle envne envif e1
   | IfLT(x, y, _, e2) when x = y || S'.mem (y,x) envle -> g env envle envne envif e2
   | IfLT(x, y, e1, e2) -> Ans(IfLT(x, y, g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e1, g env (S'.add (y,x) envle) envne envif e2))
+
 
   | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2
   | IfNil(x, e1, e2) -> Ans(IfNil(x, g env envle envne envif e1, g env envle envne envif e2))

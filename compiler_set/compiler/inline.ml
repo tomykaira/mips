@@ -5,7 +5,7 @@ let threshold = ref 0
 
 let rec size = function
   | Let(_, exp, e) -> 1 + size' exp + size e
-  | LetRec({ body = e1 }, e2) -> 1 + size e1 + size e2
+  | LetRec({ name = _; args = _; body = e1 }, e2) -> 1 + size e1 + size e2
   | LetTuple(_, _, e) | LetList(_, _, e) -> 1 + size e
   | Ans(exp) -> size' exp
 and size' = function
@@ -92,7 +92,7 @@ and g' env = function
     let (zs, e) = M.find x env in
     let env' =
       List.fold_left2
-        (fun env' (z, t) y -> M.add z y env')
+        (fun env' (z, _) y -> M.add z y env')
         M.empty
         zs
         ys in

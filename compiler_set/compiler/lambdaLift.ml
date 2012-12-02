@@ -2,6 +2,7 @@
 
 open ANormal
 
+
 (* スコアと変数のペアの順序付き集合 *)
 module S' =
   Set.Make
@@ -15,6 +16,8 @@ module S' =
 let rn = 25
 let fn = 30
 
+(* クロージャ変換でグローバル配列になる変数の集合 *)
+let globals = ref []
 
 (* 変数にスコアづけする関数。後に出てくるほど高得点 *)
 let rec score en n fvs = function
@@ -49,13 +52,13 @@ let rec take l known env rn fn fvs =
        match M.find x env with
        | Type.Unit -> take l known env rn fn fvs'
        | Type.Fun(_,_) ->
-	   if not (S.mem x known) then failwith "function"
+	   if not (S.mem x known) && not (List.mem x !globals) then failwith "function"
            else take l known env rn fn fvs'
        | Type.Float -> if List.mem_assoc x l then
 	                 take l known env rn fn fvs'
 	               else if fn <= 0 then failwith "float"
                        else take ((x,Type.Float)::l) known env rn (fn-1) fvs'
-       | t -> if List.mem_assoc x l then take l known env rn fn fvs'
+       | t -> if List.mem_assoc x l || List.mem x !globals then take l known env rn fn fvs'
 	      else if rn <= 0 then failwith "non float"
               else take ((x,t)::l) known env (rn-1) fn fvs'
 
@@ -79,7 +82,7 @@ and h' s add = function
 (* 式の中に関数が関数適用以外の形で現れてないか調べる関数 *)
 let rec app_only x = function
   | Let((_, _), exp, e) -> app_only' x exp && app_only x e
-  | LetRec({ body = e1 }, e2) ->
+  | LetRec({ name = _; args = _; body = e1 }, e2) ->
       app_only x e1 && app_only x e2
   | LetTuple (_, _, e) | LetList(_, _, e) ->  app_only x e
   | Ans(exp) -> app_only' x exp
@@ -91,14 +94,18 @@ and app_only' x = function
   | _ -> true
 
 (* 本体 *)
-let rec g env known = function
+let rec g env known top = function
   | Let((x, t), exp, e) ->
-      Let((x, t), g' env known exp, g (M.add x t env) known e)
+      (match t with
+      | Type.Array _ when top -> globals := x::!globals
+      | _ -> ());
+      Let((x, t), g' env known exp, g (M.add x t env) known top e)
   | LetRec({ name = (x, (Type.Fun(p,q) as t)); args = yts; body = e1 }, e2) ->
+      (if top then globals := x::!globals);
       let env' = M.add x t env in
       let env'' = M.add_list yts env' in
       if not (app_only x e1 && app_only x e2) then
-        LetRec({ name = (x, t); args = yts; body = g env'' known e1 }, g env' known e2)
+        LetRec({ name = (x, t); args = yts; body = g env'' known false e1 }, g env' known top e2)
       else
         let fvs = S.diff (fv e1) (S.of_list (x::List.map fst yts)) in
         let fvs' =
@@ -111,27 +118,27 @@ let rec g env known = function
 	    fvs'
 	with Failure _ -> [] in
         if yts' = []  then
-	  LetRec({ name = (x, t); args = yts; body = g env'' known e1 }, g env' known e2)
+	  LetRec({ name = (x, t); args = yts; body = g env'' known false e1 }, g env' known top e2)
         else
           let yts'' = List.map (fun (y, t) -> (Id.genid y, t)) yts' in
           let benv = List.fold_left2 (fun x y z -> M.add y z x)
 	               M.empty (List.map fst yts') (List.map fst yts'') in
 	  let t' = Type.Fun(p@(List.map snd yts'), q) in
 	  let env3 = M.add x t' env in
-          LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') env3) (S.add x known) (h x (List.map fst yts'') (Beta.g benv e1)); },
-	         g env3 (S.add x known) (h x (List.map fst yts') e2))
-  | LetTuple (xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known e)
+          LetRec({ name = (x, t'); args = yts@yts''; body = g (M.add_list (yts@yts'') env3) (S.add x known) false (h x (List.map fst yts'') (Beta.g benv e1)); },
+	         g env3 (S.add x known) top (h x (List.map fst yts') e2))
+  | LetTuple (xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known top e)
   | LetList ((xs,t), y, e) ->
-      LetList((xs,t), y, g (M.add_list (List.map (fun z -> (z,t)) (Syntax.matcher_variables xs)) env) known e)
+      LetList((xs,t), y, g (M.add_list (List.map (fun z -> (z,t)) (Syntax.matcher_variables xs)) env) known top e)
   | Ans(exp) -> Ans(g' env known exp)
   | _ -> assert false
 and g' env known = function
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env known e1, g env known e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env known e1, g env known e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env known e1, g env known e2)
-  | IfNil(x, e1, e2) -> IfNil(x, g env known e1, g env known e2)
+  | IfEq(x, y, e1, e2) -> IfEq(x, y, g env known false e1, g env known false e2)
+  | IfLE(x, y, e1, e2) -> IfLE(x, y, g env known false e1, g env known false e2)
+  | IfLT(x, y, e1, e2) -> IfLT(x, y, g env known false e1, g env known false e2)
+  | IfNil(x, e1, e2) -> IfNil(x, g env known false e1, g env known false e2)
   | e -> e
 
 
 let f e = Format.eprintf "lambda lifting...@.";
-          g M.empty S.empty e
+          g M.empty S.empty true e

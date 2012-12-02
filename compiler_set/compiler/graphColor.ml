@@ -7,39 +7,47 @@ type info =
   | Colored of Id.t
   | Prefer of Id.t list * Id.t list
 
-(* デバッグ用関数 *)
-let print_env env =
-  M.iter (fun x y -> Format.eprintf "%s:%s " x y) env;
-  Format.eprintf "@."
-let print_graph g =
-  M.iter (fun x y -> Format.eprintf "%s : " x; List.iter (Format.eprintf "%s,") y; Format.eprintf "@.") g;
-  Format.eprintf "@."
-let print_colored_graph g =
-  let q = function
-    | Colored c -> c
-    | Prefer (p,s) -> "p("^String.concat "," p ^ " // "^ String.concat "," s ^")" in
-  M.iter (fun x (y,_) -> Format.eprintf "%s:%s " x (q y)) g;
-  Format.eprintf "@."
-
 
 (* グラフにノードを追加する関数 *)
-let addn' x l m =
-  try let k = M.find x m in M.add x (remove_and_uniq S.empty (l@k)) m
-  with Not_found -> M.add x l m
+let addn' x (l, s1, re1) m =
+  try
+    let (k, s2, re2) = M.find x m in
+    M.add x ((remove_and_uniq S.empty (l@k)), S.union s1 s2, re1 + re2) m
+  with Not_found -> M.add x (l, s1, re1) m
 let addn x l g =
   List.fold_left
-    (fun r y -> addn' y [x] r)
-    (addn' x l g)
+    (fun r y -> addn' y ([x], S.empty, 0) r)
+    (addn' x (l, S.empty, 0) g)
     l 
 (* 変数のリストから完全グラフを作る関数 *)
 let perf l =
   List.fold_left
     (fun r y -> addn y (remove_and_uniq (S.singleton y) l) r)
     M.empty
-    l 
+    l
+(* 同じ命令で使われる変数を追加する関数 *)
+let addvar' x l m =
+  try
+    let (k, s, r) = M.find x m in
+    M.add x (k, S.union s l, r) m
+  with Not_found -> M.add x ([], l, 0) m
+let addvar l m =
+  List.fold_left
+    (fun m x -> addvar' x (S.remove x (S.of_list l)) m)
+    m
+    l
+(* 変数が参照される回数に+1する関数 *)
+let addone' x m =
+  try
+    let (k, s, r) = M.find x m in
+    M.add x (k, s, r+1) m
+  with Not_found -> M.add x ([], S.empty, 1) m
+let addone l m =
+  List.fold_left (fun x y -> addone' y x) m l
 (* 2つのグラフを合わせる関数 *)
 let union g1 g2 = M.fold addn' g1 g2 
-(* 命令列(分岐,関数呼び出しなし)に対し整数,浮動小数のグラフを構成 *)
+(* 命令列(関数呼び出しなし)に対し整数,浮動小数のグラフを構成.グラフは,
+   変数名と(隣接頂点,同じ命令で使われる変数の集合,参照される回数)の連想集合 *)
 let rec make' rr rf dest cont = function
   | Ans(exp) -> make'' rr rf dest cont exp
   | Let((x,t) as xt, exp, e) ->
@@ -59,11 +67,22 @@ let rec make' rr rf dest cont = function
       let (rr'', rf'') = make'' rr' rf' xt cont' exp in
       make' rr'' rf'' dest cont e
 and make'' rr rf dest cont = function
-  | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfFEq(_,_,e1,e2) | IfFLE(_,_,e1,e2) | IfFLT(_,_,e1,e2) ->
+  | IfEq(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfLT(x,y,e1,e2) ->
       let (rr1, rf1) = make' rr rf dest cont e1 in
       let (rr2, rf2) = make' rr rf dest cont e2 in
-      (union rr1 rr2, union rf1 rf2)
-  | exp -> (rr, rf)
+      let f t = addvar [x;y] (addone [x;y] t) in
+      (f (union rr1 rr2), union rf1 rf2)
+  | IfFEq(x,y,e1,e2) | IfFLE(x,y,e1,e2) | IfFLT(x,y,e1,e2) -> 
+      let (rr1, rf1) = make' rr rf dest cont e1 in
+      let (rr2, rf2) = make' rr rf dest cont e2 in
+      let f t = addvar [x;y] (addone [x;y] t) in
+      (union rr1 rr2, f (union rf1 rf2))
+  | exp ->
+      let fvi = fv_int_exp exp in
+      let fvf = fv_float_exp exp in
+      let fi t = addvar fvi (addone fvi t) in
+      let ff t = addvar fvf (addone fvf t) in
+      (fi rr, ff rf)
 let make e =
   (* まず,一番最初に生きている変数で完全グラフを作る *)
   let rr = perf (fv_int e) in
@@ -71,80 +90,142 @@ let make e =
   make' rr rf ("%g0", Type.Unit) (Ans(Nop)) e
 	
 
-(* グラフのノードを次数の大きい順に消して,全ての次数をn未満にする *)
-let take_max g =
+(* グラフからコスト最小のものを選び出す関数 *)
+let take_min g =
   M.fold
-    (fun x l (y,k) -> if List.length l > List.length k then (x,l) else (y,k))
+    (fun x (_,sc,_) (y,sc') ->
+      if sc < sc' then (x,sc) else (y,sc'))
     g
-    (M.choose g)
-let rem x g = M.map (List.filter (fun y -> x <> y)) (M.remove x g)
-let spill g n = 
+    (let (x, (_,sc,_)) = M.choose g in (x, sc))
+(* グラフの全てのノードが次数n未満か判定 *)
+let is_ok g n = M.for_all (fun _ (l, _, _) -> List.length l < n) g
+(* グラフからノードを除去.その変数と同じ命令内で使われてる変数のspillコストを増やす *)
+let rem x g =
+  M.map
+    (fun (p,q,r) ->
+      if List.mem x p then
+	let sc = if S.mem x r then 12 else 0 in
+	(List.filter (fun y -> x <> y) p, q+1+sc, r)
+      else (p,q,r))
+    (M.remove x g)
+(* グラフの各ノードにspillのコストをつける *)
+let score regenv prefer g =
+  M.mapi
+    (fun x (l, s, r) ->
+      (l,
+         (- List.length l) + (* 次数が大きいとspillコスト小 *)
+	 (if M.mem x regenv && M.mem x prefer && List.exists is_reg (M.find x prefer) then
+	   if List.mem (M.find x regenv) (M.find x prefer) then 8
+	   else -8
+	 else 0) + (* regenvとpreferが同じならコスト大,違うならコスト小 *)
+	 3 * r, (* 参照回数が多いならコスト大 *)
+       s)) (* 後で同じ命令内で使われてる変数がspillされたらコストをあげる *)
+    g 
+(* グラフのノードにspillのコストをふり,小さい順に消して,全ての次数をn未満にする *)
+let spill regenv prefer g n =
+  let g1 = score regenv prefer g in
   let rec spill' g s =
+    if is_ok g n then (g, s) else
     try
-      let (m,ml) = take_max g in
-      if List.length ml < n then (g, s)
-      else spill' (rem m g) (m::s) 
+      let (m,sc) = take_min g in
+      let (l,_,q) = M.find m g1 in 
+      spill' (rem m g) ((m,(l,sc))::s) 
     with Not_found -> (g, s) in
-  let (g', s) = spill' g [] in
-  (g', List.fold_left (fun r y -> M.add y (M.find y g) r) M.empty s)
+  let (g2, s) = spill' g1 [] in
+  let g3 = M.map (fun (l,sc,_) -> (l, sc)) g2 in
+  (* グラフに戻しても全ての次数がn未満で保たれるノードを戻す *)
+  let addn x l sc g =
+    let l' = List.filter (fun t -> M.mem t g) l in
+    List.fold_left
+      (fun m y ->
+	let (p,q) = M.find y m in
+	if List.length p + 1 >= n then failwith "fail"
+	else M.add y (x::p,q) m)
+      (M.add x (l', sc) g)
+      l' in
+  let (g4, s') = 
+    List.fold_left
+      (fun (g', s'') (y, (l, sc)) ->
+	try (addn y l sc g', s'') with (Failure "fail") -> (g', s''@[(y,l)]))
+      (g3, [])
+      s in
+  let prelen x =
+    try List.length (remove_and_uniq S.empty (M.find x prefer))
+    with Not_found -> 63 in
+  let g'' =
+    List.map (fun (x, (l,_)) -> (x, l))
+      (List.sort (fun (_, (_, sc)) (_, (_, sc')) -> compare sc' sc)
+	 (M.fold (fun x y l -> (x,y)::l) g4 [])) in
+  (g'', s')
 
 
 
 (* グラフの彩色 *)
-
 let able c l g =
   List.for_all
-    (fun x -> match M.find x g with
+    (fun x -> match List.assoc x g with
               | (Colored(d),_) when c = d -> false
 	      | _ -> true)
     l 
-let color cs regenv prefer g s = 
+let color cs regenv prefer g s =
   (* まずregenv,preferにしたがって情報を付加 *)
   let g1 =
-    M.mapi
-      (fun x l ->
+    List.map
+      (fun (x, l) ->
 	let y =
 	  if is_reg x then Colored(x) else
 	  try Colored(M.find x regenv) with Not_found ->
 	    let k =
-	      try List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
+	      try List.filter (fun x -> List.mem_assoc x g || List.mem x cs) (M.find x prefer)
 	      with Not_found -> [] in
 	    Prefer (k, []) in
-	(y, l))
+	(x, (y, l)))
       g in
   let s1 =
-    M.mapi
-      (fun x l ->
+    List.map
+      (fun (x, l) ->
 	let y =
 	  if is_reg x then Colored(x) else
 	  let k =
-	    try M.find x regenv::List.filter (fun x -> M.mem x g || List.mem x cs) (M.find x prefer)
+	    try M.find x regenv::List.filter (fun x -> List.mem_assoc x g || List.mem x cs) (M.find x prefer)
 	    with Not_found -> try [M.find x regenv]
 	    with Not_found -> try (List.filter (fun x -> List.mem x allfregs) (M.find x prefer))
 	    with Not_found -> [] in
 	  Prefer (k,[]) in
-	(y, l))
+	(x, (y, l)))
       s in
 
   (* 他の変数の塗りたい色に塗るのはなるべく避ける *)
   let add_hate x l g =
-    try (match M.find x g with
-    | (Prefer(p,s),k) -> M.add x (Prefer(p, l@s),k) g
-    | _ -> g)
-    with Not_found -> g in
-  let add_hates x (y,l) g =
+    List.map
+      (fun (x', p) ->
+	if x = x' then
+	  match p with
+	  | (Prefer(p,s),k) -> (x', (Prefer(p, l@s),k))
+	  | _ -> (x', p)
+	else (x', p))
+      g in
+  let add_hates g (_, (y,l)) =
     match y with
     | Colored(c) -> List.fold_left (fun g z -> add_hate z [c] g) g l
     | Prefer(p,_) -> List.fold_left (fun g z -> add_hate z p g) g l in
-  let g2 = M.fold add_hates s1 (M.fold add_hates g1 g1) in
-  let s2 = M.fold add_hates s1 s1 in
+  let g2 = List.fold_left add_hates (List.fold_left add_hates g1 g1) s1 in
+  let s2 = List.fold_left add_hates s1 s1 in
+
+  (* グラフを上書き.存在しなかったら追加. *)
+  let rewrite x l g =
+    if List.mem_assoc x g then
+      List.map (fun (x', l') -> if x = x' then (x, l) else (x', l')) g
+    else
+      g@[(x, l)] in
 
   (* ノードに対し彩色する補助関数 *)
   (* 1次版 *)
-  let col1 x y g =
-    match y with
+  let col1 g (x, z) =
+    match z with
     | (Prefer (p, s), l) ->
         let (p',q') = List.partition (fun x -> is_reg x) p in
+	(* preferのうち一番多いやつに塗ろうとする *)
 	let rec add x r = function
 	  | [] -> (1,x)::r
 	  | (n,y)::ys when x = y -> (n+1,y)::r@ys
@@ -157,39 +238,37 @@ let color cs regenv prefer g s =
 	let y =
 	  try Colored(List.find (fun c -> able c l g) (p1@p2))
 	  with Not_found -> Prefer (q', s) in
-        M.add x (y, l) g
-    | _ -> M.add x y g in
+        rewrite x (y, l) g
+    | _ -> rewrite x z g in
 
   (* 2次版 *)
-  let col2 x y g =
+  let col2 g (x, y) =
     match y with
     | (Prefer (p,s), l) ->
         let q' = List.fold_left
-	    (fun q' x -> match M.find x g with
+	    (fun q' x -> match List.assoc x g with
 	    | (Colored(c),_) -> c::q'
 	    | _ -> q')
 	    []
   	    p in
 	let (q2, q1) = List.partition (fun x -> List.mem x s) q' in
 	let (cs2, cs1) = List.partition (fun x -> List.mem x s) cs in
-        M.add x (Colored(List.find (fun c -> able c l g) (q1@q2@cs1@cs2)), l) g
-    | (Colored _, _) -> M.add x y g in
+        rewrite x (Colored(List.find (fun c -> able c l g) (q1@q2@cs1@cs2)), l) g
+    | _ -> rewrite x y g in
 
   (* グラフをpreferにしたがって彩色 *)
-  let g3 = M.fold col1 g2 g2 in
-  let g4 = M.fold col2 g3 g3 in
+  let g3 = List.fold_left col1 g2 g2 in
+  let g4 = List.fold_left col2 g3 g3 in
 
-  (* spillされた変数のうち,実は彩色できるものを彩色.残りは後で適当に塗る。 *)
+  (* spillされた変数のうち,実は彩色できるものを彩色.残りは後で適当に塗る *)
   let el = function
-    | (Prefer (p, s), l) -> (Prefer (List.filter is_reg p, s), l)
+    | (Prefer (p, h), l) -> (Prefer (List.filter is_reg p, h), l)
     | c -> c in
-  let g5 = M.fold col1 s2 g4 in
+
+  let g5 = List.fold_left col1 g4 s2 in
   let g6 =
-    M.fold
-      (fun x y g5 -> (try col2 x y g5 with Not_found -> M.add x (el y) g5))
+    List.fold_left
+      (fun g5 (x,y) -> (try col2 g5 (x,y) with Not_found -> rewrite x (el y) g5))
       g5
       g5 in
-  M.map fst g6
-
-
-
+  M.add_list (List.map (fun (x,y) -> (x, fst y)) g6) M.empty
