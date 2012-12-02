@@ -177,6 +177,7 @@ let rec g env known const top = function
 	 known, e1') in
       let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
       let zts = List.map (fun z -> (z, M.find z env')) zs in (* ここで自由変数zの型を引くために引数envが必要 *)
+      (toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel); 
       let kn = S.mem x known' in
       let e2' = g env' known' const top e2 in
       let fvs = S.mem x (fv e2') in
@@ -190,9 +191,7 @@ let rec g env known const top = function
 	  (fun fvd { name = _; args = _; formal_fv = _; body = e } -> fvd || (fv_dir x e))
 	  (fv_dir x e2')
 	  (!toplevel) in
-      (* トップレベル関数を追加 *)
-      (if kn || fvs || fvl || fvd then
-	(toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel)); 
+	
       if fvl || (fvd && not (kn)) then
 	(* e2'もしくはトップレベル関数内にxがクロージャのラベルとして出現していたらglobalsに追加 *)
 	((globals := { gname = (Id.L(x), t); length = List.length zs + 1 } :: !globals);
@@ -270,5 +269,7 @@ and g' env known const =  function
 let f e =
   Format.eprintf "making closures...@.";
   toplevel := [];
+  globals := [];
   let e' = g M.empty S.empty M.empty true e in
+  List.iter (fun { name = (Id.L(x), t) } -> Format.eprintf "%s@." x) !toplevel;
   Prog(!globals, !toplevel, e')
