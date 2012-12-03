@@ -1,11 +1,11 @@
 open Definition
 open Util
 
-type t =
-  | Function of function_signature * Syntax.statement
-  | FunctionDeclaration of function_signature
-  | GlobalVariable of variable
-  | Array of array_signature
+type 'a t =
+  | Function of 'a function_signature * 'a Syntax.statement
+  | FunctionDeclaration of 'a function_signature
+  | GlobalVariable of 'a variable
+  | Array of 'a array_signature
     deriving (Show)
 
 module NameMap = ExtendedMap.Make(Id.TStruct)
@@ -13,7 +13,7 @@ module NameMap = ExtendedMap.Make(Id.TStruct)
 let add_list xys env = List.fold_left (fun env (x, y) -> NameMap.add x y env) env xys
 let map_of_list l = add_list l NameMap.empty
 
-type macro_set = {const : const_value NameMap.t; exp : (Syntax.exp list -> Syntax.exp) NameMap.t }
+type macro_set = {const : const_value NameMap.t; exp : (Id.t Syntax.exp list -> Id.t Syntax.exp) NameMap.t }
 
 let empty_macros =
   { const = NameMap.empty; exp = NameMap.empty }
@@ -27,8 +27,8 @@ let rec convert_exp ({const = const_macros; exp = exp_macros} as macros) exp =
       Syntax.ArraySet(v, go exp)
   in
   match exp with
-    | Syntax.Var(name) when NameMap.mem (Id.raw name) const_macros ->
-      Syntax.Const(NameMap.find (Id.raw name) const_macros)
+    | Syntax.Var(name) when NameMap.mem name const_macros ->
+      Syntax.Const(NameMap.find name const_macros)
     | Syntax.Var(v) ->
       Syntax.Var(v)
 
@@ -88,23 +88,23 @@ let rec replace_exp mapping exp =
       | _ -> failwith (Printf.sprintf "Variable name expected for %s, but an other expression" name)
   in
   let convert_assignee = function
-    | Syntax.VarSet(v) when NameMap.mem (Id.raw v) mapping ->
-      Syntax.VarSet(var_of (Id.raw v))
+    | Syntax.VarSet(v) when NameMap.mem v mapping ->
+      Syntax.VarSet(var_of v)
     | Syntax.VarSet(v) ->
       Syntax.VarSet(v)
-    | Syntax.ArraySet(v, exp) when NameMap.mem (Id.raw v) mapping ->
-      Syntax.ArraySet(var_of (Id.raw v), go exp)
+    | Syntax.ArraySet(v, exp) when NameMap.mem v mapping ->
+      Syntax.ArraySet(var_of v, go exp)
     | Syntax.ArraySet(v, exp) ->
       Syntax.ArraySet(v, exp)
   in
   match exp with
-    | Syntax.Var(name) when NameMap.mem (Id.raw name) mapping ->
-      NameMap.find (Id.raw name) mapping
+    | Syntax.Var(name) when NameMap.mem name mapping ->
+      NameMap.find name mapping
     | Syntax.Var(v) ->
       Syntax.Var(v)
 
     | Syntax.CallFunction(Id.L name, args) when NameMap.mem name mapping ->
-      Syntax.CallFunction(Id.L (Id.raw (var_of name)), List.map go args)
+      Syntax.CallFunction(Id.L (var_of name), List.map go args)
     | Syntax.CallFunction(l, args) ->
       Syntax.CallFunction(l, List.map go args)
 

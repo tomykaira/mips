@@ -61,7 +61,7 @@ open Syntax
 
 %token <Id.t> ID
 
-%type <Syntax.t list> translation_unit
+%type <Id.t Syntax.t list> translation_unit
 %start translation_unit
 
 %%
@@ -100,9 +100,9 @@ parameter_list:
 
 parameter:
 | type_class ID
-    { Parameter($1, Id.V $2) }
+    { Parameter($1, $2) }
 | type_class ASTERISK ID
-    { PointerParameter($1, Id.V $3) }
+    { PointerParameter($1, $3) }
 
 type_class:
 | TYPE_CLASS
@@ -110,7 +110,7 @@ type_class:
 
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
-    { Array({id = Id.A $2; content_type = $1; size = $4}) }
+    { Array({id = $2; content_type = $1; size = $4}) }
 
 macro_definition:
 | SHARP_DEFINE ID const
@@ -133,7 +133,7 @@ variable_definition_list:
 
 variable_definition:
 | type_class ID EQUAL const SEMICOLON
-    { Variable(Id.V $2, $1, $4) }
+    { Variable($2, $1, $4) }
 
 
 stat:
@@ -234,9 +234,9 @@ assignment_exp:
 
 assignee_exp:
 | ID
-    { VarSet(Id.V $1) }
+    { VarSet($1) }
 | ID L_BRACKET exp R_BRACKET
-    { ArraySet(Id.A $1, $3) }
+    { ArraySet($1, $3) }
 
 /* TODO */
 /* assignment_operator: */
@@ -329,9 +329,9 @@ postfix_exp:
 
 primary_exp:
 | ID
-    { Var(Id.V $1) }
+    { Var($1) }
 | ID L_BRACKET exp R_BRACKET
-    { ArrayRef(Id.A $1, $3) }
+    { ArrayRef($1, $3) }
 | const
     { Const($1) }
 | L_PAREN exp R_PAREN

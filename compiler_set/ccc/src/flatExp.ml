@@ -32,7 +32,7 @@ type assignment_chain = { result : Id.v; chain : assignment list }
 type statement =
   | Label       of Id.l * statement
   | Assignments of assignment list
-  | Block       of variable list * statement list
+  | Block       of Id.v variable list * statement list
   | If          of assignment_chain * statement * statement option
   | Switch      of assignment_chain * switch_case list
   | While       of assignment_chain * statement
@@ -48,9 +48,9 @@ and switch_case =
     deriving (Show)
 
 type t =
-  | Function of function_signature * statement
-  | GlobalVariable of variable
-  | Array of array_signature
+  | Function of Id.v function_signature * statement
+  | GlobalVariable of Id.v variable
+  | Array of Id.v array_signature
     deriving (Show)
 
 
@@ -155,7 +155,7 @@ let convert_top = function
   | MacroExpand.Array (signature) ->
     Some(Array(signature))
 
-let convert ts =
+let convert (ts : Id.v MacroExpand.t list) =
   let result = concat_map (function Some(x) -> [x] | None -> []) (List.map convert_top ts) in
   List.iter (print_endline $ Show.show<t>) result;
   result

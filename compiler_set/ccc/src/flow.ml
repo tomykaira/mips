@@ -18,7 +18,7 @@ type instruction =
   | Assignment  of Id.v * exp
   | CallAndSet  of Id.v * Id.l * Id.v list      (* with variable binding *)
   | Call        of Id.l * Id.v list      (* just calling *)
-  | Definition  of variable
+  | Definition  of Id.v variable
   | BranchZero  of Id.v * Id.l
   | BranchEqual of Id.v * Id.v * Id.l
   | BranchLT    of Id.v * Id.v * Id.l
@@ -29,9 +29,9 @@ type instruction =
     deriving (Show)
 
 type t =
-  | Function of function_signature * instruction list
-  | GlobalVariable of variable
-  | Array of array_signature
+  | Function of Id.v function_signature * instruction list
+  | GlobalVariable of Id.v variable
+  | Array of Id.v array_signature
       deriving (Show)
 
 (* Result of exp expansion *)

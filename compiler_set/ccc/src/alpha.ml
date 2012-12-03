@@ -3,32 +3,29 @@ open Syntax
 open Definition
 open Util
 
-module M = ExtendedMap.Make (Id.VStruct)
+module M = ExtendedMap.Make (Id.TStruct)
 
 let rename_variable env (Variable(name, typ, const)) =
-  let new_name = Id.unique (Id.raw name) in
-  (M.add name (Id.V new_name) env, Variable((Id.V new_name), typ, const))
+  let new_id = Id.V (Id.unique name) in
+  (M.add name new_id env, Variable(new_id, typ, const))
 
 let rename_global_variable env (Variable(name, typ, const)) =
-  let new_name = Id.unique (Id.raw name) in
-  (M.add name (Id.G new_name) env, Variable((Id.G new_name), typ, const))
+  let new_id = Id.G (Id.unique name) in
+  (M.add name new_id env, Variable(new_id, typ, const))
 
 (* Map Id.V old_name -> Id.A new_name
    To replace Id.v occurrence in statements *)
 let rename_array env ({id = id; } as signature) =
-  let raw = Id.raw id in
-  let new_name = Id.A(Id.unique raw) in
-  let variable_map = ((Id.V raw), new_name) in (* FIXME *)
-  let array_map = ((Id.A raw), new_name) in
-  (M.add_list [variable_map; array_map] env, { signature with id = new_name})
+  let new_name = Id.A(Id.unique id) in
+  (M.add id new_name env, { signature with id = new_name})
 
 let rename_parameter env = function
   | Parameter(typ, name) ->
-    let new_name = Id.unique (Id.raw name) in
-    (M.add name (Id.V new_name) env, Parameter(typ, (Id.V new_name)))
+    let new_id = Id.V (Id.unique name) in
+    (M.add name new_id env, Parameter(typ, new_id))
   | PointerParameter(typ, name) ->
-    let new_name = Id.unique (Id.raw name) in
-    (M.add name (Id.V new_name) env, PointerParameter(typ, (Id.V new_name)))
+    let new_id = Id.V (Id.unique name) in
+    (M.add name new_id env, PointerParameter(typ, new_id))
 
 let fold_rename_variable v (e, vs) =
   let (e', v') = rename_variable e v in
@@ -38,7 +35,7 @@ let fold_rename_parameter p (e, ps) =
   let (e', p') = rename_parameter e p in
   (e', p' :: ps)
 
-let rec convert_exp env e =
+let rec convert_exp (env : Id.v M.t) e =
   let go = convert_exp env in
   let rename_assignee = function
     | VarSet(v) when M.mem v env ->
@@ -46,13 +43,13 @@ let rec convert_exp env e =
     | ArraySet(v, exp) when M.mem v env ->
       ArraySet(M.find v env, go exp)
     | ass ->
-      failwith ("You cannot set to an unknown variable " ^ (Show.show<Syntax.assignee> ass) ^ ".")
+      failwith ("You cannot set to an unknown variable " ^ (Show.show<Id.t Syntax.assignee> ass) ^ ".")
   in
   match e with
     | Var(v) when M.mem v env -> Var(M.find v env)
-    | Var(v)              -> Var(v)                  (* function name? *)
+    | Var(v)              -> failwith "not found"
     | ArrayRef(a, e) when M.mem a env -> ArrayRef(M.find a env, go e)
-    | ArrayRef(a, _)      -> failwith (Printf.sprintf "Unknown array %s is referred." (Show.show<Id.v> a))
+    | ArrayRef(a, _)      -> failwith (Printf.sprintf "Unknown array %s is referred." (Show.show<Id.t> a))
     | Const(v)            -> Const(v)
     | Assign(a, e)        -> Assign(rename_assignee a, go e)
     | And(e1, e2)         -> And(go e1, go e2)
@@ -71,7 +68,7 @@ let rec convert_exp env e =
 
     | CallFunction(l, args) -> CallFunction(l, List.map go args)
 
-let rec convert_statement env stat =
+let rec convert_statement (env : Id.v M.t) stat =
   let go = convert_statement env in
   let go_exp = convert_exp env in
   match stat with
@@ -95,11 +92,13 @@ let rec convert_statement env stat =
       While(go_exp e, go stat)
     | Return(Some(e)) ->
       Return(Some(go_exp e))
-    | stat -> stat
 
+    | Return(None) -> Return(None)
+    | Goto(l)      -> Goto(l)
+    | Break        -> Break
+    | Continue     -> Continue
 
-
-let convert ts =
+let convert (ts : Id.t MacroExpand.t list) : Id.v MacroExpand.t list =
   let convert_t (env, definitions) t =
     match t with
       | MacroExpand.Function ({ name = name; return_type = return_type; parameters = params } , stat) ->
@@ -107,8 +106,10 @@ let convert ts =
         let new_stat = convert_statement new_env stat in
         (env, MacroExpand.Function({ name = name; return_type = return_type; parameters = new_params }, new_stat) :: definitions)
 
-      | MacroExpand.FunctionDeclaration (_) ->
-        (env, t :: definitions)
+      | MacroExpand.FunctionDeclaration ({ name = name; return_type = return_type; parameters = params }) ->
+        let (_, new_params) = List.fold_right fold_rename_parameter params (env, []) in
+        (env, MacroExpand.FunctionDeclaration({ name = name; return_type = return_type; parameters = new_params }) :: definitions)
+
 
       | MacroExpand.GlobalVariable(variable) ->
         let (new_env, v) = rename_global_variable env variable in
@@ -121,5 +122,5 @@ let convert ts =
   in
   let (env, result) = List.fold_left convert_t (M.empty, []) ts in
   let result = List.rev result in
-  List.iter (print_endline $ Show.show<MacroExpand.t>) result;
+  List.iter (print_endline $ Show.show<Id.v MacroExpand.t>) result;
   result

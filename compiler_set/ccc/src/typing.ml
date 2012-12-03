@@ -5,8 +5,8 @@ open Syntax
 exception Unify of Type.t * Type.t
 exception UndefinedVariable of Id.v
 exception UndefinedFunction of Id.l
-exception NotFunction of Syntax.exp * Type.t
-exception NotPrimitive of Syntax.exp
+exception NotFunction of Id.v Syntax.exp * Type.t
+exception NotPrimitive of Id.v Syntax.exp
 exception NotArray of Id.v
 
 module FunM = ExtendedMap.Make (Id.LStruct)
@@ -183,8 +183,8 @@ let check ts =
     | UndefinedFunction(l) ->
       failwith (Printf.sprintf "Undefined function %s" (Show.show<Id.l> l))
     | NotFunction(exp, _) ->
-      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Syntax.exp> exp))
+      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Id.v Syntax.exp> exp))
     | NotPrimitive(exp) ->
-      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Syntax.exp> exp))
+      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Id.v Syntax.exp> exp))
     | NotArray(v) ->
       failwith (Printf.sprintf "Array expected, but not an array: %s" (Show.show<Id.v> v))

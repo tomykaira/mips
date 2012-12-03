@@ -33,7 +33,7 @@ type instruction =
   | StoreHeapImm of Id.t * int
     deriving (Show)
 
-type t = { functions : (Definition.function_signature * instruction list) list;
+type t = { functions : (Id.v Definition.function_signature * instruction list) list;
            initialize_code : instruction list }
       deriving (Show)
 
