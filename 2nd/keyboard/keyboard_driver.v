@@ -62,7 +62,12 @@ module keyboard_driver(input clk,
    reg       prev_break, next_break;
    reg       new_break_code;
 
-   assign keycode = next_code;
+   wire [2:0] is_special_key;
+   keycode_resolver keycode_resolver_inst
+     (.device_code(next_code),
+      .internal_code(keycode),
+      .special_key(is_special_key));
+
    assign is_break = next_break;
 
    always @ (posedge(clk)) begin

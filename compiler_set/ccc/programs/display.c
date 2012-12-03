@@ -44,7 +44,7 @@ void add_key_input() {
   if (input == '\n') {
     next_line();
   } else {
-    buffer[C(current_line, current_column)] = input + 48;
+    buffer[C(current_line, current_column)] = input;
     current_column += 1;
   }
 }
