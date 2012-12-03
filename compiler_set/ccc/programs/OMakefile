@@ -9,7 +9,7 @@ LINKER = ../helper/linker.sh
 %.bin: %.s
 	$(ASSEMBLER) $< $@
 
-%.s: %.c
+%.s: %.c ../helper/assembly.s
 	$(COMPILER) $< > /dev/null
 	$(LINKER) $@
 
