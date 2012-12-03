@@ -211,8 +211,8 @@ begin  -- test
     tx        => RS_TX);
 
 	-- workaround for not-stable VGA signal
-	tx_send_enable <= key_status(1);
-	tx_send_data   <= keycode;
+	tx_send_enable <= '1'               when core_tx_send_enable = '1' else display_buffer_write_enable;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else "0"&display_char_code;
 
 	Inst_dcm: my_dcm PORT MAP(
 		CLKIN_IN        => CLK,
