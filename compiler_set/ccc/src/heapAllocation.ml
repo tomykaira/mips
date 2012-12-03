@@ -134,6 +134,11 @@ let insert_store var constructor =
       let temp_id = Id.unique "store" in
       constructor temp_id @ [StoreHeapImm(temp_id, M.find var heap.allocation)]
 
+let insert_binds arg (names, assignments) =
+  match generate_assignment arg with
+    | None -> (Id.raw arg :: names, assignments)
+    | Some(temp_id, ass) -> (temp_id :: names, ass :: assignments)
+
 let convert_instruction = function
   | Flow.Assignment(var, exp) ->
     (match convert_exp exp with
@@ -142,11 +147,11 @@ let convert_instruction = function
       | Insts(insts, last_exp) ->
         insert_store var (fun name -> insts @ [Assignment(name, last_exp)]))
   | Flow.CallAndSet(to_set, label, args) ->
-    let (names, arg_assignments) = List.split (concat_option (List.map generate_assignment args))  in
+    let (names, arg_assignments) = List.fold_right insert_binds args ([], []) in
     insert_store to_set (fun to_set_name ->
       arg_assignments @ [CallAndSet(to_set_name, label, names)])
   | Flow.Call(label, args) ->
-    let (names, arg_assignments) = List.split (concat_option (List.map generate_assignment args))  in
+    let (names, arg_assignments) = List.fold_right insert_binds args ([], []) in
     arg_assignments @ [Call(label, names)]
   | Flow.BranchZero(var, l) ->
     insert_load var (fun name -> [BranchZero(name, l)])

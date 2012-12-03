@@ -442,4 +442,6 @@ let convert_initializer insts =
   color_variables identified_insts
 
 let convert { Heap.functions = funs; Heap.initialize_code = init } =
-  { functions = List.map convert_function funs; initialize_code = convert_initializer init }
+  let result = { functions = List.map convert_function funs; initialize_code = convert_initializer init } in
+  print_endline (Show.show<t> result);
+  result
