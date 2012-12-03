@@ -1,8 +1,22 @@
-int main(int argc)
+/*
+ASSERT r3 = 20
+*/
+
+int main()
 {
-  if (argc == 0) {
-    return 5;
+  int x = 0;
+  int y = 1;
+  int ans = 0;
+  if (x == 0) {
+    ans += 5;
   } else {
-    return 3;
+    ans +=  3;
   }
+  if (y == 0) {
+    ans += 9;
+  } else {
+    ans += 15;
+  }
+  print_int(ans);
+  return 0;
 }

@@ -105,9 +105,9 @@ let rec print_stat out_channel stat =
       print1 "callr" (Reg.show reg)
 
     | JUMP(Id.L l) ->
-      print1 "jump" l
+      print1 "j" l
     | JUMPR(reg) ->
-      print1 "jumpr" (Reg.show reg)
+      print1 "jr" (Reg.show reg)
 
     | STI(reg1, reg2, off) ->
       print_save "sti" reg1 reg2 off

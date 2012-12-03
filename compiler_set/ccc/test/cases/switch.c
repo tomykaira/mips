@@ -1,4 +1,4 @@
-int main(int argc)
+int callee(int argc)
 {
   switch (argc) {
   case 0:
@@ -10,4 +10,13 @@ int main(int argc)
   default:
     return 92;
   }
+}
+
+int main() {
+  print_int(callee(0));
+  print_int(callee(1));
+  print_int(callee(2));
+  print_int(callee(3));
+
+  return 0;
 }

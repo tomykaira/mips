@@ -1,0 +1,45 @@
+.PHONY: test clean
+
+COMPILER = ../../src/main
+ASSEMBLER = ../../../assembler/assembler
+SIMULATOR = ../../../simulator/simulator -t
+LINKER = ../../helper/linker.sh
+C_HEADER = ../../helper/runner.c
+
+FORMATTER = ruby -e "STDIN.bytes.map { |x| puts x.ord }"
+
+TEST_TARGETS = $(ls *.c)
+TEST_JOBS = $(replacesuffixes .c, .test, $(TEST_TARGETS))
+
+test: $(TEST_JOBS)
+
+%.test: %.gcc %.sim
+	diff $*.gcc $*.sim > $@ || true
+
+%.sim: %.bin
+	$(SIMULATOR) $< | $(FORMATTER) > $@
+
+%.bin: %.s
+	$(ASSEMBLER) $< $@
+
+%.gcc: %.gcc.a
+	$< | $(FORMATTER) > $@
+
+%.gcc.a: %.gcc_c
+	gcc -Wall -x c -o $@ $<
+
+%.gcc_c: %.c
+	cat $(C_HEADER) $< > $@
+
+%.s: %.c
+	$(COMPILER) $< > /dev/null
+	$(LINKER) $@
+
+clean:
+	rm -f *.s *.gcc *.sim *.gcc.* *.bin *.test
+
+.BUILD_SUCCESS:
+	true
+
+.BUILD_FAILURE:
+	true

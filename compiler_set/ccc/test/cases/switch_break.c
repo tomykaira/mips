@@ -1,3 +1,14 @@
+/*
+INPUT r3 = 0
+ASSERT r3 = 5
+INPUT r3 = 1
+ASSERT r3 = 8
+INPUT r3 = 2
+ASSERT r3 = 11
+INPUT r3 = 3
+ASSERT r3 = 92
+*/
+
 int main(int argc)
 {
   int f = 0;
@@ -23,5 +34,6 @@ int main(int argc)
       break;
     }
   }
-  return f;
+  print_int(f);
+  return 0;
 }

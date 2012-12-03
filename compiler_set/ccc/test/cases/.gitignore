@@ -1,0 +1,6 @@
+*.bin
+*.a
+*.gcc_c
+*.gcc
+*.test
+*.sim

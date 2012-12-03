@@ -1,3 +1,6 @@
+/*
+ASSERT r3 = 4
+*/
 int main(int argc)
 {
   int x = 0;
@@ -6,5 +9,8 @@ int main(int argc)
     int x = 3;
     x = x + 1;
   }
-  return x;
+
+  print_int(x);
+
+  return 0;
 }
