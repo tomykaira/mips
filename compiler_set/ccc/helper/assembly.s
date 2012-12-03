@@ -1324,6 +1324,19 @@ zero_div:
 	addi $r3, $r0, 0
 	return
 
+min_caml_mod:
+	sti	$r3, $r1, 0
+	sti	$r4, $r1, -1
+	subi $r1, $r1, 2
+	call min_caml_div
+	addi $r1, $r1, 2
+	ldi	$r4, $r1, -1
+	subi $r1, $r1, 2
+	call min_caml_mul
+	addi $r1, $r1, 2
+	ldi $r4, $r1, 0
+	sub $r3, $r4, $r3
+
 read_key:
 	readkey	$r3
 	return
