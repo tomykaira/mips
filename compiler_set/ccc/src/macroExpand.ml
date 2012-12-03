@@ -65,6 +65,8 @@ let rec convert_statement macros stat =
       Syntax.Block(variables, List.map go statements)
     | Syntax.If(e, stat_true, Some(stat_false)) ->
       Syntax.If(go_exp e, go stat_true, Some(go stat_false))
+    | Syntax.If(e, stat_true, None) ->
+      Syntax.If(go_exp e, go stat_true, None)
     | Syntax.Switch(e, cases) ->
       let new_cases =
         List.map

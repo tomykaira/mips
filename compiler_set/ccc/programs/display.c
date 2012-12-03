@@ -46,7 +46,7 @@ void add_key_input() {
   } else if (input == 0x7f) {//  backspace
     current_column -= 1;
     buffer[C(current_line, current_column)] = 0;
-  } else {
+  } else if (input != 0) {
     buffer[C(current_line, current_column)] = input;
     current_column += 1;
   }
