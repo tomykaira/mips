@@ -55,7 +55,7 @@ let active_moves       = ref MoveS.empty
 let frozen_moves       = ref MoveS.empty
 
 let reset _ =
-  precolored         := [];
+  (* precolored is assigned out of the coloring process *)
   simplify_worklist  := S.empty;
   freeze_worklist    := S.empty;
   spill_worklist     := S.empty;
@@ -191,7 +191,7 @@ let simplify () =
   push_select_stack node;
   remove_edges node
 
-let precolored_nodes () =
+let precolored_nodes _ =
   S.of_list (List.map (fun (n, r) -> n) !precolored)
 
 let is_precolored node =
@@ -298,7 +298,6 @@ let assign_colors () =
     Printf.printf "testing edges: %s -> %s\n"
       node
       (Show.show<Id.t list> (S.elements (all_adjacent_nodes node)));
-    Printf.printf "available (before) %s\n" (Show.show<Reg.i list> (RegS.elements !available));
     S.iter remove_filled (all_adjacent_nodes node);
     Printf.printf "available (after) %s for %s\n" (Show.show<Reg.i list> (RegS.elements !available)) node;
     if RegS.is_empty !available then
@@ -310,15 +309,24 @@ let assign_colors () =
   in
   Printf.printf "select_stack at end %s\n" (Show.show<Id.t list> !select_stack);
   List.fold_left color_node () !select_stack;
+  Printf.printf "node coloring done\n";
+  Printf.printf "precolored nodes: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);
+  Printf.printf "colored nodes: %s\n" (Show.show<(Id.t * Reg.i) list> !colored_nodes);
+  Printf.printf "Coalesce map: %s\n" (Show.show<(Id.t * Id.t) list> !coalesced_map);
   List.iter (fun (name_to, name_from) ->
-    colored_nodes := (name_from, List.assoc name_to !colored_nodes) :: !colored_nodes) !coalesced_map;
+    Printf.printf "coalesce: %s -> %s\n" name_from name_to;
+    colored_nodes := (name_from, List.assoc name_to (!colored_nodes @ !precolored)) :: !colored_nodes) !coalesced_map;
+  print_endline "colored nodes are updated";
   !colored_nodes
 
 let rewrite_program _ _ =
   failwith "Oh sorry, you cannot retry."
 
-let replace_registers live colored_nodes insts =
-  let r id = List.assoc id colored_nodes in
+let replace_registers live color_map insts =
+  let r id =
+    Printf.printf "finding %s\n" id;
+    List.assoc id color_map
+  in
   let replace_exp = function
     | Heap.Mov(id)          -> Heap.Mov(r id)
     | Heap.Const(c)         -> Heap.Const(c)
@@ -371,6 +379,10 @@ let rec retry insts =
 and color_variables insts =
   reset ();
   let other_nodes = S.diff (extract_nodes insts) (precolored_nodes ()) in
+  Printf.printf "extracted: %s\nprecolored: %s\nnodes: %s\n"
+    (Show.show<Id.t list> (S.elements (extract_nodes insts)))
+    (Show.show<Id.t list> (S.elements (precolored_nodes ())))
+    (Show.show<Id.t list> (S.elements other_nodes));
   let live = live_t insts in
   setup_for_function live insts;
   make_worklist other_nodes;
@@ -390,7 +402,7 @@ and color_variables insts =
   print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges));
   let colored_nodes = assign_colors () in
   if S.is_empty !spilled_nodes then
-    replace_registers live colored_nodes insts
+    replace_registers live (colored_nodes @ !precolored) insts
   else
     retry insts
 
