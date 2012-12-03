@@ -1,22 +1,19 @@
+open Definition
 open Util
 
 type t =
-  | Function of Syntax.function_signature * Syntax.statement
-  | FunctionDeclaration of Syntax.function_signature
-  | GlobalVariable of Syntax.variable
-  | Array of Syntax.array_signature
+  | Function of function_signature * Syntax.statement
+  | FunctionDeclaration of function_signature
+  | GlobalVariable of variable
+  | Array of array_signature
     deriving (Show)
 
-module NameMap =
-  Map.Make
-    (struct
-      type t = Id.t
-      let compare = compare
-     end)
+module NameMap = ExtendedMap.Make(Id.TStruct)
+
 let add_list xys env = List.fold_left (fun env (x, y) -> NameMap.add x y env) env xys
 let map_of_list l = add_list l NameMap.empty
 
-type macro_set = {const : Syntax.const_value NameMap.t; exp : (Syntax.exp list -> Syntax.exp) NameMap.t }
+type macro_set = {const : const_value NameMap.t; exp : (Syntax.exp list -> Syntax.exp) NameMap.t }
 
 let empty_macros =
   { const = NameMap.empty; exp = NameMap.empty }

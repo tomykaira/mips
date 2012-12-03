@@ -1,9 +1,10 @@
 (* Flatten Exp in Syntax *)
+open Definition
 open Util
 
 type exp =
   | Var            of Id.v
-  | Const          of Syntax.const_value
+  | Const          of const_value
   | And            of Id.v * Id.v
   | Or             of Id.v * Id.v
   | Equal          of Id.v * Id.v
@@ -31,7 +32,7 @@ type assignment_chain = { result : Id.v; chain : assignment list }
 type statement =
   | Label       of Id.l * statement
   | Assignments of assignment list
-  | Block       of Syntax.variable list * statement list
+  | Block       of variable list * statement list
   | If          of assignment_chain * statement * statement option
   | Switch      of assignment_chain * switch_case list
   | While       of assignment_chain * statement
@@ -42,14 +43,14 @@ type statement =
   | ReturnVoid
   | Nop
 and switch_case =
-  | SwitchCase  of Syntax.const_value * statement
+  | SwitchCase  of const_value * statement
   | DefaultCase of statement
     deriving (Show)
 
 type t =
-  | Function of Syntax.function_signature * statement
-  | GlobalVariable of Syntax.variable
-  | Array of Syntax.array_signature
+  | Function of function_signature * statement
+  | GlobalVariable of variable
+  | Array of array_signature
     deriving (Show)
 
 

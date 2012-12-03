@@ -125,19 +125,19 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
         { STORAGE_CLASS(Syntax.Typedef) }
 
     | "void"
-        { TYPE_CLASS(Syntax.Void) }
+        { TYPE_CLASS(Definition.Void) }
     | "char"
-        { TYPE_CLASS(Syntax.Char) }
+        { TYPE_CLASS(Definition.Char) }
     | "int"
-        { TYPE_CLASS(Syntax.Int) }
+        { TYPE_CLASS(Definition.Int) }
     | "long"
-        { TYPE_CLASS(Syntax.Long) }
+        { TYPE_CLASS(Definition.Long) }
     | "float"
-        { TYPE_CLASS(Syntax.Float) }
+        { TYPE_CLASS(Definition.Float) }
     | "signed"
-        { TYPE_CLASS(Syntax.Signed) }
+        { TYPE_CLASS(Definition.Signed) }
     | "unsigned"
-        { TYPE_CLASS(Syntax.Unsigned) }
+        { TYPE_CLASS(Definition.Unsigned) }
 
     | '\'' ascii '\''
         { CHAR_VAL((Lexing.lexeme lexbuf).[1]) }

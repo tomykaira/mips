@@ -1,4 +1,5 @@
 open LiveAnalyzer
+open Definition
 open Util
 module Heap = HeapAllocation
 
@@ -486,9 +487,9 @@ let insert_redirection_for_output_variables insts =
   in
   List.fold_right replace insts ([], [])
 
-let insert_redirection_for_abi_constraint { Syntax.parameters = params; _ } insts =
+let insert_redirection_for_abi_constraint { parameters = params; _ } insts =
   let (insts, output_precolor) = insert_redirection_for_output_variables insts in
-  let parameter_ids = List.map (Id.raw $ Syntax.parameter_id) params in
+  let parameter_ids = List.map (Id.raw $ parameter_id) params in
   let create_new_binding i current_id =
     let new_id = Id.unique "auto_arg" in
     ((new_id, Reg.nth_arg i), Heap.Assignment(current_id, Heap.Mov(new_id)))
@@ -496,10 +497,10 @@ let insert_redirection_for_abi_constraint { Syntax.parameters = params; _ } inst
   let (param_precolor, assign_code) = List.split (List.mapi create_new_binding parameter_ids) in
   (assign_code @ insts, output_precolor @ param_precolor)
 
-let get_abi_constraint { Syntax.parameters = params; _ } : (Id.t * Reg.i) list =
-  Reg.assign_params (List.map (Id.raw $ Syntax.parameter_id) params)
+let get_abi_constraint { parameters = params; _ } : (Id.t * Reg.i) list =
+  Reg.assign_params (List.map (Id.raw $ parameter_id) params)
 
-let convert_function ({Syntax.name = name} as signature, insts) =
+let convert_function ({name = name} as signature, insts) =
   let (insts, precolor_map) = insert_redirection_for_abi_constraint signature insts in
   precolored := precolor_map;
   Printf.printf "precolored: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);

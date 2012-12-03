@@ -1,8 +1,9 @@
+open Definition
 open Util
 
 type 'a exp =
   | Mov            of 'a
-  | Const          of Syntax.const_value
+  | Const          of Definition.const_value
   | And            of 'a * 'a
   | Or             of 'a * 'a
   | Add            of 'a * 'a
@@ -13,7 +14,7 @@ type 'a exp =
     deriving (Show)
 
 type variable =
-    Variable of Id.t * Syntax.type_class * Syntax.const_value
+    Variable of Id.t * Definition.type_class * Definition.const_value
     deriving (Show)
 
 type instruction =
@@ -32,7 +33,7 @@ type instruction =
   | StoreHeapImm of Id.t * int
     deriving (Show)
 
-type t = { functions : (Syntax.function_signature * instruction list) list;
+type t = { functions : (Definition.function_signature * instruction list) list;
            initialize_code : instruction list }
       deriving (Show)
 
@@ -67,7 +68,7 @@ let expand_exp var constructor =
     | Id.V(name) -> constructor name
     | Id.A(name) ->                     (* Set and return pointer, only for call *)
       let temp_id = Id.unique "load" in
-      insert_assignment temp_id (Assignment(temp_id, Const(Syntax.IntVal(find_heap var))))
+      insert_assignment temp_id (Assignment(temp_id, Const(Definition.IntVal(find_heap var))))
     | Id.G(name) ->
       let temp_id = Id.unique "load" in
       insert_assignment temp_id (Assignment(temp_id, LoadHeapImm(find_heap var)))
@@ -79,7 +80,7 @@ let convert_exp exp =
         | Id.V(name) ->
           Exp(Mov(name))
         | Id.A(name) ->
-          Exp(Const(Syntax.IntVal(find_heap var)))
+          Exp(Const(Definition.IntVal(find_heap var)))
         | Id.G(name) ->
           Exp(LoadHeapImm(find_heap var)))
     | Flow.Const(c) -> Exp(Const(c))
@@ -105,7 +106,7 @@ let convert_exp exp =
     | Flow.ArrayGet(id, var) ->
       expand_exp var (fun name ->
         let temp_id = Id.unique "addr" in
-        Insts([Assignment(temp_id, Const(Syntax.IntVal(find_heap id)));
+        Insts([Assignment(temp_id, Const(Definition.IntVal(find_heap id)));
                Assignment(temp_id, Add(temp_id, name))],
               LoadHeap(temp_id)))
 
@@ -114,7 +115,7 @@ let generate_assignment var =
     | Id.V(name) -> None
     | Id.A(name) ->                     (* Set and return pointer, only for call *)
       let temp_id = Id.unique "load" in
-      Some(temp_id, Assignment(temp_id, Const(Syntax.IntVal(find_heap var))))
+      Some(temp_id, Assignment(temp_id, Const(Definition.IntVal(find_heap var))))
     | Id.G(name) ->
       let temp_id = Id.unique "load" in
       Some(temp_id, Assignment(temp_id, LoadHeapImm(M.find var heap.allocation)))
@@ -169,11 +170,11 @@ let convert_instruction = function
     let temp = Id.unique "addr" in
     insert_load index (fun index_name ->
       insert_load value (fun value_name ->
-        [Assignment(temp, Const(Syntax.IntVal(find_heap array)));
+        [Assignment(temp, Const(Definition.IntVal(find_heap array)));
          Assignment(temp, Add(temp, index_name));
          StoreHeap(value_name, temp)]))
 
-  | Flow.Definition(Syntax.Variable(id, typ, const)) -> [Definition(Variable(Id.raw id, typ, const))]
+  | Flow.Definition(Definition.Variable(id, typ, const)) -> [Definition(Variable(Id.raw id, typ, const))]
   | Flow.Label(l)      -> [Label(l)]
   | Flow.Goto(l)       -> [Goto(l)]
   | Flow.ReturnVoid    -> [ReturnVoid]
@@ -186,18 +187,18 @@ let assign_global { functions = funs; initialize_code = code } t =
      StoreHeapImm(temp_name, location)]
   in
   let rec push_zeros top size =
-    concat_map (fun i -> assign_and_save (Syntax.IntVal 0) i) (range top (top + size - 1))
+    concat_map (fun i -> assign_and_save (Definition.IntVal 0) i) (range top (top + size - 1))
   in
   match t with
     | Flow.Function(signature, insts) ->
       let new_insts = concat_map convert_instruction insts in
       { functions = funs @ [(signature, new_insts)]; initialize_code = code }
-    | Flow.GlobalVariable(Syntax.Variable(id, typ, initial)) ->
+    | Flow.GlobalVariable(Definition.Variable(id, typ, initial)) ->
       let top = heap.size in
       heap.size <- heap.size + 1;
       heap.allocation <- M.add id top heap.allocation;
       { functions = funs; initialize_code = code @ assign_and_save initial top }
-    | Flow.Array({ Syntax.id = id; Syntax.size = size; _ }) ->
+    | Flow.Array({ Definition.id = id; Definition.size = size; _ }) ->
       let top = heap.size in
       heap.size <- heap.size + size;
       heap.allocation <- M.add id top heap.allocation;

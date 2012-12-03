@@ -1,9 +1,10 @@
+open Definition
 open Util
 
 (* Limit exp to primitive instructions *)
 type exp =
   | Mov            of Id.v
-  | Const          of Syntax.const_value
+  | Const          of const_value
   | And            of Id.v * Id.v
   | Or             of Id.v * Id.v
   | Add            of Id.v * Id.v
@@ -17,7 +18,7 @@ type instruction =
   | Assignment  of Id.v * exp
   | CallAndSet  of Id.v * Id.l * Id.v list      (* with variable binding *)
   | Call        of Id.l * Id.v list      (* just calling *)
-  | Definition  of Syntax.variable
+  | Definition  of variable
   | BranchZero  of Id.v * Id.l
   | BranchEqual of Id.v * Id.v * Id.l
   | BranchLT    of Id.v * Id.v * Id.l
@@ -28,9 +29,9 @@ type instruction =
     deriving (Show)
 
 type t =
-  | Function of Syntax.function_signature * instruction list
-  | GlobalVariable of Syntax.variable
-  | Array of Syntax.array_signature
+  | Function of function_signature * instruction list
+  | GlobalVariable of variable
+  | Array of array_signature
       deriving (Show)
 
 (* Result of exp expansion *)
@@ -42,10 +43,10 @@ let expand_exp assign_to exp =
     let label_end = Id.gen_label "eq_end" in
     Instructions
       [branch_inst label_t;
-       Assignment(assign_to, Const(Syntax.IntVal(0)));
+       Assignment(assign_to, Const(IntVal(0)));
        Goto(label_end);
        Label(label_t);
-       Assignment(assign_to, Const(Syntax.IntVal(1)));
+       Assignment(assign_to, Const(IntVal(1)));
        Label(label_end)]
   in
   match exp with

@@ -1,4 +1,5 @@
 open Util
+open Definition
 open Syntax
 
 exception Unify of Type.t * Type.t

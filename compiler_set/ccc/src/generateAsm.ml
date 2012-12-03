@@ -1,6 +1,7 @@
 (* MemoryAllocation to asm.  Its end of the tale. *)
 open Util
 open MemoryAllocation
+open Definition
 open Asm
 
 let header =
@@ -18,9 +19,9 @@ let convert_exp = function
   | Add(a, b)          -> ADD(a, b)
   | Sub(a, b)          -> SUB(a, b)
   | Negate(a)          -> SUB(Reg.int_zero, a)
-  | Const(Syntax.IntVal(i))   -> Int(i)
-  | Const(Syntax.CharVal(c))  -> Int(Char.code c)
-  | Const(Syntax.FloatVal(f)) -> failwith "Float value is not yet supported"
+  | Const(IntVal(i))   -> Int(i)
+  | Const(CharVal(c))  -> Int(Char.code c)
+  | Const(FloatVal(f)) -> failwith "Float value is not yet supported"
   | x -> failwith ("oops.. sorry, not supported: " ^ (Show.show<exp> x))
 
 

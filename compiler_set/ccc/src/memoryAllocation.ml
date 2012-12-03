@@ -2,13 +2,14 @@
   Allocate memories
   - Insert save / restore
 *)
+open Definition
 open Util
 
 type memory_point = Heap of int | HeapReg of Reg.i | Stack of int
 
 type exp =
   | Mov            of Reg.i
-  | Const          of Syntax.const_value
+  | Const          of const_value
   | And            of Reg.i * Reg.i
   | Or             of Reg.i * Reg.i
   | Add            of Reg.i * Reg.i

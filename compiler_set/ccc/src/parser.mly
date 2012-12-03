@@ -1,5 +1,6 @@
 %{
 (* from http://www.cs.man.ac.uk/~pjj/bnf/c_syntax.bnf *)
+open Definition
 open Syntax
 %}
 
@@ -56,7 +57,7 @@ open Syntax
 %token EOF
 
 %token <Syntax.storage_class> STORAGE_CLASS
-%token <Syntax.type_class> TYPE_CLASS
+%token <Definition.type_class> TYPE_CLASS
 
 %token <Id.t> ID
 

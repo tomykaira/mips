@@ -1,8 +1,10 @@
+open Definition
+
 type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
   | Sequence    of statement list
-  | Block       of Syntax.variable list * statement list
+  | Block       of variable list * statement list
   | BranchZero  of Id.v * Id.l
   | BranchEqual of Id.v * Id.v * Id.l
   | Goto        of Id.l
@@ -11,9 +13,9 @@ type statement =
     deriving (Show)
 
 type t =
-  | Function of Syntax.function_signature * statement
-  | GlobalVariable of Syntax.variable
-  | Array of Syntax.array_signature
+  | Function of function_signature * statement
+  | GlobalVariable of variable
+  | Array of array_signature
     deriving (Show)
 
 let assign_const const =

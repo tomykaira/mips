@@ -1,5 +1,6 @@
 (* rename identifiers in Syntax tree to make them unique (alpha-conversion) *)
 open Syntax
+open Definition
 open Util
 
 module M = ExtendedMap.Make (Id.VStruct)

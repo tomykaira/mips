@@ -5,6 +5,7 @@ FILES[] =
 	extendedSet
 	extendedMap
 	entity
+	definition
 	syntax
 	lexer
 	parser
