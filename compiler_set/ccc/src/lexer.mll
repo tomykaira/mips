@@ -17,6 +17,9 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
     | "//" [^ '\n']*
         { token lexbuf } (* eat up one-line comments *)
 
+    | "0x" (['0' - '9']|['a' - 'f']|['A' - 'F'])+
+        { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
+
     | digit+
         { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
     | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
