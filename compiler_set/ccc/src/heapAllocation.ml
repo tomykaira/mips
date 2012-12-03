@@ -94,7 +94,7 @@ let convert_exp exp =
     | Flow.Add(var1, var2) ->
       expand_exp var1 (fun n1 ->
         expand_exp var2 (fun n2 ->
-          Exp(And(n1, n2))))
+          Exp(Add(n1, n2))))
     | Flow.Sub(var1, var2) ->
       expand_exp var1 (fun n1 ->
         expand_exp var2 (fun n2 ->

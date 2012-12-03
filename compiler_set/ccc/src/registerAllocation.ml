@@ -90,31 +90,40 @@ let add_edge u v =
   else
     ()
 
-let construct_graph live inst =
-  let live_here = match inst with
-    | Entity.E(_, Heap.Assignment(_, Heap.Mov(_))) ->
-      S.diff (LiveMap.find inst live) (S.of_list (use_instruction inst))
-    | inst ->
-      LiveMap.find inst live
+let construct_graph live insts =
+  let proc inst =
+    let live_here = match inst with
+      | Entity.E(_, Heap.Assignment(_, Heap.Mov(_))) ->
+        S.diff (LiveMap.find inst live) (S.of_list (use_instruction inst))
+      | inst ->
+        LiveMap.find inst live
+    in
+    List.iter (fun d ->
+      S.iter (fun l ->
+        add_edge l d) live_here) (option_to_list (def_instruction inst))
   in
-  List.iter (fun d ->
-    S.iter (fun l ->
-      add_edge l d) live_here) (option_to_list (def_instruction inst))
+  List.iter proc insts
+
 
 let setup_for_function live insts =
   worklist_moves := MoveS.empty;
   interference_edges := [];
   move_list := M.empty;
-  List.iter (fun inst -> construct_graph live inst; register_move inst) insts
+  construct_graph live insts;
+  List.iter register_move insts;
+  print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges))
 
 
+
+let all_adjacent_nodes v =
+  let nodes = List.map snd (List.filter (fun (self, other) -> v = self) !interference_edges) in
+  S.of_list nodes
 
 let adjacent_nodes v =
-  let nodes = List.map snd (List.filter (fun (self, other) -> v = self) !interference_edges) in
-  S.diff (S.of_list nodes) (S.union (S.of_list !select_stack) (S.of_list (List.map snd !coalesced_map)))
+  S.diff (all_adjacent_nodes v) (S.union (S.of_list !select_stack) (S.of_list (List.map snd !coalesced_map)))
 
 let is_significant node =
-  S.cardinal (adjacent_nodes node) < Reg.available_count
+  S.cardinal (adjacent_nodes node) >= Reg.available_count
 
 (* just moved significant to not-significant *)
 let just_not_significant node =
@@ -132,11 +141,14 @@ let move_related v =
 let make_worklist not_colored_nodes =
   let for_each_node v =
     if is_significant v then
-      spill_worklist := S.add v !spill_worklist
+      (Printf.printf "%s - spill\n" v;
+      spill_worklist := S.add v !spill_worklist)
     else if move_related v then
-      freeze_worklist := S.add v !freeze_worklist
+      (Printf.printf "%s - freeze\n" v;
+      freeze_worklist := S.add v !freeze_worklist)
     else
-      simplify_worklist := S.add v !simplify_worklist
+      (Printf.printf "%s - simplify\n" v;
+       simplify_worklist := S.add v !simplify_worklist)
   in
   spill_worklist    := S.empty;
   freeze_worklist   := S.empty;
@@ -159,7 +171,6 @@ let enable_moves node_set =
 
 let remove_edges node =
   let (updated, removed) = List.partition (fun (u, v) -> u != node && v != node) !interference_edges in
-  interference_edges := updated;
   let neighbors = List.map (fun (u, v) -> if u = node then v else u) removed in
   (* corresponds to DecrementDegree *)
   let update_worklist node =
@@ -215,7 +226,7 @@ let combine (u, v) =
     ()
 
 let is_adjacent (u, v) =
-  List.mem (u, v) !interference_edges
+  S.mem v (adjacent_nodes u)
 
 let coalesce () =
   let ((x, y), new_worklist) = MoveS.pop !worklist_moves in
@@ -275,13 +286,21 @@ let assign_colors () =
     let available = ref Reg.available_registers in
     let remove_filled node =
       let actual = resolve_alias node in
+      Printf.printf "actual: %s\n" (Show.show<Id.t> actual);
       try
         let (var, reg) = List.find (fun (v, r) -> v = actual) (!colored_nodes @ !precolored) in
         available := RegS.remove reg !available
       with
         | Not_found -> ()
     in
-    S.iter remove_filled (adjacent_nodes node);
+    print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges));
+    Printf.printf "color assignment: %s\n" (Show.show<(Id.t * Reg.i) list> !colored_nodes);
+    Printf.printf "testing edges: %s -> %s\n"
+      node
+      (Show.show<Id.t list> (S.elements (all_adjacent_nodes node)));
+    Printf.printf "available (before) %s\n" (Show.show<Reg.i list> (RegS.elements !available));
+    S.iter remove_filled (all_adjacent_nodes node);
+    Printf.printf "available (after) %s for %s\n" (Show.show<Reg.i list> (RegS.elements !available)) node;
     if RegS.is_empty !available then
       spilled_nodes := S.add node !spilled_nodes
     else begin
@@ -289,6 +308,7 @@ let assign_colors () =
       colored_nodes := (node, reg) :: !colored_nodes
     end
   in
+  Printf.printf "select_stack at end %s\n" (Show.show<Id.t list> !select_stack);
   List.fold_left color_node () !select_stack;
   List.iter (fun (name_to, name_from) ->
     colored_nodes := (name_from, List.assoc name_to !colored_nodes) :: !colored_nodes) !coalesced_map;
@@ -354,8 +374,8 @@ and color_variables insts =
   let live = live_t insts in
   setup_for_function live insts;
   make_worklist other_nodes;
-  while S.is_empty !simplify_worklist && MoveS.is_empty !worklist_moves &&
-    S.is_empty !freeze_worklist && S.is_empty !spill_worklist do
+  while S.not_empty !simplify_worklist || MoveS.not_empty !worklist_moves ||
+    S.not_empty !freeze_worklist || S.not_empty !spill_worklist do
     if S.not_empty !simplify_worklist then
       simplify ()
     else if MoveS.not_empty !worklist_moves then
@@ -367,6 +387,7 @@ and color_variables insts =
     else
       ()
   done;
+  print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges));
   let colored_nodes = assign_colors () in
   if S.is_empty !spilled_nodes then
     replace_registers live colored_nodes insts
@@ -410,8 +431,15 @@ let convert_function ({Syntax.name = name} as signature, insts) =
   let (insts, return_precoloring) = insert_precolored_variables insts in
   let parameter_precoloring = get_abi_constraint signature in
   precolored := parameter_precoloring @ return_precoloring;
+  Printf.printf "precolored: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);
   let identified_insts = Entity.identify insts in
   (name, color_variables identified_insts)
 
+let convert_initializer insts =
+  let (insts, return_precoloring) = insert_precolored_variables insts in
+  precolored := return_precoloring;
+  let identified_insts = Entity.identify insts in
+  color_variables identified_insts
+
 let convert { Heap.functions = funs; Heap.initialize_code = init } =
-  { functions = List.map convert_function funs; initialize_code = color_variables (Entity.identify init) }
+  { functions = List.map convert_function funs; initialize_code = convert_initializer init }

@@ -160,11 +160,15 @@ let check_top ({variables = vs; functions = fs} as env) t =
       { env with variables = M.add_pair (binding var) vs }
 
     (* TODO: limit array label to `A *)
-    | MacroExpand.Array({id = Id.A id; content_type = typ; _}) ->
-      (* There are both Id.A and Id.V before alpha-transformation *)
-      let array_label = (Id.A id,  (Type.Array (convert_syntactic_type typ))) in
-      let variable_label = (Id.V id,  (Type.Array (convert_syntactic_type typ))) in
-      { env with variables = M.add_list [array_label; variable_label] vs }
+    | MacroExpand.Array({id = typed_id; content_type = typ; _}) ->
+      match typed_id with
+        | Id.A id ->
+          (* There are both Id.A and Id.V before alpha-transformation *)
+          let array_label = (Id.A id,  (Type.Array (convert_syntactic_type typ))) in
+          let variable_label = (Id.V id,  (Type.Array (convert_syntactic_type typ))) in
+          { env with variables = M.add_list [array_label; variable_label] vs }
+        | _ ->
+          failwith "Unexpected id type for array"
 
 let check ts =
   try
