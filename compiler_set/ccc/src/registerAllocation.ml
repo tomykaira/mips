@@ -366,37 +366,38 @@ let replace_registers live color_map insts =
   let replace (Entity.E(_, inst) as identified) =
     match inst with
       | Heap.Assignment(id, exp) ->
-        [Assignment(r id, replace_exp exp)]
+        Assignment(r id, replace_exp exp)
       | Heap.Call(l, args) ->
         let live = LiveMap.find identified live in
         let allocation = S.map_list (fun name -> (r name, name)) live in
-        [Call(l, List.map r args, allocation)]
+        Call(l, List.map r args, allocation)
       | Heap.CallAndSet(to_set, l, args) ->
         let live = LiveMap.find identified live in
         let allocation = S.map_list (fun name -> (r name, name)) (S.remove to_set live) in
-        [CallAndSet(r to_set, l, List.map r args, allocation)]
+        CallAndSet(r to_set, l, List.map r args, allocation)
       | Heap.BranchZero(id, l) ->
-        [BranchZero(r id, l)]
+        BranchZero(r id, l)
       | Heap.BranchEqual(id1, id2, l) ->
-        [BranchEqual(r id1, r id2, l)]
+        BranchEqual(r id1, r id2, l)
       | Heap.BranchLT(id1, id2, l) ->
-        [BranchLT(r id1, r id2, l)]
+        BranchLT(r id1, r id2, l)
       | Heap.Return(id) ->
         if r id = Reg.ret then
-          [Return]
+          Return
         else
           failwith "return address is not return register"
       | Heap.StoreHeap(id1, id2) ->
-        [StoreHeap(r id1, r id2)]
+        StoreHeap(r id1, r id2)
       | Heap.StoreHeapImm(id1, imm) ->
-        [StoreHeapImm(r id1, imm)]
+        StoreHeapImm(r id1, imm)
+      | Heap.Definition(Heap.Variable(id, _, const)) ->
+        Assignment(r id, Heap.Const(const))
 
-      | Heap.ReturnVoid    -> [Return]
-      | Heap.Label(l)      -> [Label(l)]
-      | Heap.Goto(l)       -> [Goto(l)]
-      | Heap.Definition(_) -> []
+      | Heap.ReturnVoid    -> Return
+      | Heap.Label(l)      -> Label(l)
+      | Heap.Goto(l)       -> Goto(l)
   in
-  concat_map replace insts
+  List.map replace insts
 
 (* If two live precolored variable uses the same register,
    it is impossible to allocate correctly. *)
