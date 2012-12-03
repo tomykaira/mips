@@ -81,6 +81,8 @@ let rec convert_statement env stat =
       Block(variables, List.map (convert_statement new_env) statements)
     | If(e, stat_true, Some(stat_false)) ->
       If(go_exp e, go stat_true, Some(go stat_false))
+    | If(e, stat_true, None) ->
+      If(go_exp e, go stat_true, None)
     | Switch(e, cases) ->
       let new_cases =
         List.map
