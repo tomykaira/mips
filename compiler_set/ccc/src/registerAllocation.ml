@@ -31,6 +31,12 @@ module S = ExtendedSet.Make (Id.TStruct)
 
 module RegS = Reg.RegS
 
+module RegM = ExtendedMap.Make
+  (struct
+    type t = Reg.i
+    let compare = compare
+   end)
+
 module MoveS = ExtendedSet.Make
   (struct
     type t = (Id.t * Id.t)
@@ -374,17 +380,42 @@ let replace_registers live color_map insts =
   in
   concat_map replace insts
 
+(* If two live precolored variable uses the same register,
+   it is impossible to allocate correctly. *)
+let assert_precolor_overwrap live precolor =
+  let add_variable map (var, reg) =
+    let to_add = if RegM.mem reg map then
+        S.add var (RegM.find reg map)
+      else
+        S.singleton var
+    in
+    RegM.add reg to_add map
+  in
+  let live_sets = List.map snd (LiveMap.bindings live) in
+  let same_register_set =
+    List.map snd (RegM.bindings (List.fold_left add_variable RegM.empty precolor)) in
+  List.iter (fun live ->
+    List.iter (fun reg ->
+      let inter = (S.inter live reg) in
+      if S.cardinal inter <= 1 then
+        ()
+      else
+        failwith ("precolor overwrap assertion failed: " ^ Show.show<Id.t list> (S.elements inter))
+    ) same_register_set) live_sets
+
 let rec retry insts =
   color_variables (rewrite_program !spilled_nodes insts)
 and color_variables insts =
   reset ();
-  let other_nodes = S.diff (extract_nodes insts) (precolored_nodes ()) in
+  let identified = Entity.identify insts in
+  let other_nodes = S.diff (extract_nodes identified) (precolored_nodes ()) in
   Printf.printf "extracted: %s\nprecolored: %s\nnodes: %s\n"
-    (Show.show<Id.t list> (S.elements (extract_nodes insts)))
+    (Show.show<Id.t list> (S.elements (extract_nodes identified)))
     (Show.show<Id.t list> (S.elements (precolored_nodes ())))
     (Show.show<Id.t list> (S.elements other_nodes));
-  let live = live_t insts in
-  setup_for_function live insts;
+  let live = live_t identified in
+  assert_precolor_overwrap live !precolored;
+  setup_for_function live identified;
   make_worklist other_nodes;
   while S.not_empty !simplify_worklist || MoveS.not_empty !worklist_moves ||
     S.not_empty !freeze_worklist || S.not_empty !spill_worklist do
@@ -402,7 +433,7 @@ and color_variables insts =
   print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges));
   let colored_nodes = assign_colors () in
   if S.is_empty !spilled_nodes then
-    replace_registers live (colored_nodes @ !precolored) insts
+    replace_registers live (colored_nodes @ !precolored) identified
   else
     retry insts
 
@@ -444,14 +475,12 @@ let convert_function ({Syntax.name = name} as signature, insts) =
   let parameter_precoloring = get_abi_constraint signature in
   precolored := parameter_precoloring @ return_precoloring;
   Printf.printf "precolored: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);
-  let identified_insts = Entity.identify insts in
-  (name, color_variables identified_insts)
+  (name, color_variables insts)
 
 let convert_initializer insts =
   let (insts, return_precoloring) = insert_precolored_variables insts in
   precolored := return_precoloring;
-  let identified_insts = Entity.identify insts in
-  color_variables identified_insts
+  color_variables insts
 
 let convert { Heap.functions = funs; Heap.initialize_code = init } =
   let result = { functions = List.map convert_function funs; initialize_code = convert_initializer init } in
