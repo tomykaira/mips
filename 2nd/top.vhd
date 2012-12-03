@@ -107,14 +107,12 @@ architecture top of top is
 
   end component;
 
-  COMPONENT dcm100
+  COMPONENT my_dcm
     PORT(
       CLKIN_IN : IN std_logic;
       RST_IN : IN std_logic;
-      CLKFX_OUT : OUT std_logic;
-      CLKIN_IBUFG_OUT : OUT std_logic;
-      CLK0_OUT : OUT std_logic;
-      LOCKED_OUT : OUT std_logic
+      CLK_MAIN_OUT : OUT std_logic;
+      CLK_100_OUT : OUT std_logic
       );
 	END COMPONENT;
 
@@ -141,7 +139,7 @@ architecture top of top is
 			keycode    : out std_logic_vector(7 downto 0));
 	end component;
 
-  signal iclk, clk100 : std_logic;
+  signal iclk, clk100, clk_default : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
@@ -216,13 +214,11 @@ begin  -- test
 	tx_send_enable <= '1'               when core_tx_send_enable = '1' else display_buffer_write_enable;
 	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else "0"&display_char_code;
 
-	Inst_dcm100: dcm100 PORT MAP(
-		CLKIN_IN       => CLK,
+	Inst_dcm: my_dcm PORT MAP(
+		CLKIN_IN        => CLK,
 		RST_IN          => not xrst,
-		CLKFX_OUT       => clk100,
-		CLKIN_IBUFG_OUT => open,
-		CLK0_OUT        => iclk,
-    LOCKED_OUT      => open);
+		CLK_MAIN_OUT    => iclk,
+		CLK_100_OUT     => clk100);
 
   display_inst : display port map(
     clk     => iclk,

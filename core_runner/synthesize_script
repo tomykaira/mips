@@ -22,7 +22,7 @@ lines[HEIGHT-1]="$BITNAME".rjust(WIDTH)
 lines.join.gsub(' ',  "\0").each_char{|c| puts c.ord.to_s(2).rjust(7,"0") }
 EOF
 
-  grep wtime $PROJECT_DIR/2nd/top.vhd | grep "008F" ||
+  grep wtime $PROJECT_DIR/2nd/top.vhd | grep "0099" ||
     (echo "Have you set synthesize mode? RS232C wtime is awkward."; exit 1)
 
   xst -intstyle ise -filter "iseconfig/filter.filter" -ifn "$TOP.xst" -ofn "$TOP.syr"
