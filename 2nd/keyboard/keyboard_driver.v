@@ -11,6 +11,7 @@ module keyboard_driver(input clk,
    reg [7:0] recent_data[2:0];
    reg [7:0] data_buffer;
    reg [3:0] counter;
+   reg [2:0] special_key_pressed;
 
    initial begin
       recent_data[2] <= 0;
@@ -19,6 +20,8 @@ module keyboard_driver(input clk,
 
       data_buffer <= 0;
       counter <= 0;
+
+      special_key_pressed <= 0;
    end
 
    // 0: no data
@@ -70,6 +73,37 @@ module keyboard_driver(input clk,
 
    assign is_break = next_break;
 
+   always @ (posedge (clk)) begin
+      if (special_key_pressed[2] == 1'b1
+          && is_special_key[2] == 1'b1
+          && next_break == 1'b1)
+        special_key_pressed[2] <= 1'b0;
+      else if (special_key_pressed[2] == 1'b0
+               && is_special_key[2] == 1'b1
+               && next_break == 1'b0)
+        special_key_pressed[2] <= 1'b1;
+
+
+      if (special_key_pressed[1] == 1'b1
+          && is_special_key[1] == 1'b1
+          && next_break == 1'b1)
+        special_key_pressed[1] <= 1'b0;
+      else if (special_key_pressed[1] == 1'b0
+               && is_special_key[1] == 1'b1
+               && next_break == 1'b0)
+        special_key_pressed[1] <= 1'b1;
+
+
+      if (special_key_pressed[0] == 1'b1
+          && is_special_key[0] == 1'b1
+          && next_break == 1'b1)
+        special_key_pressed[0] <= 1'b0;
+      else if (special_key_pressed[0] == 1'b0
+               && is_special_key[0] == 1'b1
+               && next_break == 1'b0)
+        special_key_pressed[0] <= 1'b1;
+   end
+
    always @ (posedge(clk)) begin
       prev_code <= next_code;
       prev_break <= next_break;
@@ -95,5 +129,5 @@ module keyboard_driver(input clk,
       end
    end
 
-   assign key_status = {6'b0, new_break_code, is_break};
+   assign key_status = {3'b0, special_key_pressed, new_break_code, is_break};
 endmodule

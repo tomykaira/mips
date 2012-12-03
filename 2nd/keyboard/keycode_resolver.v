@@ -17,7 +17,7 @@ module keycode_resolver (input [7:0] device_code,
    wire control, shift, alt;
    assign alt     = device_code == 8'h11 ? 1'b1 : 1'b0;
    assign shift   = device_code == 8'h12 ? 1'b1 : 1'b0;
-   assign control = device_code == 8'h14 || device_code == 7'h88
+   assign control = device_code == 8'h14 || device_code == 7'h58
                     ? 1'b1 : 1'b0;
 
    assign special_key = {control, shift, alt};
