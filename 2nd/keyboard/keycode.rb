@@ -1,130 +1,76 @@
-device_map = [0] * 128
+device_map = [0] * 256
 
 DATA.readlines.each do |line|
   if line[0] != '#'
-    char, device, internal = line.split(" ")
-    device_map[device.to_i] = internal.to_i
+    _, normal, _, shift, device = line.split(" ")
+    device_map[device.to_i(16)] = normal.to_i(16)
+    device_map[device.to_i(16) + 128] = shift.to_i(16)
   end
 end
 device_map.each do |code|
   puts code.to_s(2).rjust(7, "0")
 end
 __END__
-# ascii codes
-`       14      96
-Q       21      81
-1       22      49
-Z       26      90
-S       27      83
-A       28      65
-W       29      87
-2       30      50
-C       33      67
-X       34      88
-D       35      68
-E       36      69
-4       37      52
-3       38      51
-V       42      86
-F       43      70
-T       44      84
-R       45      82
-5       46      53
-N       49      78
-B       50      66
-H       51      72
-G       52      71
-Y       53      89
-6       54      54
-M       58      77
-J       59      74
-U       60      85
-7       61      55
-8       62      56
-,       65      44
-K       66      75
-I       67      73
-O       68      79
-0       69      48
-9       70      57
-.       73      46
-/       74      47
-L       75      76
-;       76      59
-P       77      80
-0       78      48
-'       82      39
-[       84      91
-=       85      61
-]       91      93
-\       93      92
-
+# JIS version
+# http://www.ne.jp/asahi/shared/o-family/ElecRoom/AVRMCOM/PS2_RS232C/KeyCordList.pdf
+# normal | with shift | scan code
+1 31 ! 21 16
+2 32 " 22 1E
+3 33 # 23 26
+4 34 $ 24 25
+5 35 % 25 2E
+6 36 & 26 36
+7 37 ' 27 3D
+8 38 ( 28 3E
+9 39 ) 29 46
+0 30 0 30 45
+a 61 A 41 1C
+b 62 B 42 32
+c 63 C 43 21
+d 64 D 44 23
+e 65 E 45 24
+f 66 F 46 2B
+g 67 G 47 34
+h 68 H 48 33
+i 69 I 49 43
+j 6A J 4A 3B
+k 6B K 4B 42
+l 6C L 4C 4B
+m 6D M 4D 3A
+n 6E N 4E 31
+o 6F O 4F 44
+p 70 P 50 4D
+q 71 Q 51 15
+r 72 R 52 2D
+s 73 S 53 1B
+t 74 T 54 2C
+u 75 U 55 3C
+v 76 V 56 2A
+w 77 W 57 1D
+x 78 X 58 22
+y 79 Y 59 35
+z 7A Z 5A 1A
+- 2D = 3D 4E
+^ 5E ~ 7E 55
+\ 5C | 7C 6A
+@ 40 ` 60 54
+[ 5B { 7B 5B
+; 3B + 2B 4C
+: 3A * 2A 52
+] 5D } 7D 5D
+, 2C < 3C 41
+. 2E > 3E 49
+/ 2F ? 3F 4A
+\ 5C _ 5F 51
+#
 # special codes
 # after char-code, decimal.
 #	decimal	internal-code
-BKSP 	102	127
-SPACE 	41	32
-CAPS 	88	[STATUS]
-L SHFT 	18	[STATUS]
-L CTRL 	20	[STATUS = CAPS]
-L ALT 	17	[STATUS]
-ENTER 	90	10
-ESC 	118	27
-
-# BKSP 	66	F0,66
-# SPACE 	29	F0,29
-# TAB 	0D 	F0,0D
-# CAPS 	58	F0,58
-# L SHFT 	12	FO,12
-# L CTRL 	14	FO,14
-# L ALT 	11	F0,11
-# R SHFT 	59	F0,59
-# ENTER 	5A 	F0,5A
-# ESC 	76	F0,76
-# F1 	05	F0,05
-# F2 	06	F0,06
-# F3 	04	F0,04
-# F4 	0C 	F0,0C
-# F5 	03	F0,03
-# F6 	0B 	F0,0B
-# F7 	83	F0,83
-# F8 	0A 	F0,0A
-# F9 	01	F0,01
-# F10 	09	F0,09
-# F11 	78	F0,78
-# F12 	07	F0,07
-# NUM 	77	F0,77
-# KP * 	7C 	F0,7C
-# KP - 	7B 	F0,7B
-# KP + 	79	F0,79
-# KP . 	71	F0,71
-# KP 0 	70	F0,70
-# KP 1 	69	F0,69
-# KP 2 	72	F0,72
-# KP 3 	7A 	F0,7A
-# KP 4 	6B 	F0,6B
-# KP 5 	73	F0,73
-# KP 6 	74	F0,74
-# KP 7 	6C 	F0,6C
-# KP 8 	75	F0,75
-# KP 9 	7D 	F0,7D
-#
-# L GUI 	E0,1F 	E0,F0,1F
-# R CTRL 	E0,14 	E0,F0,14
-# R GUI 	E0,27 	E0,F0,27
-# R ALT 	E0,11 	E0,F0,11
-# APPS 	E0,2F 	E0,F0,2F
-#
-# KP / 	E0,4A 	E0,F0,4A
-# KP EN 	E0,5A 	E0,F0,5A
-#
-# INSERT 	E0,70 	E0,F0,70
-# HOME 	E0,6C 	E0,F0,6C
-# PG UP 	E0,7D 	E0,F0,7D
-# DELETE 	E0,71 	E0,F0,71
-# END 	E0,69 	E0,F0,69
-# PG DN 	E0,7A 	E0,F0,7A
-# U ARROW 	E0,75 	E0,F0,75
-# L ARROW 	E0,6B 	E0,F0,6B
-# D ARROW 	E0,72 	E0,F0,72
-# R ARROW 	E0,74 	E0,F0,74
+BKSP  7f BKSP  7f 66
+SPACE 20 SPACE 20 29
+ENTER 0A ENTER 0A 5A
+ESC   1B ESC   1B 76
+# CAPS 	88	[STATUS]
+# L SHFT 	18	[STATUS]
+# L CTRL 	20	[STATUS = CAPS]
+# L ALT 	17	[STATUS]
