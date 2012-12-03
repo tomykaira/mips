@@ -229,7 +229,7 @@ assignment_exp:
 | assignee_exp PLUS_EQUAL assignment_exp
     { Assign($1, Add(ref_of $1, $3)) }
 | assignee_exp MINUS_EQUAL assignment_exp
-    { Assign($1, Add(ref_of $1, $3)) }
+    { Assign($1, Sub(ref_of $1, $3)) }
 
 assignee_exp:
 | ID

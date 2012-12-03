@@ -533,8 +533,18 @@ int simulate(simulation_options * opt)
 					fprintf(stderr, "Send 0x1C(A) for READKEY\n");
 					usleep(10*1000);
 				}
+				if (counter < 5) {
+					IRT = 0x40;
+				} else if (counter < 8) {
+					IRT = 0x0a;
+				} else if (counter < 14) {
+					IRT = 0x40;
+				} else if (counter < 18) {
+					IRT = 0x7f;
+				} else {
+					return 0;
+				}
 				counter++;
-				IRT = counter % 20 == 0 ? 0x0a : 0x1c;
 				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {

@@ -43,6 +43,9 @@ void add_key_input() {
   input = read_key(); /* blocking */
   if (input == '\n') {
     next_line();
+  } else if (input == 127) {/* backspace */
+    current_column -= 1;
+    buffer[C(current_line, current_column)] = 0;
   } else {
     buffer[C(current_line, current_column)] = input;
     current_column += 1;
