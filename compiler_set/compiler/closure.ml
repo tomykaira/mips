@@ -134,23 +134,27 @@ let rec g env known const top = function
       | Ans(Int(i)) -> M.add x i const
       | _ -> const in
       let gu = (Id.genid "unit", Type.Unit) in
-      let exp'', env', xt = match exp' with
-      | Ans(AppDir(Id.L("min_caml_create_array"), [y;z])) when top && M.mem y const ->
-	  globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
-	  let x' = Id.genid x in
-	  (Let((x', t), ExtArray(Id.L(x)),
-	      Ans(AppDir(Id.L("min_caml_array_init"), [x';y;z]))), env, gu)
-      | Ans(AppDir(Id.L("min_caml_create_float_array"), [y;z])) when top && M.mem y const ->
-	  globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
-	  let x' = Id.genid x in
-	  (Let((x', t), ExtArray(Id.L(x)),
-	      Ans(AppDir(Id.L("min_caml_float_array_init"), [x';y;z]))), env, gu)
-      | Ans(AppDir(Id.L("min_caml_create_tuple_array"), [y;z])) when top && M.mem y const ->
-	  globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
-	  let x' = Id.genid x in
-	  (Let((x', t), ExtArray(Id.L(x)),
-	      Ans(AppDir(Id.L("min_caml_tuple_array_init"), [x';y;z]))), env, gu)
-      | _ -> (exp', M.add x t env, (x, t)) in
+      let rec add_global = function
+	| Let((x', t'), exp, e) ->
+	    let (exp'', env', xt') = add_global e in
+	    (Let((x', t'), exp, exp''), M.add x' t' env', xt')
+	| Ans(AppDir(Id.L("min_caml_create_array"), [y;z])) when top && M.mem y const ->
+	    globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
+	    let x' = Id.genid x in
+	    (Let((x', t), ExtArray(Id.L(x)),
+		 Ans(AppDir(Id.L("min_caml_array_init"), [x';y;z]))), env, gu)
+	| Ans(AppDir(Id.L("min_caml_create_float_array"), [y;z])) when top && M.mem y const ->
+	    globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
+	    let x' = Id.genid x in
+	    (Let((x', t), ExtArray(Id.L(x)),
+		 Ans(AppDir(Id.L("min_caml_float_array_init"), [x';y;z]))), env, gu)
+	| Ans(AppDir(Id.L("min_caml_create_tuple_array"), [y;z])) when top && M.mem y const ->
+	    globals := { gname = (Id.L(x), t); length = M.find y const }::!globals;
+	    let x' = Id.genid x in
+	    (Let((x', t), ExtArray(Id.L(x)),
+		 Ans(AppDir(Id.L("min_caml_tuple_array_init"), [x';y;z]))), env, gu)
+	| exp' -> (exp', M.add x t env, (x, t)) in
+      let exp'', env', xt = add_global exp' in
       concat exp'' xt (g env' known const' top e)
   | ANormal.LetRec({ ANormal.name = (x, t); ANormal.args = yts; ANormal.body = e1 }, e2) -> (* 関数定義の場合 *)
       (* 関数定義let rec x y1 ... yn = e1 in e2の場合は、
@@ -171,7 +175,7 @@ let rec g env known const top = function
 	(toplevel := toplevel_backup;
 	 globals := globals_backup;
 	 glbcls := glbcls_backup;
-	(* トップレベルで宣言されている関数ならアドレスを静的に決定 *)
+	 (* トップレベルで宣言されている関数ならアドレスを静的に決定 *)
 	 (if top then glbcls := { cname = (Id.L(x), t) } :: !glbcls);
 	 let e1' = g (M.add_list yts env') known const false e1 in
 	 known, e1') in
@@ -194,7 +198,7 @@ let rec g env known const top = function
       if fvl || (fvd && not (kn)) then
 	(* e2'もしくはトップレベル関数内にxがクロージャのラベルとして出現していたらglobalsに追加 *)
 	((globals := { gname = (Id.L(x), t); length = List.length zs + 1 } :: !globals);
-        MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2'))
+         MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2'))
       else if fvs then
 	(* e2'にxが変数として出現していたら削除しない *)
         MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2')
@@ -245,17 +249,17 @@ and g' env known const =  function
 	Let((x', findg x), ExtArray(Id.L(x)), Ans(Get(x', y)))
       else Ans(Get(x, y))
   | ANormal.Put(x, y, z) ->
-      let rec loadx e =
+      let rec loadx loadz =
 	if memg x then
 	  let x' = Id.genid x in
-	  Let((x', findg x), ExtArray(Id.L(x)), e x')
-	else e x in
-      let exp' x' =
+	  Let((x', findg x), ExtArray(Id.L(x)), loadz x')
+	else loadz x in
+      let loadz x =
 	if memg z then
 	  let z' = Id.genid z in
-	  Let((z', findg z), ExtArray(Id.L(z)), Ans(Put(x', y, z')))
-	else Ans(Put(x', y, z)) in
-      loadx exp'
+	  Let((z', findg z), ExtArray(Id.L(z)), Ans(Put(x, y, z')))
+	else Ans(Put(x, y, z)) in
+      loadx loadz
   | ANormal.ExtArray(x) -> Ans(ExtArray(Id.L(x)))
   | ANormal.ExtFunApp(x, ys) ->
       let (ys', load) = gl_args ys in      
