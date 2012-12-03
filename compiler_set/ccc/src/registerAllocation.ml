@@ -203,6 +203,12 @@ let precolored_nodes _ =
 let is_precolored node =
   List.exists (fun (n, r) -> n = node) !precolored
 
+let precolored_register node =
+  try
+    Some(List.assoc node !precolored)
+  with
+    | Not_found -> None
+
 let prepare_simplify node =
   if not (is_precolored node) && not (move_related node) && not (is_significant node) then begin
     freeze_worklist := S.remove node !freeze_worklist;
@@ -234,6 +240,16 @@ let combine (u, v) =
 let is_adjacent (u, v) =
   S.mem v (adjacent_nodes u)
 
+let meet_precolor_constraint u v =
+  let u_reg = precolored_register u in
+  let is_danger node =
+    match (u_reg, precolored_register v) with
+      | (Some(u_reg), Some(v_reg)) -> u_reg = v_reg
+      | (Some(u_reg), None) -> false
+      | (None, _) -> false
+  in
+  S.exists is_danger (adjacent_nodes v)
+
 let coalesce () =
   let ((x, y), new_worklist) = MoveS.pop !worklist_moves in
   let (x, y) = (resolve_alias x, resolve_alias y) in
@@ -241,11 +257,13 @@ let coalesce () =
   worklist_moves := new_worklist;
   if u = v then begin
     prepare_simplify u
+  (* Not coalescable *)
   end else if is_precolored v || is_adjacent (u, v) then begin
     prepare_simplify u;
     prepare_simplify v;
   (* in my data structure, no need to use different algorithm for precolored *)
-  end else if is_coalescable_conservative (S.union (adjacent_nodes u) (adjacent_nodes v)) then begin
+  end else if meet_precolor_constraint u v
+      && is_coalescable_conservative (S.union (adjacent_nodes u) (adjacent_nodes v)) then begin
         combine (u, v);
         prepare_simplify u
       end else
@@ -437,7 +455,7 @@ and color_variables insts =
   else
     retry insts
 
-let insert_precolored_variables insts =
+let insert_redirection_for_output_variables insts =
   let create_assignment (old_id, new_id, _) =
     Heap.Assignment(new_id, Heap.Mov(old_id))
   in
@@ -467,18 +485,27 @@ let insert_precolored_variables insts =
   in
   List.fold_right replace insts ([], [])
 
+let insert_redirection_for_abi_constraint { Syntax.parameters = params; _ } insts =
+  let (insts, output_precolor) = insert_redirection_for_output_variables insts in
+  let parameter_ids = List.map (Id.raw $ Syntax.parameter_id) params in
+  let create_new_binding i current_id =
+    let new_id = Id.unique "auto_arg" in
+    ((new_id, Reg.nth_arg i), Heap.Assignment(current_id, Heap.Mov(new_id)))
+  in
+  let (param_precolor, assign_code) = List.split (List.mapi create_new_binding parameter_ids) in
+  (assign_code @ insts, output_precolor @ param_precolor)
+
 let get_abi_constraint { Syntax.parameters = params; _ } : (Id.t * Reg.i) list =
   Reg.assign_params (List.map (Id.raw $ Syntax.parameter_id) params)
 
 let convert_function ({Syntax.name = name} as signature, insts) =
-  let (insts, return_precoloring) = insert_precolored_variables insts in
-  let parameter_precoloring = get_abi_constraint signature in
-  precolored := parameter_precoloring @ return_precoloring;
+  let (insts, precolor_map) = insert_redirection_for_abi_constraint signature insts in
+  precolored := precolor_map;
   Printf.printf "precolored: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);
   (name, color_variables insts)
 
 let convert_initializer insts =
-  let (insts, return_precoloring) = insert_precolored_variables insts in
+  let (insts, return_precoloring) = insert_redirection_for_output_variables insts in
   precolored := return_precoloring;
   color_variables insts
 

@@ -34,3 +34,6 @@ let ret = `I 3
 
 let assign_params ids =
   zip ids (elements all_registers)
+
+let nth_arg ids =
+  `I (ids + 3)
