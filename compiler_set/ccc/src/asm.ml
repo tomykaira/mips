@@ -75,17 +75,29 @@ let rec print_stat out_channel stat =
       print0 "halt"
 
     | BEQ(reg1, reg2, l) ->
-      print_branch "beq" reg1 reg2 l
+      print_branch "beq" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
     | BLT(reg1, reg2, l) ->
-      print_branch "blt" reg1 reg2 l
+      print_branch "blt" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
     | BLE(reg1, reg2, l) ->
-      print_branch "ble" reg1 reg2 l
+      print_branch "ble" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
     | FBEQ(reg1, reg2, l) ->
-      print_branch "fbeq" reg1 reg2 l
+      print_branch "fbeq" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
     | FBLT(reg1, reg2, l) ->
-      print_branch "fblt" reg1 reg2 l
+      print_branch "fblt" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
     | FBLE(reg1, reg2, l) ->
-      print_branch "fble" reg1 reg2 l
+      print_branch "fble" reg1 reg2 l;
+      print0 "nop";
+      print0 "nop"
 
     | CALL(Id.L l) ->
       print1 "call" l
