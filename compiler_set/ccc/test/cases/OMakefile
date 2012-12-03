@@ -1,4 +1,4 @@
-.PHONY: test clean %.test
+.PHONY: test clean
 
 COMPILER = ../../src/main
 ASSEMBLER = ../../../assembler/assembler
@@ -37,7 +37,7 @@ test: $(TEST_JOBS)
 	$(LINKER) $@
 
 clean:
-	rm -f *.s *.gcc *.sim *.gcc.* *.bin *.test
+	rm -f *.s *.gcc *.sim *.gcc_c *.bin *.test *.gcc.a
 
 .BUILD_SUCCESS:
 	true
