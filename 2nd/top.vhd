@@ -212,7 +212,7 @@ begin  -- test
 
 	-- workaround for not-stable VGA signal
 	tx_send_enable <= key_status(1);
-	tx_send_data   <= key_status;
+	tx_send_data   <= keycode;
 
 	Inst_dcm: my_dcm PORT MAP(
 		CLKIN_IN        => CLK,

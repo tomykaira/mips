@@ -1339,6 +1339,7 @@ min_caml_mod:
 
 read_key:
 	readkey	$r3
+	outputb $r3
 	return
 
 # void move_memory(char * array, int offset, int size)

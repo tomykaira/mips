@@ -68,6 +68,7 @@ module keyboard_driver(input clk,
    wire [2:0] is_special_key;
    keycode_resolver keycode_resolver_inst
      (.device_code(next_code),
+      .shift_pressed(special_key_pressed[1]),
       .internal_code(keycode),
       .special_key(is_special_key));
 
