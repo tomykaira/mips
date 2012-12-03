@@ -1,4 +1,4 @@
-.PHONY: test clean
+.PHONY: test clean %.test
 
 COMPILER = ../../src/main
 ASSEMBLER = ../../../assembler/assembler
@@ -14,7 +14,8 @@ TEST_JOBS = $(replacesuffixes .c, .test, $(TEST_TARGETS))
 test: $(TEST_JOBS)
 
 %.test: %.gcc %.sim
-	diff $*.gcc $*.sim > $@ || true
+	diff $*.gcc $*.sim
+	touch $@
 
 %.sim: %.bin
 	$(SIMULATOR) $< | $(FORMATTER) > $@
