@@ -534,13 +534,13 @@ int simulate(simulation_options * opt)
 					usleep(10*1000);
 				}
 				if (counter < 5) {
-					IRT = 0x40;
+					IRT = 0x340;
 				} else if (counter < 8) {
-					IRT = 0x0a;
+					IRT = 0x30a;
 				} else if (counter < 14) {
-					IRT = 0x40;
+					IRT = 0x340;
 				} else if (counter < 18) {
-					IRT = 0x7f;
+					IRT = 0x37f;
 				} else {
 					return 0;
 				}
