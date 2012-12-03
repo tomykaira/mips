@@ -191,7 +191,6 @@ let rec g env known const top = function
 	  (fun fvd { name = _; args = _; formal_fv = _; body = e } -> fvd || (fv_dir x e))
 	  (fv_dir x e2')
 	  (!toplevel) in
-	
       if fvl || (fvd && not (kn)) then
 	(* e2'もしくはトップレベル関数内にxがクロージャのラベルとして出現していたらglobalsに追加 *)
 	((globals := { gname = (Id.L(x), t); length = List.length zs + 1 } :: !globals);
@@ -246,15 +245,17 @@ and g' env known const =  function
 	Let((x', findg x), ExtArray(Id.L(x)), Ans(Get(x', y)))
       else Ans(Get(x, y))
   | ANormal.Put(x, y, z) ->
-      if memg x then
-	let x' = Id.genid x in
-	let exp' =
-	  if memg z then
-	    let z' = Id.genid z in
-	    Let((z', findg z), ExtArray(Id.L(z)), Ans(Put(x', y, z')))
-	  else Ans(Put(x', y, z)) in
-	Let((x', findg x), ExtArray(Id.L(x)), exp')
-      else Ans(Put(x, y, z))
+      let rec loadx e =
+	if memg x then
+	  let x' = Id.genid x in
+	  Let((x', findg x), ExtArray(Id.L(x)), e x')
+	else e x in
+      let exp' x' =
+	if memg z then
+	  let z' = Id.genid z in
+	  Let((z', findg z), ExtArray(Id.L(z)), Ans(Put(x', y, z')))
+	else Ans(Put(x', y, z)) in
+      loadx exp'
   | ANormal.ExtArray(x) -> Ans(ExtArray(Id.L(x)))
   | ANormal.ExtFunApp(x, ys) ->
       let (ys', load) = gl_args ys in      
@@ -271,5 +272,5 @@ let f e =
   toplevel := [];
   globals := [];
   let e' = g M.empty S.empty M.empty true e in
-  List.iter (fun { name = (Id.L(x), t) } -> Format.eprintf "%s@." x) !toplevel;
+  List.iter (fun { gname = (Id.L(x), t) } -> Format.eprintf "%s@." x) !globals;
   Prog(!globals, List.rev !toplevel, e')

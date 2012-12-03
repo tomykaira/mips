@@ -11,7 +11,7 @@ let save x =
     stackmap := !stackmap @ [x]
 let offset x = (* xがスタックのどこにあるか *)
   let rec loc n = function
-    | [] -> raise Not_found
+    | [] -> Format.eprintf "%s@." x; raise Not_found
     | y :: _ when x = y -> n
     | _ :: zs -> loc (n+1) zs in
   loc 0 !stackmap
