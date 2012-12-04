@@ -19,10 +19,10 @@ load_start:
 	slli	$r4, $r3, 8
 	inputb	$r3
 	add	$r4, $r4, $r3
-	slli	$r3, $r3, 8
+	slli	$r4, $r4, 8
 	inputb	$r3
 	add	$r4, $r4, $r3
-	slli	$r3, $r3, 8
+	slli	$r4, $r4, 8
 	inputb	$r3
 	add	$r4, $r4, $r3
 	beq	$r4, $r8, load_end
@@ -39,14 +39,14 @@ load_start:
 
 	program	$r12, $r4
 	addi	$r12, $r12, 1
-	j	start
+	j	load_start
 add_pc:
 	add	$r4, $r4, $r9	# add offset
 	program	$r12, $r4
 	addi	$r12, $r12, 1
-	j	start
+	j	load_start
 load_end:
 	call	end_of_loader
-	j	loader
+	# j	loader
 	halt			# never reach here
 end_of_loader:

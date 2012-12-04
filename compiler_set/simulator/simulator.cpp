@@ -113,7 +113,7 @@ typedef struct insthist{
 long long unsigned cnt;
 
 // ROM
-vector<Binary> ROM;
+Binary ROM[20000];// sync with instruction memory
 
 #define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
 // RAM
@@ -546,6 +546,13 @@ int simulate(simulation_options * opt)
 				}
 				counter++;
 				break;
+			case PROGRAM:
+				{
+					char dummy[] = "loaded";
+					Binary b(dummy, IRT, false);
+					ROM.resize(IRS, b);
+					break;
+				}
 			case DEBUG:
 				if (opt->lib_test_mode) {
 					break;
