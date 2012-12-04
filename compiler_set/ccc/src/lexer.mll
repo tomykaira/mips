@@ -6,6 +6,7 @@ let space = [' ' '\t' '\n' '\r']
 let digit = ['0'-'9']
 let lower = ['a'-'z']
 let upper = ['A'-'Z']
+let ascii = [' ' - '~']              (* 0 - 127 *)
 
   rule token = parse
     | space+
@@ -13,6 +14,12 @@ let upper = ['A'-'Z']
     | "/*"
         { comment lexbuf;
           token lexbuf }
+    | "//" [^ '\n']*
+        { token lexbuf } (* eat up one-line comments *)
+
+    | "0x" (['0' - '9']|['a' - 'f']|['A' - 'F'])+
+        { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
+
     | digit+
         { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
     | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
@@ -56,10 +63,14 @@ let upper = ['A'-'Z']
         { L_PAREN }
     | '-'
         { MINUS }
+    | "-="
+        { MINUS_EQUAL }
     | '%'
         { PERCENT }
     | '+'
         { PLUS }
+    | "+="
+        { PLUS_EQUAL }
     | "||"
         { PIPE_PIPE }
     | '}'
@@ -93,6 +104,8 @@ let upper = ['A'-'Z']
         { RETURN }
     | "struct"
         { STRUCT }
+    | "#define"
+        { SHARP_DEFINE }
     | "sizeof"
         { SIZEOF }
     | "switch"
@@ -112,27 +125,27 @@ let upper = ['A'-'Z']
         { STORAGE_CLASS(Syntax.Typedef) }
 
     | "void"
-        { TYPE_CLASS(Syntax.Void) }
+        { TYPE_CLASS(Definition.Void) }
     | "char"
-        { TYPE_CLASS(Syntax.Char) }
+        { TYPE_CLASS(Definition.Char) }
     | "int"
-        { TYPE_CLASS(Syntax.Int) }
+        { TYPE_CLASS(Definition.Int) }
     | "long"
-        { TYPE_CLASS(Syntax.Long) }
+        { TYPE_CLASS(Definition.Long) }
     | "float"
-        { TYPE_CLASS(Syntax.Float) }
+        { TYPE_CLASS(Definition.Float) }
     | "signed"
-        { TYPE_CLASS(Syntax.Signed) }
+        { TYPE_CLASS(Definition.Signed) }
     | "unsigned"
-        { TYPE_CLASS(Syntax.Unsigned) }
+        { TYPE_CLASS(Definition.Unsigned) }
 
-    | '\'' (space|digit|lower|upper|'_') '\''
+    | '\'' ascii '\''
         { CHAR_VAL((Lexing.lexeme lexbuf).[1]) }
     | "'\\n\'"
         { CHAR_VAL('\n') }
     | eof
         { EOF }
-    | lower (digit|lower|upper|'_')*
+    | (digit|lower|upper|'_')+
         { ID(Lexing.lexeme lexbuf) }
     | _
         { failwith

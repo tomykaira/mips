@@ -2,6 +2,8 @@ open Id
 open OUnit
 open Syntax
 
+module M = ExtendedMap.Make(Id.VStruct)
+
 let test_rename_parameter =
   TestCase (fun ()->
     Id.counter := 0;

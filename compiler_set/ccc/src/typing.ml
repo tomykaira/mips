@@ -1,4 +1,5 @@
 open Util
+open Definition
 open Syntax
 
 exception Unify of Type.t * Type.t
@@ -6,21 +7,19 @@ exception UndefinedVariable of Id.v
 exception UndefinedFunction of Id.l
 exception NotFunction of Syntax.exp * Type.t
 exception NotPrimitive of Syntax.exp
+exception NotArray of Id.v
 
-module FunTypeMap =
-  Map.Make
-    (struct
-      type t = Id.l
-      let compare = compare
-     end)
+module FunM = ExtendedMap.Make (Id.LStruct)
+module M = ExtendedMap.Make (Id.VStruct)
 
-type environment = { variables: Type.t M.t; functions: Type.fun_type FunTypeMap.t }
+type environment = { variables: Type.t M.t; functions: Type.fun_type FunM.t }
 
 let extract_bodies t =
   let body = function
-    | GlobalVariable(_) -> []
-    | FunctionDeclaration(_) -> []
-    | Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
+    | MacroExpand.GlobalVariable(_) -> []
+    | MacroExpand.FunctionDeclaration(_) -> []
+    | MacroExpand.Array(_) -> []
+    | MacroExpand.Function({return_type = return_type; _}, stat) -> [(convert_syntactic_type return_type, stat)]
   in
   concat_map body t
 
@@ -30,7 +29,7 @@ let unify typ1 typ2 =
   else
     raise (Unify(typ1, typ2))
 
-let rec binding (Define(name, typ, const_value)) =
+let rec binding (Variable(name, typ, const_value)) =
     let typ = convert_syntactic_type typ in
     unify (typ) (const_type const_value);
     (name, typ)
@@ -44,27 +43,36 @@ let rec get_exp_type env exp =
   in
   let find_function f =
     let { functions = fs; _ } = env in
-    if FunTypeMap.mem f fs then
-      Some(FunTypeMap.find f fs)
+    if FunM.mem f fs then
+      Some(FunM.find f fs)
     else
       None
   in
   let find_variable v =
-    let { variables = vs; _ } = env in
-    if M.mem v vs then
-      Some(M.find v vs)
+    if M.mem v (env.variables) then
+      M.find v env.variables
     else
-      None
+      raise (UndefinedVariable(v))
+  in
+  let assignee_type = function
+    | VarSet(v) -> find_variable v
+    | ArraySet(a, e) ->
+      match find_variable a with
+        | Type.Array(t) -> t
+        | _ -> raise (NotArray(a))
   in
   match exp with
   | Var(id) ->
-    (match find_variable id with
-      | Some(t) -> t
-      | None -> raise (UndefinedVariable(id)))
+    find_variable id
   | Const(value) -> const_type value
-  | Assign(e1, e2) ->
+  | ArrayRef(id, index) ->
+    unify Type.Int (go index);
+    (match find_variable id with
+      | Type.Array(t) -> t
+      | _ -> raise (NotArray(id)))
+  | Assign(assignee, e2) ->
     let t2 = go e2 in
-    unify (go e1) t2;
+    unify (assignee_type assignee) t2;
     t2
   | And(e1, e2) | Or(e1, e2)
   | Equal(e1, e2) | LessThan(e1, e2) | GreaterThan(e1, e2) ->
@@ -86,9 +94,6 @@ let rec get_exp_type env exp =
       | None ->
         raise (UndefinedFunction(label))
     )
-  | PostIncrement(e) | PostDecrement(e) ->
-    assert_primitive e;
-    go e
 
 (* get_exp_type will throw exception, if some error found *)
 let rec check_exp env exp =
@@ -133,29 +138,53 @@ let rec check_statement env return_type stat =
       unify Type.Void return_type
     | _ -> ()
 
-let check_top {variables = vs; functions = fs} t =
+let check_top ({variables = vs; functions = fs} as env) t =
   let add_function_type {name = label; return_type = return_type; parameters = params} =
-    let param_type (Parameter (typ, _)) = typ in
     let return_type = convert_syntactic_type return_type in
     let fun_typ = Type.Fun (return_type,
-                            List.map (convert_syntactic_type $ param_type) params) in
-    { variables = vs; functions = FunTypeMap.add label fun_typ fs }
+                            List.map parameter_type params) in
+    { env with functions = FunM.add label fun_typ fs }
   in
   let add_parameters { variables = vs; functions = fs } params =
-    let param_binds = List.map (fun (Parameter(typ, var)) -> (var, convert_syntactic_type typ)) params in
-    { variables = M.add_list param_binds vs; functions = fs }
+    let param_binds = List.map (fun p -> (parameter_id p, parameter_type p)) params in
+    { env with variables = M.add_list param_binds vs }
   in
   match t with
-    | Function({return_type = return_type; parameters = params; _} as signature, stat) ->
+    | MacroExpand.Function({return_type = return_type; parameters = params; _} as signature, stat) ->
       let new_env = add_function_type signature in
       let local_env = add_parameters new_env params in
       check_statement local_env (convert_syntactic_type return_type) stat;
       new_env
-    | FunctionDeclaration(signature) ->
+    | MacroExpand.FunctionDeclaration(signature) ->
       add_function_type signature
-    | GlobalVariable(var) ->
-      { variables = M.add_pair (binding var) vs; functions = fs }
+    | MacroExpand.GlobalVariable(var) ->
+      { env with variables = M.add_pair (binding var) vs }
+
+    (* TODO: limit array label to `A *)
+    | MacroExpand.Array({id = typed_id; content_type = typ; _}) ->
+      match typed_id with
+        | Id.A id ->
+          (* There are both Id.A and Id.V before alpha-transformation *)
+          let array_label = (Id.A id,  (Type.Array (convert_syntactic_type typ))) in
+          let variable_label = (Id.V id,  (Type.Array (convert_syntactic_type typ))) in
+          { env with variables = M.add_list [array_label; variable_label] vs }
+        | _ ->
+          failwith "Unexpected id type for array"
 
 let check ts =
-  ignore (List.fold_left (check_top) {variables = M.empty; functions = FunTypeMap.empty} ts);
-  ts
+  try
+    ignore (List.fold_left (check_top) {variables = M.empty; functions = FunM.empty} ts);
+    ts
+  with
+    | Unify(t1, t2) ->
+      failwith (Printf.sprintf "Failed to unify types %s %s" (Show.show<Type.t> t1) (Show.show<Type.t> t2))
+    | UndefinedVariable(v) ->
+      failwith (Printf.sprintf "Undefined variable %s" (Show.show<Id.v> v))
+    | UndefinedFunction(l) ->
+      failwith (Printf.sprintf "Undefined function %s" (Show.show<Id.l> l))
+    | NotFunction(exp, _) ->
+      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Syntax.exp> exp))
+    | NotPrimitive(exp) ->
+      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Syntax.exp> exp))
+    | NotArray(v) ->
+      failwith (Printf.sprintf "Array expected, but not an array: %s" (Show.show<Id.v> v))

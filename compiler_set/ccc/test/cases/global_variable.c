@@ -20,4 +20,7 @@ int main() {
   callee2();
   callee();
   print_int(x);
+  print_int(y);
+  print_int(z);
+  return 0;
 }

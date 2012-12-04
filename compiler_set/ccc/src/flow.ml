@@ -1,14 +1,16 @@
+open Definition
 open Util
 
 (* Limit exp to primitive instructions *)
 type exp =
   | Mov            of Id.v
-  | Const          of Syntax.const_value
+  | Const          of const_value
   | And            of Id.v * Id.v
   | Or             of Id.v * Id.v
   | Add            of Id.v * Id.v
   | Sub            of Id.v * Id.v
   | Negate         of Id.v
+  | ArrayGet       of Id.v * Id.v
     deriving (Show)
 
 type instruction =
@@ -16,25 +18,20 @@ type instruction =
   | Assignment  of Id.v * exp
   | CallAndSet  of Id.v * Id.l * Id.v list      (* with variable binding *)
   | Call        of Id.l * Id.v list      (* just calling *)
-  | Definition  of Syntax.variable
+  | Definition  of variable
   | BranchZero  of Id.v * Id.l
   | BranchEqual of Id.v * Id.v * Id.l
   | BranchLT    of Id.v * Id.v * Id.l
   | Goto        of Id.l
   | Return      of Id.v
   | ReturnVoid
+  | ArraySet    of Id.v * Id.v * Id.v
     deriving (Show)
 
-type id = int
-      deriving (Show)
-
-type instruction_entity =
-  | E of id * instruction
-      deriving (Show)
-
 type t =
-  | Function of Syntax.function_signature * instruction_entity list
-  | GlobalVariable of Syntax.variable
+  | Function of function_signature * instruction list
+  | GlobalVariable of variable
+  | Array of array_signature
       deriving (Show)
 
 (* Result of exp expansion *)
@@ -46,20 +43,21 @@ let expand_exp assign_to exp =
     let label_end = Id.gen_label "eq_end" in
     Instructions
       [branch_inst label_t;
-       Assignment(assign_to, Const(Syntax.IntVal(0)));
+       Assignment(assign_to, Const(IntVal(0)));
        Goto(label_end);
        Label(label_t);
-       Assignment(assign_to, Const(Syntax.IntVal(1)));
+       Assignment(assign_to, Const(IntVal(1)));
        Label(label_end)]
   in
   match exp with
-  | FlatExp.Var(i)    -> Exp(Mov(i))
-  | FlatExp.Const(c)  -> Exp(Const(c))
-  | FlatExp.And(a, b) -> Exp(And(a, b))
-  | FlatExp.Or(a, b)  -> Exp(Or(a, b))
-  | FlatExp.Add(a, b) -> Exp(Add(a, b))
-  | FlatExp.Sub(a, b) -> Exp(Sub(a, b))
-  | FlatExp.Negate(a) -> Exp(Negate(a))
+  | FlatExp.Var(i)         -> Exp(Mov(i))
+  | FlatExp.Const(c)       -> Exp(Const(c))
+  | FlatExp.And(a, b)      -> Exp(And(a, b))
+  | FlatExp.Or(a, b)       -> Exp(Or(a, b))
+  | FlatExp.Add(a, b)      -> Exp(Add(a, b))
+  | FlatExp.Sub(a, b)      -> Exp(Sub(a, b))
+  | FlatExp.Negate(a)      -> Exp(Negate(a))
+  | FlatExp.ArrayGet(a, b) -> Exp(ArrayGet(a, b))
 
   | FlatExp.Equal(a, b) ->
     local_branch (fun l -> BranchEqual(a, b, l))
@@ -79,6 +77,9 @@ let expand_exp assign_to exp =
 
   | FlatExp.CallFunction(l, args) ->
     Instructions [CallAndSet(assign_to, l, args)]
+
+  | FlatExp.ArraySet(array, index, exp) ->
+    Instructions [ArraySet(array, index, exp)]
 
 let rec expand_statement = function
   | SimpleControl.Assignments(ass) ->
@@ -107,17 +108,14 @@ let rec expand_statement = function
 let insert_return stats =
   stats @ [ReturnVoid]
 
-let id_counter = ref 0
-
-let identify insts =
-  List.map (fun i -> id_counter := !id_counter + 1; E(!id_counter, i)) insts
-
 let convert ts =
   let convert_fun = function
     | SimpleControl.Function(fun_sig, stat) ->
-      Function(fun_sig, (identify $ insert_return $ expand_statement) stat)
+      Function(fun_sig, (insert_return $ expand_statement) stat)
     | SimpleControl.GlobalVariable(v) ->
       GlobalVariable v
+    | SimpleControl.Array(a) ->
+      Array a
   in
   let result = List.map convert_fun ts in
   List.iter (print_endline $ Show.show<t>) result;

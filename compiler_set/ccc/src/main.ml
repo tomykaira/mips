@@ -19,7 +19,7 @@ let notify str x = print_endline str; x
 let lexbuf outchan l =
   Id.counter := 0;
   (
-    Asm.print_all stdout
+    Asm.print_all outchan
       $ (notify "print asm")
       $ GenerateAsm.convert
       $ (notify "generate asm")
@@ -27,6 +27,8 @@ let lexbuf outchan l =
       $ (notify "memory allocation")
       $ RegisterAllocation.convert
       $ (notify "register allocation")
+      $ HeapAllocation.convert
+      $ (notify "heap allocation")
       $ Flow.convert
       $ (notify "flow")
       $ SimpleControl.convert
@@ -35,8 +37,8 @@ let lexbuf outchan l =
       $ (notify "flat exp")
       $ Alpha.convert
       $ (notify "alpha")
-      $ Typing.check
-      $ (notify "typing")
+      $ MacroExpand.convert
+      $ (notify "macro expand")
   ) (parse_buf_exn l)
 
 (* ファイルをコンパイルしてファイルに出力する *)

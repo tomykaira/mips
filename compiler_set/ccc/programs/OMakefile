@@ -1,0 +1,23 @@
+# this is duplicate with ../test/cases/OMakefile
+.PHONY: clean
+
+COMPILER = ../src/main
+ASSEMBLER = ../../assembler/assembler
+SIMULATOR = ../../simulator/simulator -t
+LINKER = ../helper/linker.sh
+
+%.bin: %.s
+	$(ASSEMBLER) $< $@
+
+%.s: %.c ../helper/assembly.s
+	$(COMPILER) $< > /dev/null
+	$(LINKER) $@
+
+clean:
+	rm -f *.s *.sim *.bin
+
+.BUILD_SUCCESS:
+	true
+
+.BUILD_FAILURE:
+	true

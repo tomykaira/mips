@@ -1,5 +1,6 @@
 %{
 (* from http://www.cs.man.ac.uk/~pjj/bnf/c_syntax.bnf *)
+open Definition
 open Syntax
 %}
 
@@ -27,8 +28,10 @@ open Syntax
 %token L_BRACKET
 %token L_PAREN
 %token MINUS
+%token MINUS_EQUAL
 %token PERCENT
 %token PLUS
+%token PLUS_EQUAL
 %token PIPE_PIPE
 %token R_BRACE
 %token R_BRACKET
@@ -45,15 +48,16 @@ open Syntax
 %token GOTO
 %token IF
 %token RETURN
-%token STRUCT
+%token SHARP_DEFINE
 %token SIZEOF
+%token STRUCT
 %token SWITCH
 %token WHILE
 
 %token EOF
 
 %token <Syntax.storage_class> STORAGE_CLASS
-%token <Syntax.type_class> TYPE_CLASS
+%token <Definition.type_class> TYPE_CLASS
 
 %token <Id.t> ID
 
@@ -73,6 +77,10 @@ external_decl:
     { $1 }
 | variable_definition
     { GlobalVariable($1) }
+| array_definition
+    { $1 }
+| macro_definition
+    { DefineMacro($1) }
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
@@ -87,16 +95,35 @@ function_definition:
 parameter_list:
 | parameter
     { [$1] }
-| parameter_list parameter
-    { $1 @ [$2] }
+| parameter_list COMMA parameter
+    { $1 @ [$3] }
 
 parameter:
 | type_class ID
     { Parameter($1, Id.V $2) }
+| type_class ASTERISK ID
+    { PointerParameter($1, Id.V $3) }
 
 type_class:
 | TYPE_CLASS
     { $1 }
+
+array_definition:
+| type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
+    { Array({id = Id.A $2; content_type = $1; size = $4}) }
+
+macro_definition:
+| SHARP_DEFINE ID const
+    { ConstMacro($2, $3) }
+| SHARP_DEFINE ID L_PAREN id_list R_PAREN L_PAREN exp R_PAREN
+    { ExpMacro($2, $4, $7) }
+
+id_list:
+| ID
+    { [$1] }
+| id_list COMMA ID
+    { $1 @ [$3] }
+
 
 variable_definition_list:
 | variable_definition
@@ -106,7 +133,7 @@ variable_definition_list:
 
 variable_definition:
 | type_class ID EQUAL const SEMICOLON
-    { Define(Id.V $2, $1, $4) }
+    { Variable(Id.V $2, $1, $4) }
 
 
 stat:
@@ -147,10 +174,10 @@ stat_list:
     { $1 @ [$2] }
 
 selection_stat:
-| IF L_PAREN exp R_PAREN stat
-    { If($3, $5, None) }
 | IF L_PAREN exp R_PAREN stat ELSE stat
     { If($3, $5, Some($7)) }
+| IF L_PAREN exp R_PAREN stat
+    { If($3, $5, None) }
 | SWITCH L_PAREN exp R_PAREN L_BRACE case_definitions R_BRACE
     { Switch($3, $6) }
 
@@ -194,14 +221,22 @@ jump_stat:
 exp:
 | assignment_exp
     { $1 }
-/* | exp COMMA assignment_exp */
-/*     { $1 } */
 
 assignment_exp:
 | conditional_exp
     { $1 }
-| unary_exp EQUAL assignment_exp
+| assignee_exp EQUAL assignment_exp
     { Assign($1, $3) }
+| assignee_exp PLUS_EQUAL assignment_exp
+    { Assign($1, Add(ref_of $1, $3)) }
+| assignee_exp MINUS_EQUAL assignment_exp
+    { Assign($1, Sub(ref_of $1, $3)) }
+
+assignee_exp:
+| ID
+    { VarSet(Id.V $1) }
+| ID L_BRACKET exp R_BRACKET
+    { ArraySet(Id.A $1, $3) }
 
 /* TODO */
 /* assignment_operator: */
@@ -277,48 +312,26 @@ cast_exp:
 unary_exp:
 | postfix_exp
     { $1 }
-/* | INCREMENT unary_exp */
-/*     { PreIncrement($2) } */
-/* | DECREMENT unary_exp */
-/*     { PreDecrement($2) } */
-/* | AND cast_exp */
-/*     { Address($2) } */
-/* | ASTERISK cast_exp */
-/*     { Reference($2) } */
 | PLUS cast_exp
     { $2 }
 | MINUS cast_exp
     { Negate($2) }
-/* | TILDE cast_exp */
-/*     { BitwiseNot($2) } */
 | BANG cast_exp
     { Not($2) }
-/* | SIZEOF unary_exp */
-/*     { SizeOfVar($2) } */
-/* | SIZEOF L_PAREN type_name R_PAREN */
-/*     { SizeOfType($3) } */
 
 postfix_exp:
 | primary_exp
     { $1 }
-/* | postfix_exp L_BRACKET exp R_BRACKET */
-/*     { ArrayReference($1, $3) } */
 | ID L_PAREN argument_exp_list R_PAREN
     { CallFunction(Id.L $1, $3) }
 | ID L_PAREN R_PAREN
     { CallFunction(Id.L $1, []) }
-/* | postfix_exp DOT id */
-/*     { StructReference($1, $3) } */
-/* | postfix_exp ARROW id */
-/*     { StructPointerReference($1, $3) } */
-| postfix_exp INCREMENT
-    { PostIncrement($1) }
-| postfix_exp DECREMENT
-    { PostDecrement($1) }
 
 primary_exp:
 | ID
     { Var(Id.V $1) }
+| ID L_BRACKET exp R_BRACKET
+    { ArrayRef(Id.A $1, $3) }
 | const
     { Const($1) }
 | L_PAREN exp R_PAREN

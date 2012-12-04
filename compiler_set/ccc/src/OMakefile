@@ -2,11 +2,14 @@
 
 FILES[] =
 	id
+	extendedSet
+	extendedMap
+	entity
+	definition
 	syntax
 	lexer
 	parser
 	main
-	m
 	type
 	typing
 	util
@@ -16,11 +19,12 @@ FILES[] =
 	simpleControl
 	alpha
 	flow
-	registerAllocation
+	heapAllocation
 	liveAnalyzer
-	s
+	registerAllocation
 	memoryAllocation
 	generateAsm
+	macroExpand
 
 LIB = ccc
 PROGRAM = main

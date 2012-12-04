@@ -1,9 +1,10 @@
 (* Flatten Exp in Syntax *)
+open Definition
 open Util
 
 type exp =
   | Var            of Id.v
-  | Const          of Syntax.const_value
+  | Const          of const_value
   | And            of Id.v * Id.v
   | Or             of Id.v * Id.v
   | Equal          of Id.v * Id.v
@@ -17,6 +18,8 @@ type exp =
   | Not            of Id.v
   | Negate         of Id.v
   | CallFunction   of Id.l * Id.v list
+  | ArraySet       of Id.v * Id.v * Id.v
+  | ArrayGet       of Id.v * Id.v
       deriving (Show)
 
 type assignment = { set : Id.v; exp : exp }
@@ -29,7 +32,7 @@ type assignment_chain = { result : Id.v; chain : assignment list }
 type statement =
   | Label       of Id.l * statement
   | Assignments of assignment list
-  | Block       of Syntax.variable list * statement list
+  | Block       of variable list * statement list
   | If          of assignment_chain * statement * statement option
   | Switch      of assignment_chain * switch_case list
   | While       of assignment_chain * statement
@@ -40,13 +43,14 @@ type statement =
   | ReturnVoid
   | Nop
 and switch_case =
-  | SwitchCase  of Syntax.const_value * statement
+  | SwitchCase  of const_value * statement
   | DefaultCase of statement
     deriving (Show)
 
 type t =
-  | Function of Syntax.function_signature * statement
-  | GlobalVariable of Syntax.variable
+  | Function of function_signature * statement
+  | GlobalVariable of variable
+  | Array of array_signature
     deriving (Show)
 
 
@@ -76,10 +80,16 @@ let rec expand_exp assign_to exp =
       | None -> { result = id; chain = [] })
   | Syntax.Const(const) ->
     assign [] (Const(const))
-  | Syntax.Assign(Syntax.Var(id), e2) ->
+  | Syntax.ArrayRef(id, index) ->
+    add1 index (fun t -> ArrayGet(id, t))
+  | Syntax.Assign(Syntax.VarSet(id), e2) ->
     expand_exp (Some id) e2
-  | Syntax.Assign(_, e2) ->
-    failwith "Assign to non-var expression is not supported"
+  | Syntax.Assign(Syntax.ArraySet(id, index), exp) ->
+    let { result = index_id; chain = index_chain } = expand_exp None index in
+    let { result = exp_id; chain = exp_chain } = expand_exp None exp in
+    let dummy_id = Id.gen () in
+    { result = exp_id;
+      chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: index_chain @ exp_chain }
 
   | Syntax.And (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> And (t1, t2))
   | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))
@@ -94,32 +104,6 @@ let rec expand_exp assign_to exp =
 
   | Syntax.Not (e) -> add1 e (fun t -> Not t)
   | Syntax.Negate (e) -> add1 e (fun t -> Negate t)
-
-  | Syntax.PostIncrement (Syntax.Var(id)) ->
-    let one = Id.gen () in
-    let gen new_id =
-      { result = new_id; chain = [{set = id; exp = Add(id, one)};
-                                  {set = new_id; exp = Var(id)};
-                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
-    in
-    (match assign_to with
-      | Some(new_id) -> gen new_id
-      | None -> gen (Id.gen ()))
-  | Syntax.PostIncrement _ ->
-    failwith "PostIncrement to non-var expression is not supported"
-
-  | Syntax.PostDecrement (Syntax.Var(id)) ->
-    let one = Id.gen () in
-    let gen new_id =
-      { result = new_id; chain = [{set = id; exp = Sub(id, one)};
-                                  {set = new_id; exp = Var(id)};
-                                  {set = one; exp = Const(Syntax.IntVal 1)}] }
-    in
-    (match assign_to with
-      | Some(new_id) -> gen new_id
-      | None -> gen (Id.gen ()))
-  | Syntax.PostDecrement _ ->
-    failwith "PostDecrement to non-var expression is not supported"
 
   | Syntax.CallFunction (l, args) ->
     let args_binds = List.map (expand_exp None) args in
@@ -162,12 +146,14 @@ and convert_statement = function
     Return (rev_expand_exp exp)
 
 let convert_top = function
-  | Syntax.Function (signature, stat) ->
+  | MacroExpand.Function (signature, stat) ->
     Some(Function(signature, convert_statement stat))
-  | Syntax.FunctionDeclaration (_) ->
+  | MacroExpand.FunctionDeclaration (_) ->
     None
-  | Syntax.GlobalVariable (var) ->
+  | MacroExpand.GlobalVariable (var) ->
     Some(GlobalVariable(var))
+  | MacroExpand.Array (signature) ->
+    Some(Array(signature))
 
 let convert ts =
   let result = concat_map (function Some(x) -> [x] | None -> []) (List.map convert_top ts) in

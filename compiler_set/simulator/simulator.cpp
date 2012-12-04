@@ -225,6 +225,7 @@ int load_program(simulation_options *opt)
 //-----------------------------------------------------------------------------
 int simulate(simulation_options * opt)
 {
+	int counter = 0;
 	uint32_t inst;
 	int print_count=-1;
 	uint8_t opcode, funct;
@@ -530,8 +531,20 @@ int simulate(simulation_options * opt)
 			case READKEY:
 				if (! opt->lib_test_mode) {
 					fprintf(stderr, "Send 0x1C(A) for READKEY\n");
+					usleep(10*1000);
 				}
-				IRT = 0x1c;
+				if (counter < 5) {
+					IRT = 0x340;
+				} else if (counter < 8) {
+					IRT = 0x30a;
+				} else if (counter < 14) {
+					IRT = 0x340;
+				} else if (counter < 18) {
+					IRT = 0x37f;
+				} else {
+					return 0;
+				}
+				counter++;
 				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {

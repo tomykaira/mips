@@ -25,7 +25,7 @@ module keyboard_reader(input clk,
       if (op == READKEY && key_status[1] == 1'b1) begin
          enable <= 1'b1;
          addr <= inst[20:16];
-         data <= {24'b0, keycode};
+         data <= {16'b0, key_status, keycode};
       end else
         enable <= 1'b0;
    end
