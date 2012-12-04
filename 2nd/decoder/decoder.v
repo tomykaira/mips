@@ -76,7 +76,7 @@ module decoder(input clk,
 
    reg use_rs, use_rt;
    always @ (op) begin
-      if (op == FMVHI || op == J || op == CALL || op == RETURN
+      if (op == SETL || op == FMVHI || op == J || op == CALL || op == RETURN
           || op == INPUTB || op == OUTPUTB || op == HALT
           || op == READKEY)
         use_rs <= 1'b0;
@@ -89,7 +89,8 @@ module decoder(input clk,
           || op == SLLI
           || op == SRAI
 
-          || op == FMVLO // misc
+          || op == SETL  // misc
+          || op == FMVLO
           || op == FMVHI
           || op == IMOVF
           || op == FMOVI

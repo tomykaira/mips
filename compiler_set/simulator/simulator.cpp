@@ -416,6 +416,10 @@ int simulate(simulation_options * opt)
 				logger.reg("FSQRT", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
 				break;
+			case SETL:
+				logger.reg("SETL", get_rt(inst), IMM);
+				IRT = IMM;
+				break;
 			case IMOVF:
 				logger.reg("IMOVF", get_rt(inst), IRS);
 				memcpy(&FRT, &IRS, 4);

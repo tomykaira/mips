@@ -32,6 +32,7 @@
 #define SLLI    (0b000110)
 #define SRAI    (0b000111)
 
+#define SETL    (0b010000)
 #define FMVLO   (0b010010)
 #define FMVHI   (0b010011)
 #define IMOVF   (0b010110)

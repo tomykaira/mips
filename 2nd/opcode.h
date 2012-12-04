@@ -8,6 +8,7 @@ parameter XORI    = 6'b000101;
 parameter SLLI    = 6'b000110;
 parameter SRAI    = 6'b000111;
 
+parameter SETL    = 6'b010000;
 parameter FMVLO   = 6'b010010;
 parameter FMVHI   = 6'b010011;
 parameter IMOVF   = 6'b010110;

@@ -163,6 +163,16 @@ void resolveLabels()
 				name = labelNames[i];
 				binaries[i].setJumpImm(getAddr(name));
 				break;
+			case SETL:
+				// 絶対アドレス 16 bits
+				if (labelNames.count(i) <= 0)
+				{
+					cout << i << " is not assigned in labelNames.(" << i << ")" << endl;
+					exit(-1);
+				}
+				name = labelNames[i];
+				binaries[i].setImm(getAddr(name));
+				break;
 			default:
 				break;
 		}
