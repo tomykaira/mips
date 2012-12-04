@@ -41,8 +41,9 @@ and immans' = function
 let rec g = function
   | Let((x,t) as xt, exp, e) ->
       let len =
-	if Inline.size e < 10 then 100 else
-	if immans' exp then 1 else 0 in
+	if Inline.size e < 10 then 100
+	else if immans' exp then 3
+	else 0 in
       (match exp with
       | IfEq(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
