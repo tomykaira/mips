@@ -21,7 +21,7 @@ Logger::Logger(simulation_options * a_opt) {
 	}
 }
 
-void Logger::instruction(uint8_t pc, uint32_t inst) {
+void Logger::instruction(uint32_t pc, uint32_t inst) {
 	if (fp && opt->enable_record_instruction) {
 		fprintf(fp, "INST: %8d %08x\n", pc, inst);
 	}
@@ -29,7 +29,7 @@ void Logger::instruction(uint8_t pc, uint32_t inst) {
 
 void Logger::reg(const char * inst, int dest, uint32_t value) {
 	if (fp && opt->enable_record_register) {
-		fprintf(fp, "REG: %s %02X %08X\n", inst, dest, value);
+		fprintf(fp, "REG:  %d %x\n", dest, value);
 	}
 }
 

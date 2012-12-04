@@ -13,7 +13,7 @@ class Logger {
  public:
 	Logger(simulation_options * opt);
 
-	void instruction(uint8_t pc, uint32_t inst);
+	void instruction(uint32_t pc, uint32_t inst);
 	void reg(const char * inst, int dest, uint32_t value);
 	void memory(const char * inst, int dest, uint32_t value);
 	void io(char ch);

@@ -12,7 +12,8 @@ OPTION= -b -inline 50
 
 LINKER=groovy $(COMPILER_SET)/linker/linker.groovy
 
-SIMULATOR=$(COMPILER_SET)/simulator/simulator -t
+FPUDATADIR=$(COMPILER_SET)/sigma/dat
+SIMULATOR=FPUDATADIR=$(FPUDATADIR) $(COMPILER_SET)/sigma/dist/build/sigma/sigma -t
 ASSEMBLER=$(COMPILER_SET)/assembler/assembler
 CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
 
