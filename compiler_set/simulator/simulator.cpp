@@ -113,7 +113,8 @@ typedef struct insthist{
 long long unsigned cnt;
 
 // ROM
-Binary ROM[20000];// sync with instruction memory
+#define ROM_SIZE 20000
+Binary ROM[ROM_SIZE];// sync with instruction memory
 
 #define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
 // RAM
@@ -195,6 +196,7 @@ void updateH(RH& h, uint8_t opcode, int32_t ireg[], uint32_t freg[]) {
 // プログラムのバイナリを読み込んで ROM に格納する
 int load_program(simulation_options *opt)
 {
+	int pc = 0;
 	// バイナリを読み込む
 	FILE* srcFile = fopen(opt->target_binary, "rb");
 	if (srcFile == NULL)
@@ -212,7 +214,8 @@ int load_program(simulation_options *opt)
 		sscanf(buf, "%x", &code);
 		inst = strchr(buf, '\t') + 1; // skip tab
 		Binary b(inst, code, false);
-		ROM.push_back(b);
+		ROM[pc] = b;
+		pc ++;
 	}
 	fclose(srcFile);
 	return 0;
@@ -550,7 +553,8 @@ int simulate(simulation_options * opt)
 				{
 					char dummy[] = "loaded";
 					Binary b(dummy, IRT, false);
-					ROM.resize(IRS, b);
+					assert (IRS < ROM_SIZE);
+					ROM[IRS] = b;
 					break;
 				}
 			case DEBUG:
