@@ -27,14 +27,19 @@ module mimic(input clk,
 
    assign rx_fifo_pop = (cpu_rx_pop == 1 || in_execution == 0) ? 1'b1 : 1'b0;
 
-   wire [15:0] inst_address, inst_write_address;
-   wire [31:0] inst_write_data, inst_fetch;
-   wire        inst_write_enable;
+   wire [15:0] inst_address, inst_write_address, inst_write_address_cpu, inst_write_address_loader;
+   wire [31:0] inst_write_data, inst_write_data_cpu, inst_write_data_loader, inst_fetch;
+   wire        inst_write_enable, inst_write_enable_cpu, inst_write_enable_loader;
    instruction_memory instruction_memory_inst(.clk(clk),
-                                            .write_enable(inst_write_enable),
-                                            .address(inst_address),
-                                            .write_data(inst_write_data),
-                                            .read_data(inst_fetch));
+                                              .write_enable(inst_write_enable),
+                                              .read_address(inst_address),
+                                              .write_address(inst_write_address),
+                                              .write_data(inst_write_data),
+                                              .read_data(inst_fetch));
+
+   assign inst_write_address = in_execution == 1'b1 ? inst_write_address_cpu : inst_write_address_loader;
+   assign inst_write_data    = in_execution == 1'b1 ? inst_write_data_cpu    : inst_write_data_loader;
+   assign inst_write_enable  = in_execution == 1'b1 ? inst_write_enable_cpu  : inst_write_enable_loader;
 
    wire rx_input_enable;
    instruction_loader instruction_loader_inst(.clk(clk),
@@ -42,13 +47,13 @@ module mimic(input clk,
                                               .input_enable(rx_input_enable),
                                               .received_data(rx_received_data),
                                               .in_execution(in_execution),
-                                              .write_address(inst_write_address),
-                                              .write_enable(inst_write_enable),
-                                              .write_data(inst_write_data));
+                                              .write_address(inst_write_address_loader),
+                                              .write_enable(inst_write_enable_loader),
+                                              .write_data(inst_write_data_loader));
    FD input_enable_delay(.C(clk), .D(! rx_waiting), .Q(rx_input_enable));
 
    wire [31:0] pc;
-   assign inst_address = in_execution == 1 ? pc[15:0] : inst_write_address;
+   assign inst_address = pc[15:0];
 
    ////////////////////////////////////////////////////////////////
    // decode
@@ -173,6 +178,10 @@ module mimic(input clk,
    display_instruction_dispatcher display_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
       .buffer_write_enable(display_buffer_write_enable), .position(display_position), .char_code(display_char_code));
+
+   instruction_writer inst_writer_inst
+     (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
+      .write_enable(inst_write_enable_cpu), .address(inst_write_address_cpu), .write_data(inst_write_data_cpu));
 
    branch_condition_checker branch_condition_checker_inst
       (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));
