@@ -52,6 +52,6 @@ add_pc:
 	j	load_start
 load_end:
 	call	end_of_loader
-	# j	loader
+	j	loader
 	halt			# never reach here
 end_of_loader:
