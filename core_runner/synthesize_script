@@ -9,6 +9,7 @@ branch=`cd $PROJECT_DIR; git rev-parse --abbrev-ref HEAD`
 BITNAME=${TITLE}_${branch}_${revision}_`date '+%s'`
 TOP=top
 UCF=$PROJECT_DIR/2nd/top.ucf
+IS=isothello.dip.jp
 
 if [ $# = 0 ]; then
 
@@ -44,7 +45,7 @@ Program -p 2
 quit
 EOF
 
-rsync $TOP.bit is:hwex/tools/$BITNAME.bit
-rsync $TITLE.impact.cmd is:hwex/tools/$TITLE.impact.cmd
+rsync $TOP.bit $IS:hwex/tools/$BITNAME.bit
+rsync $TITLE.impact.cmd $IS:hwex/tools/$TITLE.impact.cmd
 
-ssh is ". ~/hwex/tools/use-ise.sh && cd hwex/tools && impact -batch $TITLE.impact.cmd"
+ssh $IS ". ~/hwex/tools/use-ise.sh && cd hwex/tools && impact -batch $TITLE.impact.cmd"
