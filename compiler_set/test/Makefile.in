@@ -15,6 +15,8 @@ LINKER=groovy $(COMPILER_SET)/linker/linker.groovy
 SIMULATOR=$(COMPILER_SET)/simulator/simulator -t
 ASSEMBLER=$(COMPILER_SET)/assembler/assembler
 CORE_RUNNER=$(PROJECT_ROOT)/core_runner/run_fpga
+BYTE_FILE_GENERATOR=$(PROJECT_ROOT)/core_runner/byte_file_generator.rb
+BOOTLOADER=$(PROJECT_ROOT)/core_runner/bootloader.bin
 
 ARTIFACTS=*.bin *.s
 
@@ -28,6 +30,9 @@ tmp = /tmp/$(basename $(1))_$(notdir $(HOME))
 %.test_core: %.sim %.core
 	diff $*.sim $*.core
 
+%.test_core_loader: %.sim %.core_loader
+	diff $*.sim $*.core_loader
+
 %.s: %.ml
 	cat $(LIB_ML) $*.ml > $(call tmp,$*).ml
 	$(MIN_CAML) $(OPTION) $(call tmp,$*)
@@ -35,6 +40,9 @@ tmp = /tmp/$(basename $(1))_$(notdir $(HOME))
 
 %.bin: %.s
 	$(ASSEMBLER) $*.s $*.bin
+
+%.byte.bin: %.bin
+	$(BYTE_FILE_GENERATOR) $*.bin
 
 %.ans: %.ocaml %.sim
 	cp $*.sim $*.ans
@@ -46,6 +54,9 @@ tmp = /tmp/$(basename $(1))_$(notdir $(HOME))
 
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin > $*.core
+
+%.core_loader: %.byte.bin
+	$(CORE_RUNNER) $(BOOTLOADER) -i $< > $@
 
 %.ocaml: %.ml
 	sed $*.ml -e 's/^(\*NOMINCAML \(.*\)\*)/\1/' > $(call tmp,$*).ml
