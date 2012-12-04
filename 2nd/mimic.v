@@ -22,14 +22,9 @@ module mimic(input clk,
              input [7:0]   key_status,
              input [7:0]   keycode);
 
-   wire cpu_rx_pop;
-   wire in_execution;
-
-   assign rx_fifo_pop = (cpu_rx_pop == 1 || in_execution == 0) ? 1'b1 : 1'b0;
-
-   wire [15:0] inst_address, inst_write_address, inst_write_address_cpu, inst_write_address_loader;
-   wire [31:0] inst_write_data, inst_write_data_cpu, inst_write_data_loader, inst_fetch;
-   wire        inst_write_enable, inst_write_enable_cpu, inst_write_enable_loader;
+   wire [15:0] inst_address, inst_write_address;
+   wire [31:0] inst_write_data, inst_fetch;
+   wire        inst_write_enable;
    instruction_memory instruction_memory_inst(.clk(clk),
                                               .write_enable(inst_write_enable),
                                               .read_address(inst_address),
@@ -37,20 +32,6 @@ module mimic(input clk,
                                               .write_data(inst_write_data),
                                               .read_data(inst_fetch));
 
-   assign inst_write_address = in_execution == 1'b1 ? inst_write_address_cpu : inst_write_address_loader;
-   assign inst_write_data    = in_execution == 1'b1 ? inst_write_data_cpu    : inst_write_data_loader;
-   assign inst_write_enable  = in_execution == 1'b1 ? inst_write_enable_cpu  : inst_write_enable_loader;
-
-   wire rx_input_enable;
-   instruction_loader instruction_loader_inst(.clk(clk),
-                                              .reset(reset),
-                                              .input_enable(rx_input_enable),
-                                              .received_data(rx_received_data),
-                                              .in_execution(in_execution),
-                                              .write_address(inst_write_address_loader),
-                                              .write_enable(inst_write_enable_loader),
-                                              .write_data(inst_write_data_loader));
-   FD input_enable_delay(.C(clk), .D(! rx_waiting), .Q(rx_input_enable));
 
    wire [31:0] pc;
    assign inst_address = pc[15:0];
@@ -61,11 +42,9 @@ module mimic(input clk,
    wire [4:0]  rs_addr, rt_addr;
    wire        rs_float, rt_float;
    wire [15:0] raw_imm;
-   wire        cpu_keep_pc;
-   wire        cpu_rx_waiting;
+   wire        keep_pc;
    wire        freeze;
 
-   assign cpu_rx_waiting = in_execution == 1 ? rx_waiting : 1'b1;
    decoder decoder_inst(.clk(clk),
                         .reset(reset),
                         .inst(inst_fetch),
@@ -76,20 +55,18 @@ module mimic(input clk,
                         .rs_float(rs_float),
                         .rt_float(rt_float),
                         .raw_imm(raw_imm),
-                        .keep_pc(cpu_keep_pc));
+                        .keep_pc(keep_pc));
 
    flip_reset inst_decode_ff(.clk(clk), .reset(reset), .d(raw_inst_decode), .q(inst_decode));
 
    waiting_signal_watcher watcher_inst
      (.inst(inst_fetch),
-      .rx_wait(cpu_rx_waiting),
+      .rx_wait(rx_waiting),
       .key_status(key_status),
       .freeze(freeze));
 
    wire [31:0] rs_data, rt_data;
    wire branch_taken;
-   wire keep_pc;
-   assign keep_pc = in_execution == 0 || cpu_keep_pc == 1 ? 1'b1 : 1'b0;
    program_counter pc_inst
      (.clk(clk), .reset(reset), .inst(raw_inst_decode), .rs(rs_data), .keep_pc(keep_pc), .branch_taken(branch_taken),
       .pc(pc));
@@ -159,7 +136,7 @@ module mimic(input clk,
    rs232c rs232c_inst
      (.clk(clk), .inst(inst_reg_read), .rt(rt_data),
       .push_send_data(tx_send_enable), .send_data(tx_send_data),
-      .rx_wait(cpu_rx_waiting), .received_data(rx_received_data), .rx_pop(cpu_rx_pop),
+      .rx_wait(rx_waiting), .received_data(rx_received_data), .rx_pop(rx_fifo_pop),
       .enable(write_enable_rs), .addr(write_addr_rs), .data(write_data_rs), .float(write_float_rs));
 
    wire write_enable_keyboard, write_float_keyboard;
@@ -181,7 +158,7 @@ module mimic(input clk,
 
    instruction_writer inst_writer_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
-      .write_enable(inst_write_enable_cpu), .address(inst_write_address_cpu), .write_data(inst_write_data_cpu));
+      .write_enable(inst_write_enable), .address(inst_write_address), .write_data(inst_write_data));
 
    branch_condition_checker branch_condition_checker_inst
       (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));
