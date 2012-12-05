@@ -9,6 +9,7 @@ branch=`cd $PROJECT_DIR; git rev-parse --abbrev-ref HEAD`
 BITNAME=${TITLE}_${branch}_${revision}_`date '+%s'`
 TOP=top
 UCF=$PROJECT_DIR/2nd/top.ucf
+IS=isothello.dip.jp
 
 if [ $# = 0 ]; then
 
@@ -20,6 +21,12 @@ lines[0]="Waiting program...".ljust(WIDTH)
 lines[HEIGHT-2]="Kandouhan #{Time.now.month}/#{Time.now.day}".rjust(WIDTH)
 lines[HEIGHT-1]="$BITNAME".rjust(WIDTH)
 lines.join.gsub(' ',  "\0").each_char{|c| puts c.ord.to_s(2).rjust(7,"0") }
+EOF
+
+  \rm instruction.dat
+  ruby > instruction.dat <<EOF
+RAM_SIZE = 20000
+(File.readlines("$PROJECT_DIR/core_runner/bootloader.bin").map { |x| x.split("\t").first } + ["00000000"] * RAM_SIZE)[0...RAM_SIZE].each { |x| puts x }
 EOF
 
   grep wtime $PROJECT_DIR/2nd/top.vhd | grep "0099" ||
@@ -44,7 +51,7 @@ Program -p 2
 quit
 EOF
 
-rsync $TOP.bit is:hwex/tools/$BITNAME.bit
-rsync $TITLE.impact.cmd is:hwex/tools/$TITLE.impact.cmd
+rsync $TOP.bit $IS:hwex/tools/$BITNAME.bit
+rsync $TITLE.impact.cmd $IS:hwex/tools/$TITLE.impact.cmd
 
-ssh is ". ~/hwex/tools/use-ise.sh && cd hwex/tools && impact -batch $TITLE.impact.cmd"
+ssh $IS ". ~/hwex/tools/use-ise.sh && cd hwex/tools && impact -batch $TITLE.impact.cmd"

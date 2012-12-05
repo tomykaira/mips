@@ -34,6 +34,13 @@ class Binary {
 		original = string(trim(inst));
 	}
 
+	// create dummy instruction for simulator
+	Binary() {
+		code = 0;
+		use_label = false;
+		original = string();
+	}
+
 	void print(FILE * fp) {
 		fprintf(fp, "%08x\t%s\n", code, original.c_str());
 	}

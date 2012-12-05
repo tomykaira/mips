@@ -45,6 +45,7 @@ PROTO_R(_fmul);
 PROTO_R(_fmuln);
 PROTO_R(_finv);
 PROTO_R(_fsqrt);
+PROTO_I(_setl);
 PROTO_R(_imovf);
 PROTO_R(_fmovi);
 PROTO_I(_fmvlo);
@@ -72,6 +73,7 @@ PROTO_R(_halt);
 PROTO_I(_debug);
 PROTO_R(_display);
 PROTO_R(_readkey);
+PROTO_R(_program);
 
 
 // 0オペランド命令の読み込みフォーマット

@@ -335,5 +335,5 @@ let f (Prog(fundefs, e)) =
   Out.print buf (Out.Outputb("$r3"));
   Out.print buf (Out.AddI("$r3", reg_0, 130));
   Out.print buf (Out.Outputb("$r3"));
-  Out.print buf Out.Halt;
+  Out.print buf Out.Return;
   List.rev !buf

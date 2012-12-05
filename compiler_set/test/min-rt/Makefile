@@ -26,3 +26,8 @@ include ../Makefile.in
 
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
+
+# use this with cserver
+# ./cserver -b -B 460800 sld/contest.sld contest_new.ppm
+write: min-rt-new.bin
+	$(CORE_RUNNER) $< -R

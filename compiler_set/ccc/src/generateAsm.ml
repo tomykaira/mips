@@ -11,7 +11,7 @@ let header =
 
 let before_asm =
   [Exec(CALL (Id.L "main"));
-   Exec(HALT);
+   Exec(RETURN);
    Label(Id.L "asm_here")]
 
 let convert_exp = function
