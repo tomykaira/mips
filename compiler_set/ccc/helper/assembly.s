@@ -1285,57 +1285,57 @@ start_div:
 	blt	$r0, $r3, skip_invert_devidee
 	nop
 	nop
-	sub $r3, $r0, $r3
+	sub	$r3, $r0, $r3
 skip_invert_devidee:
-	blt $r0, $r4, skip_invert_devider
+	blt	$r0, $r4, skip_invert_devider
 	nop
 	nop
-	sub $r4, $r0, $r4
+	sub	$r4, $r0, $r4
 skip_invert_devider:
 	blt	$r3, $r4, zero_div
 	nop
 	nop
 	addi	$r5, $r0, 1
 	subi	$r1, $r1, 2
-	call div_sub
+	call	div_sub
 	addi	$r1, $r1, 2
 	ldi	$r5, $r1, 0
 	ldi	$r6, $r1, -1
 	# fix sign
-	blt $r5, $r0, negative_devidee
+	blt	$r5, $r0, negative_devidee
 	nop
 	nop
 	# positive_devidee
-	blt $r6, $r0, ans_invert
+	blt	$r6, $r0, ans_invert
 	nop
 	nop
 	j ans_direct
 negative_devidee:
-	blt $r6, $r0, ans_direct
+	blt	$r6, $r0, ans_direct
 	nop
 	nop
-	j ans_invert
+	j	ans_invert
 ans_invert:
 	sub	$r3, $r0, $r3
 ans_direct:
 	return
 # also used when a < b
 zero_div:
-	addi $r3, $r0, 0
+	addi	$r3, $r0, 0
 	return
 
 min_caml_mod:
 	sti	$r3, $r1, 0
 	sti	$r4, $r1, -1
-	subi $r1, $r1, 2
-	call min_caml_div
-	addi $r1, $r1, 2
+	subi	$r1, $r1, 2
+	call	min_caml_div
+	addi	$r1, $r1, 2
 	ldi	$r4, $r1, -1
-	subi $r1, $r1, 2
-	call min_caml_mul
-	addi $r1, $r1, 2
-	ldi $r4, $r1, 0
-	sub $r3, $r4, $r3
+	subi	$r1, $r1, 2
+	call	min_caml_mul
+	addi	$r1, $r1, 2
+	ldi	$r4, $r1, 0
+	sub	$r3, $r4, $r3
 
 read_key:
 	readkey	$r3
@@ -1351,39 +1351,39 @@ move_memory:
 	nop
 move_memory_plus:
 	add	$r6, $r3, $r5       # index limit
-	subi $r6, $r6, 1	# last element
-	sub $r4, $r0, $r4       # - offset (< 0)
+	subi	$r6, $r6, 1	# last element
+	sub	$r4, $r0, $r4       # - offset (< 0)
 move_memory_plus_loop:
 	ldr	$r8, $r6, $r4
-	subi $r6, $r6, 1	# use stall to increment
-	sti $r8, $r6, 1
-	ble $r3, $r6, move_memory_plus_loop
+	subi	$r6, $r6, 1	# use stall to increment
+	sti	$r8, $r6, 1
+	ble	$r3, $r6, move_memory_plus_loop
 	nop
 	nop
 	return
 move_memory_minus:
 	add	$r6, $r3, $r5       # index limit
-	sub $r4, $r0, $r4       # - offset (>0)
+	sub	$r4, $r0, $r4       # - offset (>0)
 move_memory_minus_loop:
 	ldr	$r8, $r3, $r4
-	addi $r3, $r3, 1	# use stall to increment
-	sti $r8, $r3, -1
+	addi	$r3, $r3, 1	# use stall to increment
+	sti	$r8, $r3, -1
 	blt	$r3, $r6, move_memory_minus_loop
 	nop
 	nop
 	return
 
 send_display:
-	addi $r5, $r0, 0
-	addi $r4, $r0, 2400
+	addi	$r5, $r0, 0
+	addi	$r4, $r0, 2400
 clear_display_start:
 	ldr	$r8, $r3, $r5
-	display $r5, $r8
-	addi $r5, $r5, 1
-	blt $r5, $r4, clear_display_start
+	display	$r5, $r8
+	addi	$r5, $r5, 1
+	blt	$r5, $r4, clear_display_start
 	nop
 	nop
-	debug 8
+	debug	8
 	return
 
 print_int:
