@@ -48,6 +48,23 @@ and convert_statement exp =
       IfLt(exp1, exp2, go stat_true, go_option stat_false)
     | Syntax.If(Syntax.GreaterThan(exp1, exp2), stat_true, stat_false) ->
       IfLt(exp2, exp1, go stat_true, go_option stat_false)
+
+    (* && *)
+    | Syntax.If(Syntax.And(exp1, exp2), stat_true, Some(stat_false)) ->
+      let label = Id.gen_label "and_false" in
+      go (Syntax.If(exp1,
+                    Syntax.If(exp2, stat_true, Some(Syntax.Goto(label))),
+                    Some(Syntax.Block([], [Syntax.Label(label); stat_false]))))
+    | Syntax.If(Syntax.And(exp1, exp2), stat_true, None) ->
+      go (Syntax.If(exp1, Syntax.If(exp2, stat_true, None), None))
+    (* || *)
+    | Syntax.If(Syntax.Or(exp1, exp2), stat_true, stat_false) ->
+      let label = Id.gen_label "or_true" in
+      go (Syntax.If(exp1,
+                    Syntax.Block([], [Syntax.Label(label); stat_true]),
+                    Some(Syntax.If(exp2, Syntax.Goto(label), stat_false))))
+
+    (* ex: if (x) { ... } *)
     | Syntax.If(exp, stat_true, stat_false) ->
       IfTrue(exp, go stat_true, go_option stat_false)
 
@@ -75,4 +92,6 @@ let convert_top = function
   | MacroExpand.Array(a)               -> Array(a)
 
 let convert ts =
-  List.map convert_top ts
+  let result = List.map convert_top ts in
+  print_endline (Show.show<t list> result);
+  result
