@@ -16,6 +16,7 @@ FILES[] =
 	typing
 	asm
 	reg
+	branchExpansion
 	flatExp
 	simpleControl
 	flow
