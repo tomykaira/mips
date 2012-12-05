@@ -33,7 +33,7 @@ let ref_of = function
   | ArraySet(a, e) -> ArrayRef(a, e)
 
 type 'a statement =
-  | Label  of Id.l * 'a statement
+  | Label  of Id.l
   | Exp    of 'a exp
   | Block  of 'a variable list * 'a statement list
   | If     of 'a exp * 'a statement * 'a statement option
