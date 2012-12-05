@@ -15,12 +15,12 @@ int callee2() {
 
 int main() {
   callee();
-  /* callee2(); */
-  /* callee(); */
-  /* callee2(); */
-  /* callee(); */
-  /* print_int(x); */
-  /* print_int(y); */
-  /* print_int(z); */
+  callee2();
+  callee();
+  callee2();
+  callee();
+  print_int(x);
+  print_int(y);
+  print_int(z);
   return 0;
 }
