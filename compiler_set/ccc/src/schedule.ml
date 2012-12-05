@@ -100,10 +100,9 @@ let calculate_priority_critical_path graph ready_insts =
     match inst with
       | Inst(_) ->
         let { latency = t; destination = d; _ } = List.find (fun edge -> edge.source = inst) graph in
-        let (next_cost, root) = route_cost d in
-        (next_cost + t, root)
+        route_cost d + t + 1
       | Dummy ->                        (* dummy is root *)
-        (0, inst)
+        0
   in
   let max (inst1, cost1) (inst2, cost2) =
     if cost1 > cost2 then
@@ -111,17 +110,11 @@ let calculate_priority_critical_path graph ready_insts =
     else
       (inst2, cost2)
   in
-  let update inst root_map =
-    let (cost, root) = (route_cost inst) in
-    if InstM.mem root root_map then
-      InstM.add root (max (inst, cost) (InstM.find root root_map)) root_map
-    else
-      InstM.add root (inst, cost) root_map
+  let update inst current_max =
+    let cost = route_cost inst in
+    max (inst, cost) current_max
   in
-  let mid_result = List.fold_right update ready_insts InstM.empty in
-  let (root, (selected, cost)) = List.hd (List.sort (fun (_, (_, cost1)) (_, (_, cost2)) -> compare cost1 cost2)
-                                            (InstM.bindings mid_result)) in
-  selected
+  fst (List.fold_right update ready_insts (Dummy, 0))
 
 let calculate_priority_related_instruction graph ready_insts =
   let leaf_edges = List.map (fun i -> (i, List.find (fun n -> n.source = i) graph)) ready_insts in
@@ -129,7 +122,7 @@ let calculate_priority_related_instruction graph ready_insts =
   (fst $ List.hd $ List.rev) sort_by_priority
 
 let select graph ready_insts =
-  let selected = calculate_priority_related_instruction graph (S.elements ready_insts) in
+  let selected = calculate_priority_critical_path graph (S.elements ready_insts) in
   match selected with
     | Inst(inst) -> inst
     | Dummy -> failwith "Dummy should not selected"
