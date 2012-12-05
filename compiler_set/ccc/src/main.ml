@@ -35,6 +35,8 @@ let lexbuf outchan l =
       $ (notify "simple control")
       $ FlatExp.convert
       $ (notify "flat exp")
+      $ BranchExpansion.convert
+      $ (notify "branch expansion")
       $ Alpha.convert
       $ (notify "alpha")
       $ MacroExpand.convert
