@@ -119,10 +119,17 @@ let calculate_priority_critical_path graph ready_insts =
       InstM.add root (inst, cost) root_map
   in
   let mid_result = List.fold_right update ready_insts InstM.empty in
-  List.hd (List.sort (fun (_, (_, cost1)) (_, (_, cost2)) -> compare cost1 cost2) (InstM.bindings mid_result))
+  let (root, (selected, cost)) = List.hd (List.sort (fun (_, (_, cost1)) (_, (_, cost2)) -> compare cost1 cost2)
+                                            (InstM.bindings mid_result)) in
+  selected
+
+let calculate_priority_related_instruction graph ready_insts =
+  let leaf_edges = List.map (fun i -> (i, List.find (fun n -> n.source = i) graph)) ready_insts in
+  let sort_by_priority = List.sort (fun (_, n1) (_, n2) -> compare n1.priority n2.priority) leaf_edges in
+  (fst $ List.hd $ List.rev) sort_by_priority
 
 let select graph ready_insts =
-  let (root, (selected, cost)) = calculate_priority_critical_path graph (S.elements ready_insts) in
+  let selected = calculate_priority_related_instruction graph (S.elements ready_insts) in
   match selected with
     | Inst(inst) -> inst
     | Dummy -> failwith "Dummy should not selected"
