@@ -59,7 +59,7 @@ let rec convert_statement macros stat =
   let go = convert_statement macros in
   let go_exp = convert_exp macros in
   match stat with
-    | Syntax.Label(l, stat) -> Syntax.Label(l, go stat)
+    | Syntax.Label(l)       -> Syntax.Label(l)
     | Syntax.Exp(e)         -> Syntax.Exp(go_exp e)
     | Syntax.Block(variables, statements) ->
       Syntax.Block(variables, List.map go statements)

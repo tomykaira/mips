@@ -30,7 +30,7 @@ type assignment_chain = { result : Id.v; chain : assignment list }
 
 (* TODO: assignment_chains can go to Assignments *)
 type statement =
-  | Label       of Id.l * statement
+  | Label       of Id.l
   | Assignments of assignment list
   | Block       of Id.v variable list * statement list
   | If          of assignment_chain * statement * statement option
@@ -127,8 +127,8 @@ and convert_statement = function
   | Syntax.Goto(l) ->
     Goto(l)
 
-  | Syntax.Label(l, stat) ->
-    Label(l, convert_statement stat)
+  | Syntax.Label(l) ->
+    Label(l)
   | Syntax.Exp(exp) ->
     let {chain = chain; _} = rev_expand_exp exp in
     Assignments chain

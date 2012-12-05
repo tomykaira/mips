@@ -72,7 +72,7 @@ let rec convert_statement (env : Id.v M.t) stat =
   let go = convert_statement env in
   let go_exp = convert_exp env in
   match stat with
-    | Label(l, stat) -> Label(l, go stat)
+    | Label(l) -> Label(l)
     | Exp(e) -> Exp(go_exp e)
     | Block(variables, statements) ->
       let (new_env, variables) = List.fold_right fold_rename_variable variables (env, []) in

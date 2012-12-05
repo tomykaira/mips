@@ -151,8 +151,8 @@ stat:
     { $1 }
 
 labeled_stat:
-| ID COLON stat
-    { Label(Id.L $1, $3) }
+| ID COLON
+    { Label(Id.L $1) }
 
 exp_stat:
 | exp SEMICOLON

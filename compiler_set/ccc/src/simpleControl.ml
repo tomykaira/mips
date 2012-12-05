@@ -28,8 +28,8 @@ let rec convert_statement env stat =
   let { continue = current_cont; break = current_break } = env in
   let go = convert_statement env in
   match stat with
-    | FlatExp.Label (l, stat) ->
-      Sequence([Label(l); go stat])
+    | FlatExp.Label (l) ->
+      Label(l)
     | FlatExp.Assignments (assignments) ->
       Assignments(assignments)
     | FlatExp.Block (variables, stats) ->

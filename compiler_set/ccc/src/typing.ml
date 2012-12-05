@@ -103,7 +103,6 @@ let rec check_statement env return_type stat =
   let go = check_statement env return_type in
   let go_exp = check_exp env in
   match stat with
-    | Label(_, stat) -> go stat
     | Exp(exp) -> go_exp exp
     | Block(variables, stats) ->
       let { variables = vs; functions = fs } = env in
