@@ -9,7 +9,6 @@ type exp =
   | Or             of Id.v * Id.v
   | Equal          of Id.v * Id.v
   | LessThan       of Id.v * Id.v
-  | GreaterThan    of Id.v * Id.v
   | Add            of Id.v * Id.v
   | Sub            of Id.v * Id.v
   | Mul            of Id.v * Id.v
@@ -97,7 +96,6 @@ let rec expand_exp assign_to exp =
   | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))
   | Syntax.Equal (e1, e2)       -> concat2 e1 e2 (fun (t1, t2) -> Equal (t1, t2))
   | Syntax.LessThan (e1, e2)    -> concat2 e1 e2 (fun (t1, t2) -> LessThan (t1, t2))
-  | Syntax.GreaterThan (e1, e2) -> concat2 e1 e2 (fun (t1, t2) -> GreaterThan (t1, t2))
   | Syntax.Add (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Add (t1, t2))
   | Syntax.Sub (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Sub (t1, t2))
   | Syntax.Mul (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Mul (t1, t2))

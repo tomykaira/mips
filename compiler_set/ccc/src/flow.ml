@@ -63,8 +63,6 @@ let expand_exp assign_to exp =
     local_branch (fun l -> BranchEq(a, b, l))
   | FlatExp.LessThan(a, b) ->
     local_branch (fun l -> BranchLt(a, b, l))
-  | FlatExp.GreaterThan(a, b) ->
-    local_branch (fun l -> BranchLt(b, a, l))
   | FlatExp.Not(a) ->
     local_branch (fun l -> BranchZero(a, l))
 

@@ -273,9 +273,9 @@ equality_exp:
 | equality_exp LT shift_expression
     { LessThan($1, $3) }
 | equality_exp GT shift_expression
-    { GreaterThan($1, $3) }
+    { LessThan($3, $1) }
 | equality_exp LT_EQUAL shift_expression
-    { Not(GreaterThan($1, $3)) }
+    { Not(LessThan($3, $1)) }
 | equality_exp GT_EQUAL shift_expression
     { Not(LessThan($1, $3)) }
 

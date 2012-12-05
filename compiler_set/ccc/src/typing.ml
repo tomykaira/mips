@@ -75,7 +75,7 @@ let rec get_exp_type env exp =
     unify (assignee_type assignee) t2;
     t2
   | And(e1, e2) | Or(e1, e2)
-  | Equal(e1, e2) | LessThan(e1, e2) | GreaterThan(e1, e2) ->
+  | Equal(e1, e2) | LessThan(e1, e2) ->
     assert_primitive e1; assert_primitive e2; Type.Int
   | Add(e1, e2) | Sub(e1, e2) | Mul(e1, e2) | Div(e1, e2) | Mod(e1, e2) ->
     let t1 = go e1 in

@@ -42,12 +42,16 @@ and convert_statement exp =
       in
       Block([], expanded)
 
+    | Syntax.If(Syntax.Not(exp), stat_true, Some(stat_false)) ->
+      convert_statement (Syntax.If(exp, stat_false, Some(stat_true)))
+    (* TODO: express NOP in better way *)
+    | Syntax.If(Syntax.Not(exp), stat_true, None) ->
+      convert_statement (Syntax.If(exp, Syntax.Block([], []), Some(stat_true)))
+
     | Syntax.If(Syntax.Equal(exp1, exp2), stat_true, stat_false) ->
       IfEq(exp1, exp2, go stat_true, go_option stat_false)
     | Syntax.If(Syntax.LessThan(exp1, exp2), stat_true, stat_false) ->
       IfLt(exp1, exp2, go stat_true, go_option stat_false)
-    | Syntax.If(Syntax.GreaterThan(exp1, exp2), stat_true, stat_false) ->
-      IfLt(exp2, exp1, go stat_true, go_option stat_false)
 
     (* && *)
     | Syntax.If(Syntax.And(exp1, exp2), stat_true, Some(stat_false)) ->

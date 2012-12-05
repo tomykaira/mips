@@ -16,7 +16,6 @@ and 'a exp =
   | Or             of 'a exp * 'a exp
   | Equal          of 'a exp * 'a exp
   | LessThan       of 'a exp * 'a exp
-  | GreaterThan    of 'a exp * 'a exp
   | Add            of 'a exp * 'a exp
   | Sub            of 'a exp * 'a exp
   | Mul            of 'a exp * 'a exp

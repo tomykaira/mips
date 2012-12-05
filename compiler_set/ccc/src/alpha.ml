@@ -56,7 +56,6 @@ let rec convert_exp (env : Id.v M.t) e =
     | Or(e1, e2)          -> Or(go e1, go e2)
     | Equal(e1, e2)       -> Equal(go e1, go e2)
     | LessThan(e1, e2)    -> LessThan(go e1, go e2)
-    | GreaterThan(e1, e2) -> GreaterThan(go e1, go e2)
     | Add(e1, e2)         -> Add(go e1, go e2)
     | Sub(e1, e2)         -> Sub(go e1, go e2)
     | Mul(e1, e2)         -> Mul(go e1, go e2)
