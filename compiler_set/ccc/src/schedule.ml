@@ -34,7 +34,7 @@ let instruction_latency (Entity.E(_, inst)) = match inst with
 
   | _ -> 0
 
-
+(* split at non-schedulable instruction.  PC and memory control instructions cannot move*)
 let schedulable (Entity.E(_, inst)) = match inst with
   | Label(_)
   | CallAndSet(_)
@@ -48,8 +48,6 @@ let schedulable (Entity.E(_, inst)) = match inst with
   | StoreHeapImm(_)
   | ReturnVoid -> false
   | _ -> true
-
-let not_selected = List.filter (fun {selected = s; latency = t; _} -> not s || t > 0)
 
 let construct_dependency_graph insts =
   let insts = List.filter schedulable insts in
@@ -65,6 +63,8 @@ let construct_dependency_graph insts =
     with
       | Not_found -> 0
   in
+  (* read instruction from top to down, add dependency edges.
+     be cautious about WAW and WAR hazards *)
   let add_edge (edges, setter, roots) inst =
     let related = use_instruction inst @ def_instruction inst in
     let dependents = concat_option (List.map (find_setter setter) related) in
@@ -79,6 +79,7 @@ let construct_dependency_graph insts =
      new_setter,
      S.add (Inst inst) (S.diff roots (S.of_list (dependents))))
   in
+  (* tie root nodes to Dummy node.  This dummy behaves as the end of block *)
   let root_to_dummy edges root =
     { source = root;
       destination = Dummy;
@@ -94,7 +95,7 @@ let ready_set graph  =
   S.remove Dummy (S.diff (S.of_list sources) (S.of_list destinations))
 
 (* select critical path *)
-let calculate_priority graph ready_insts =
+let calculate_priority_critical_path graph ready_insts =
   let rec route_cost inst =
     match inst with
       | Inst(_) ->
@@ -121,11 +122,12 @@ let calculate_priority graph ready_insts =
   List.hd (List.sort (fun (_, (_, cost1)) (_, (_, cost2)) -> compare cost1 cost2) (InstM.bindings mid_result))
 
 let select graph ready_insts =
-  let (root, (selected, cost)) = calculate_priority graph (S.elements ready_insts) in
+  let (root, (selected, cost)) = calculate_priority_critical_path graph (S.elements ready_insts) in
   match selected with
     | Inst(inst) -> inst
     | Dummy -> failwith "Dummy should not selected"
 
+(* count down latency of the instructions whose source is already selected *)
 let tick_without_selection graph =
   List.fold_right
     (fun ({ selected = selected; latency = t; source = s; _} as edge) others ->
@@ -137,32 +139,31 @@ let tick_without_selection graph =
         edge :: others)
     graph []
 
+let tick graph selected_node =
+  let edge_replaced = List.map
+    (fun ({ source = s; _} as edge) ->
+      if s = Inst selected_node then
+        { edge with selected = true; source = Dummy }
+      else
+        edge)
+    graph
+  in
+  tick_without_selection edge_replaced
+
 let convert_block block =
   let graph = ref (construct_dependency_graph block) in
   let scheduled = ref [] in
 
-  let tick selected_node =
-    scheduled := selected_node :: !scheduled;
-    graph := List.map
-      (fun ({ source = s; _} as edge) ->
-        if s = Inst selected_node then
-          { edge with selected = true; source = Dummy }
-        else
-          edge)
-      !graph;
-    graph := tick_without_selection !graph
-  in
-  while List.length (not_selected !graph) > 0 do
+  while List.length !graph > 0 do
     let ready_insts = ready_set !graph in
-    if S.is_empty ready_insts then
-      graph := tick_without_selection !graph
-    else
-      tick (select !graph ready_insts);
-    print_endline ("after tick\n" ^(Show.show<edge list> !graph))
+    graph := if S.is_empty ready_insts then
+        tick_without_selection !graph
+      else
+        (let selected = select !graph ready_insts in
+         scheduled := selected :: !scheduled;
+         tick !graph selected)
   done;
-  let result = List.rev !scheduled in
-  print_endline (Show.show<instruction_entity list> result);
-  result
+  List.rev !scheduled
 
 let convert_function insts =
   let insts = Entity.identify insts in
