@@ -21,6 +21,7 @@ FILES[] =
 	simpleControl
 	flow
 	heapAllocation
+	schedule
 	liveAnalyzer
 	registerAllocation
 	memoryAllocation

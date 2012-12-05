@@ -27,6 +27,8 @@ let lexbuf outchan l =
       $ (notify "memory allocation")
       $ RegisterAllocation.convert
       $ (notify "register allocation")
+      $ Schedule.convert
+      $ (notify "scheduling")
       $ HeapAllocation.convert
       $ (notify "heap allocation")
       $ Flow.convert

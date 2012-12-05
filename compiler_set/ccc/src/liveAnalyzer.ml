@@ -14,7 +14,7 @@ module LiveMap =
 module S = ExtendedSet.Make(Id.TStruct)
 
 let calculate_next live def use =
-  S.union (S.diff live (S.of_option def)) (S.of_list use)
+  S.union (S.diff live (S.of_list def)) (S.of_list use)
 
 let use_exp = function
   | Mov(i) | LoadHeap(i) | Negate(i) -> [i]
@@ -34,10 +34,10 @@ let use_instruction (E(_, inst)) = match inst with
   | _ -> []
 
 let def_instruction (E(_, inst)) = match inst with
-  | Assignment(id, _) -> Some(id)
-  | Definition(Variable(id, _, _)) -> Some(id)
-  | CallAndSet(id, _, _) -> Some(id)
-  | _ -> None
+  | Assignment(id, _) -> [id]
+  | Definition(Variable(id, _, _)) -> [id]
+  | CallAndSet(id, _, _) -> [id]
+  | _ -> []
 
 type sucessor = Next | Jump of Id.l
 
@@ -94,4 +94,4 @@ let live_t instructions =
   loop LiveMap.empty
 
 let extract_nodes insts =
-  S.of_list (concat_map use_instruction insts @ concat_option (List.map def_instruction insts))
+  S.of_list (concat_map use_instruction insts @ concat_map def_instruction insts)

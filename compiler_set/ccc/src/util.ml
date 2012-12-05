@@ -17,7 +17,3 @@ let rec range i j = if i > j then [] else i :: (range (i+1) j)
 
 let rev_assoc value xs =
   fst (List.find (fun (k, v) -> v = value) xs)
-
-let option_to_list = function
-  | Some(x) -> [x]
-  | None -> []

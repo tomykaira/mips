@@ -88,7 +88,7 @@ let register_move = function
   | Entity.E(_, Heap.Assignment(to_node, Heap.Mov(from_node))) as inst ->
     let move = (to_node, from_node) in
     worklist_moves := MoveS.add move !worklist_moves;
-    List.iter (fun id -> add_move id move) (use_instruction inst @ option_to_list (def_instruction inst))
+    List.iter (fun id -> add_move id move) (use_instruction inst @ def_instruction inst)
   | _ -> ()
 
 let add_edge u v =
@@ -107,7 +107,7 @@ let construct_graph live insts =
     in
     List.iter (fun d ->
       S.iter (fun l ->
-        add_edge l d) live_here) (option_to_list (def_instruction inst))
+        add_edge l d) live_here) (def_instruction inst)
   in
   List.iter proc insts
 
