@@ -11,6 +11,12 @@ let header =
 
 let before_asm =
   [Exec(CALL (Id.L "main"));
+   AssignInt(Reg.ret, Int(231));
+   Exec(OUTPUTB Reg.ret);
+   AssignInt(Reg.ret, Int(181));
+   Exec(OUTPUTB Reg.ret);
+   AssignInt(Reg.ret, Int(130));
+   Exec(OUTPUTB Reg.ret);
    Exec(RETURN);
    Label(Id.L "asm_here")]
 
