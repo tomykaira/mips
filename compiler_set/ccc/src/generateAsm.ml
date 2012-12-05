@@ -20,6 +20,9 @@ let before_asm =
    Exec(RETURN);
    Label(Id.L "asm_here")]
 
+let end_label =
+  [Label(Id.L "program_end")]
+
 let convert_exp = function
   | Mov(r)             -> ADD(Reg.int_zero, r)
   | Add(a, b)          -> ADD(a, b)
@@ -73,4 +76,4 @@ let convert_function (name, code) =
   Label(name) :: concat_map convert_instruction code
 
 let convert { functions = funs; initialize_code = code } =
-  header @ concat_map convert_instruction code @ before_asm @ concat_map convert_function funs
+  header @ concat_map convert_instruction code @ before_asm @ concat_map convert_function funs @ end_label
