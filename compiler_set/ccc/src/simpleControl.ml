@@ -1,12 +1,14 @@
 open Definition
+open Util
 
 type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
   | Sequence    of statement list
   | Block       of Id.v variable list * statement list
+  | BranchEq    of Id.v * Id.v * Id.l
+  | BranchLt    of Id.v * Id.v * Id.l
   | BranchZero  of Id.v * Id.l
-  | BranchEqual of Id.v * Id.v * Id.l
   | Goto        of Id.l
   | Return      of Id.v
   | ReturnVoid
@@ -27,6 +29,22 @@ type statement_environment = { continue : Id.l option; break : Id.l option }
 let rec convert_statement env stat =
   let { continue = current_cont; break = current_break } = env in
   let go = convert_statement env in
+  let go_option = BatOption.map go in
+  let expand_branch {FlatExp.result = id1; FlatExp.chain = ass1}
+      {FlatExp.result = id2; FlatExp.chain = ass2}
+      stat_true
+      stat_false
+      constructor =
+    let true_label = Id.gen_label "beq_true" in
+    let end_label = Id.gen_label "beq_end" in
+    Sequence([Assignments(ass1 @ ass2);
+              constructor id1 id2 true_label]
+             @ option_to_list (go_option stat_false)
+             @ [Goto end_label;
+                Label true_label;
+                go stat_true;
+                Label end_label])
+  in
   match stat with
     | FlatExp.Label (l) ->
       Label(l)
@@ -34,7 +52,11 @@ let rec convert_statement env stat =
       Assignments(assignments)
     | FlatExp.Block (variables, stats) ->
       Block(variables, List.map go stats)
-    | FlatExp.If ({FlatExp.result = flag; FlatExp.chain = ass}, stat_true, Some(stat_false)) ->
+    | FlatExp.IfEq (exp1, exp2, stat_true, stat_false) ->
+      expand_branch exp1 exp2 stat_true stat_false (fun id1 id2 label -> BranchEq(id1, id2, label))
+    | FlatExp.IfLt (exp1, exp2, stat_true, stat_false) ->
+      expand_branch exp1 exp2 stat_true stat_false (fun id1 id2 label -> BranchLt(id1, id2, label))
+    | FlatExp.IfTrue ({FlatExp.result = flag; FlatExp.chain = ass}, stat_true, Some(stat_false)) ->
       let false_label = Id.gen_label "false" in
       let end_label = Id.gen_label "end" in
       Sequence([Assignments(ass);
@@ -44,7 +66,7 @@ let rec convert_statement env stat =
                 Label false_label;
                 go stat_false;
                 Label end_label])
-    | FlatExp.If ({FlatExp.result = flag; FlatExp.chain = ass}, stat_true, None) ->
+    | FlatExp.IfTrue ({FlatExp.result = flag; FlatExp.chain = ass}, stat_true, None) ->
       let end_label = Id.gen_label "end" in
       Sequence([Assignments(ass);
                 BranchZero(flag, end_label);
@@ -59,7 +81,7 @@ let rec convert_statement env stat =
             let label         = Id.gen_label "case" in
             let (id, ass)     = assign_const const in
             let new_statement = convert_statement switch_env stat in
-            (Assignments ass :: BranchEqual(flag, id, label) :: header,
+            (Assignments ass :: BranchEq(flag, id, label) :: header,
              Label(label) :: new_statement :: body,
              default)
 

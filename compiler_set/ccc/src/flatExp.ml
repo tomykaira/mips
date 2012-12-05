@@ -33,7 +33,9 @@ type statement =
   | Label       of Id.l
   | Assignments of assignment list
   | Block       of Id.v variable list * statement list
-  | If          of assignment_chain * statement * statement option
+  | IfEq        of assignment_chain * assignment_chain * statement * statement option
+  | IfLt        of assignment_chain * assignment_chain * statement * statement option
+  | IfTrue       of assignment_chain * statement * statement option
   | Switch      of assignment_chain * switch_case list
   | While       of assignment_chain * statement
   | Goto        of Id.l
@@ -115,47 +117,60 @@ let rev_expand_exp exp =
   { result =  r; chain = List.rev c }
 
 let rec convert_case = function
-  | Syntax.SwitchCase(const, stat) ->
+  | BranchExpansion.SwitchCase(const, stat) ->
     SwitchCase(const, convert_statement stat)
-  | Syntax.DefaultCase(stat) ->
+  | BranchExpansion.DefaultCase(stat) ->
     DefaultCase(convert_statement stat)
 
-and convert_statement = function
-  | Syntax.Continue -> Continue
-  | Syntax.Break -> Break
-  | Syntax.Return(None) -> ReturnVoid
-  | Syntax.Goto(l) ->
+and convert_statement stat =
+  let go_option = function
+    | Some(stat) -> Some(convert_statement stat)
+    | None -> None
+  in
+  match stat with
+  | BranchExpansion.Continue -> Continue
+  | BranchExpansion.Break -> Break
+  | BranchExpansion.Return(None) -> ReturnVoid
+  | BranchExpansion.Goto(l) ->
     Goto(l)
 
-  | Syntax.Label(l) ->
+  | BranchExpansion.Label(l) ->
     Label(l)
-  | Syntax.Exp(exp) ->
+  | BranchExpansion.Exp(exp) ->
     let {chain = chain; _} = rev_expand_exp exp in
     Assignments chain
-  | Syntax.Block (variables, stats) ->
+  | BranchExpansion.Block (variables, stats) ->
     Block(variables, List.map convert_statement stats)
-  | Syntax.If(exp, stat_true, Some(stat_false)) ->
-    If(rev_expand_exp exp, convert_statement stat_true, Some(convert_statement stat_false))
-  | Syntax.If(exp, stat_true, None) ->
-    If(rev_expand_exp exp, convert_statement stat_true, None)
-  | Syntax.Switch(exp, cases) ->
+
+  | BranchExpansion.IfEq(exp1, exp2, stat_true, stat_false) ->
+    IfEq(rev_expand_exp exp1,
+         rev_expand_exp exp2,
+         convert_statement stat_true,
+         go_option stat_false)
+  | BranchExpansion.IfLt(exp1, exp2, stat_true, stat_false) ->
+    IfLt(rev_expand_exp exp1,
+         rev_expand_exp exp2,
+         convert_statement stat_true,
+         go_option stat_false)
+  | BranchExpansion.IfTrue(exp, stat_true, stat_false) ->
+    IfTrue(rev_expand_exp exp, convert_statement stat_true, go_option stat_false)
+
+  | BranchExpansion.Switch(exp, cases) ->
     Switch(rev_expand_exp exp, List.map convert_case cases)
-  | Syntax.While(exp, stat) ->
-    While(rev_expand_exp exp, convert_statement stat)
-  | Syntax.Return(Some(exp)) ->
+  | BranchExpansion.Return(Some(exp)) ->
     Return (rev_expand_exp exp)
 
 let convert_top = function
-  | MacroExpand.Function (signature, stat) ->
+  | BranchExpansion.Function (signature, stat) ->
     Some(Function(signature, convert_statement stat))
-  | MacroExpand.FunctionDeclaration (_) ->
+  | BranchExpansion.FunctionDeclaration (_) ->
     None
-  | MacroExpand.GlobalVariable (var) ->
+  | BranchExpansion.GlobalVariable (var) ->
     Some(GlobalVariable(var))
-  | MacroExpand.Array (signature) ->
+  | BranchExpansion.Array (signature) ->
     Some(Array(signature))
 
-let convert (ts : Id.v MacroExpand.t list) =
+let convert (ts : BranchExpansion.t list) =
   let result = concat_map (function Some(x) -> [x] | None -> []) (List.map convert_top ts) in
   List.iter (print_endline $ Show.show<t>) result;
   result

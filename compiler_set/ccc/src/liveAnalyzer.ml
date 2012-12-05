@@ -27,7 +27,7 @@ let use_instruction (E(_, inst)) = match inst with
   | Call(l, args) -> args
   | CallAndSet(_, _, args) -> args
   | BranchZero(id, _) -> [id]
-  | BranchEqual(id1, id2, _) | BranchLT(id1, id2, _) -> [id1; id2]
+  | BranchEq(id1, id2, _) | BranchLt(id1, id2, _) -> [id1; id2]
   | Return(id) -> [id]
   | StoreHeap(id1, id2) -> [id1; id2]
   | StoreHeapImm(id1, _) -> [id1]
@@ -42,7 +42,7 @@ let def_instruction (E(_, inst)) = match inst with
 type sucessor = Next | Jump of Id.l
 
 let successors (E(_, inst)) = match inst with
-  | BranchZero (_, l) | BranchEqual (_, _, l) | BranchLT (_, _, l) ->
+  | BranchZero (_, l) | BranchEq (_, _, l) | BranchLt (_, _, l) ->
     [Next; Jump l]
   | Goto(l) -> [Jump l]
   | Return _ | ReturnVoid -> []

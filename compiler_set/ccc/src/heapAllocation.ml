@@ -24,8 +24,8 @@ type instruction =
   | Call         of Id.l * Id.t list      (* just calling *)
   | Definition   of variable
   | BranchZero   of Id.t * Id.l
-  | BranchEqual  of Id.t * Id.t * Id.l
-  | BranchLT     of Id.t * Id.t * Id.l
+  | BranchEq     of Id.t * Id.t * Id.l
+  | BranchLt     of Id.t * Id.t * Id.l
   | Goto         of Id.l
   | Return       of Id.t
   | ReturnVoid
@@ -156,14 +156,14 @@ let convert_instruction = function
     arg_assignments @ [Call(label, names)]
   | Flow.BranchZero(var, l) ->
     insert_load var (fun name -> [BranchZero(name, l)])
-  | Flow.BranchEqual(var1, var2, l) ->
+  | Flow.BranchEq(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchEqual(name1, name2, l)]))
-  | Flow.BranchLT(var1, var2, l) ->
+        [BranchEq(name1, name2, l)]))
+  | Flow.BranchLt(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchLT(name1, name2, l)]))
+        [BranchLt(name1, name2, l)]))
   | Flow.Return(var) ->
     insert_load var (fun name -> [Return(name)])
   | Flow.ArraySet(array, index, value) ->

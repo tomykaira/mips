@@ -37,9 +37,9 @@ let convert_instruction = function
     [AssignInt(reg, convert_exp exp)]
   | BranchZero(reg, l) ->
     [Exec(BEQ(reg, Reg.int_zero, l))]
-  | BranchEqual(r1, r2, l) ->
+  | BranchEq(r1, r2, l) ->
     [Exec(BEQ(r1, r2, l))]
-  | BranchLT(r1, r2, l) ->
+  | BranchLt(r1, r2, l) ->
     [Exec(BLT(r1, r2, l))]
   | Call (l, offset) ->
     if offset > 0 then

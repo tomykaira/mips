@@ -6,8 +6,8 @@ module Heap = HeapAllocation
 type instruction =
   | Assignment   of Reg.i * Reg.i Heap.exp
   | BranchZero   of Reg.i * Id.l
-  | BranchEqual  of Reg.i * Reg.i * Id.l
-  | BranchLT     of Reg.i * Reg.i * Id.l
+  | BranchEq     of Reg.i * Reg.i * Id.l
+  | BranchLt     of Reg.i * Reg.i * Id.l
   | Call         of Id.l * Reg.i list * (Reg.i * Id.t) list
   | CallAndSet   of Reg.i * Id.l * Reg.i list * (Reg.i * Id.t) list
   | Spill        of Reg.i * Id.t
@@ -378,10 +378,10 @@ let replace_registers live color_map insts =
         CallAndSet(r to_set, l, List.map r args, allocation)
       | Heap.BranchZero(id, l) ->
         BranchZero(r id, l)
-      | Heap.BranchEqual(id1, id2, l) ->
-        BranchEqual(r id1, r id2, l)
-      | Heap.BranchLT(id1, id2, l) ->
-        BranchLT(r id1, r id2, l)
+      | Heap.BranchEq(id1, id2, l) ->
+        BranchEq(r id1, r id2, l)
+      | Heap.BranchLt(id1, id2, l) ->
+        BranchLt(r id1, r id2, l)
       | Heap.Return(id) ->
         if r id = Reg.ret then
           Return

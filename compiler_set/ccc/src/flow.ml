@@ -20,8 +20,8 @@ type instruction =
   | Call        of Id.l * Id.v list      (* just calling *)
   | Definition  of Id.v variable
   | BranchZero  of Id.v * Id.l
-  | BranchEqual of Id.v * Id.v * Id.l
-  | BranchLT    of Id.v * Id.v * Id.l
+  | BranchEq    of Id.v * Id.v * Id.l
+  | BranchLt    of Id.v * Id.v * Id.l
   | Goto        of Id.l
   | Return      of Id.v
   | ReturnVoid
@@ -60,11 +60,11 @@ let expand_exp assign_to exp =
   | FlatExp.ArrayGet(a, b) -> Exp(ArrayGet(a, b))
 
   | FlatExp.Equal(a, b) ->
-    local_branch (fun l -> BranchEqual(a, b, l))
+    local_branch (fun l -> BranchEq(a, b, l))
   | FlatExp.LessThan(a, b) ->
-    local_branch (fun l -> BranchLT(a, b, l))
+    local_branch (fun l -> BranchLt(a, b, l))
   | FlatExp.GreaterThan(a, b) ->
-    local_branch (fun l -> BranchLT(b, a, l))
+    local_branch (fun l -> BranchLt(b, a, l))
   | FlatExp.Not(a) ->
     local_branch (fun l -> BranchZero(a, l))
 
@@ -98,7 +98,8 @@ let rec expand_statement = function
 
   | SimpleControl.Label(l)                 -> [Label(l)]
   | SimpleControl.BranchZero(id, l)        -> [BranchZero(id, l)]
-  | SimpleControl.BranchEqual(id1, id2, l) -> [BranchEqual(id1, id2, l)]
+  | SimpleControl.BranchEq(id1, id2, l)    -> [BranchEq(id1, id2, l)]
+  | SimpleControl.BranchLt(id1, id2, l)    -> [BranchLt(id1, id2, l)]
   | SimpleControl.Goto(l)                  -> [Goto(l)]
   | SimpleControl.Return(x)                -> [Return(x)]
   | SimpleControl.ReturnVoid               -> [ReturnVoid]

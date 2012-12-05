@@ -14,9 +14,9 @@ FILES[] =
 	macroExpand
 	alpha
 	typing
+	branchExpansion
 	asm
 	reg
-	branchExpansion
 	flatExp
 	simpleControl
 	flow
