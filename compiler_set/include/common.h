@@ -32,6 +32,7 @@
 #define SLLI    (0b000110)
 #define SRAI    (0b000111)
 
+#define SETL    (0b010000)
 #define FMVLO   (0b010010)
 #define FMVHI   (0b010011)
 #define IMOVF   (0b010110)
@@ -70,6 +71,7 @@
 
 #define DISPLAY (0b001000)
 #define READKEY (0b001001)
+#define PROGRAM (0b001010)
 
 using namespace std;
 #endif

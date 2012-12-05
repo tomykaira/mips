@@ -9,6 +9,7 @@ DEFINE_I(_xori, XORI);
 DEFINE_I(_slli, SLLI);
 DEFINE_I(_srai, SRAI);
 
+DEFINE_I(_setl, SETL);
 DEFINE_I(_fmvlo, FMVLO);
 DEFINE_I(_fmvhi, FMVHI);
 DEFINE_R(_imovf, IMOVF, 0, 0);
@@ -46,6 +47,7 @@ DEFINE_R(_halt, HALT, 0, 0);
 DEFINE_I(_debug, DEBUG);
 DEFINE_R(_display, DISPLAY, 0, 0);
 DEFINE_R(_readkey, READKEY, 0, 0);
+DEFINE_R(_program, PROGRAM, 0, 0);
 
 typedef union
 {
@@ -117,6 +119,17 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 		if (n == 4)
 		{
 			code = _addi(rs, rt, imm);
+			return true;
+		}
+	}
+	if (eq(instName, "setl"))
+	{
+		int n = sscanf(buffer, formRL, dummy, &rt, label);
+		if (n == 3)
+		{
+			labelNames[currentLine] = string(label);
+			useLabel = true;
+			code = _setl(rs, rt, 0);
 			return true;
 		}
 	}
@@ -469,6 +482,15 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	      return true;
 	    }
 	}
+	if (eq(instName, "program"))
+	{
+	  int n = sscanf(buffer, formRR, dummy, &rs, &rt);
+	  if (n == 3)
+	    {
+	      code = _program(rs, rt, rd);
+	      return true;
+	    }
+	}
 
 	return false;
 }
@@ -484,7 +506,6 @@ vector<bool> mnemonic(char* instName, char mnemonicBuffer[][MAX_LINE_SIZE], map<
 	uint32_t rs = 0;
 	uint32_t rt = 0;
 	double d = 0;
-	char label[MAX_LINE_SIZE];
 	char dummy[MAX_LINE_SIZE];
 	vector<bool> useLabels;
 
@@ -521,16 +542,6 @@ vector<bool> mnemonic(char* instName, char mnemonicBuffer[][MAX_LINE_SIZE], map<
 		{
 			sprintf(mnemonicBuffer[0], "sub\t$r%d, $r0, $r%d", rt, rs);
 			useLabels.push_back(false);
-		}
-		return	useLabels;
-	}
-	if (eq(instName, "setl"))
-	{
-		if (sscanf(mnemonicBuffer[0], formRL, dummy, &rs, label) == 3)
-		{
-			labelNames[currentLine] = string(label);
-			sprintf(mnemonicBuffer[0], "addi\t$r%d, $r0, 0", rs);
-			useLabels.push_back(true);
 		}
 		return	useLabels;
 	}

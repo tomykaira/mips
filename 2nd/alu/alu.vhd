@@ -13,6 +13,7 @@ use IEEE.NUMERIC_STD.all;
 -- alias XORI 000101
 -- alias SLLI 000110
 -- alias SRAI 000111
+-- alias SETL 010000
 -- alias FMVLO 010010
 -- alias FMVHI 010011
 -- alias IMOVF 010110
@@ -33,6 +34,7 @@ use IEEE.NUMERIC_STD.all;
 -- FMVLO |131072|2 |   3 |      1 |    2 |131075|     1
 -- IMOVF |  5 |  2 |   0 |      1 |    2 |    5 |     1
 -- FMOVI |  5 |  2 |   0 |      1 |    2 |    5 |     0
+-- SETL  |  9 | 18 |   3 |      1 |    2 |    3 |     0
 -- 111111|  0 |  0 |   0 |      0 |    - |    - |     -
 -- /TEST
 
@@ -60,6 +62,7 @@ architecture behave of alu is
   constant SLLI : std_logic_vector(5 downto 0) := "000110";
   constant SRAI : std_logic_vector(5 downto 0) := "000111";
 
+  constant SETL  : std_logic_vector(5 downto 0) := "010000";
   constant FMVLO : std_logic_vector(5 downto 0) := "010010";
   constant FMVHI : std_logic_vector(5 downto 0) := "010011";
   constant IMOVF : std_logic_vector(5 downto 0) := "010110";
@@ -85,7 +88,7 @@ begin  -- behave
         enable <= '1';
         addr <= rd_addr;
         other <= rt;
-      when ADDI | SUBI | XORI | SLLI | SRAI | FMVLO | FMVHI | IMOVF | FMOVI =>
+      when ADDI | SUBI | XORI | SLLI | SRAI | FMVLO | FMVHI | IMOVF | FMOVI | SETL =>
         enable <= '1';
         addr <= rt_addr;
         other <= imm;
@@ -126,6 +129,8 @@ begin  -- behave
         out_buf <= rs(31 downto 16) & imm(15 downto 0);
       when FMVHI =>
         out_buf <= imm(15 downto 0) & x"0000";
+      when SETL =>
+        out_buf <= other;
       when others =>
         out_buf <= (others => 'X');
     end case;

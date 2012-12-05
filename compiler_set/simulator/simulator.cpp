@@ -113,7 +113,8 @@ typedef struct insthist{
 long long unsigned cnt;
 
 // ROM
-vector<Binary> ROM;
+#define ROM_SIZE 20000
+Binary ROM[ROM_SIZE];// sync with instruction memory
 
 #define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
 // RAM
@@ -195,6 +196,7 @@ void updateH(RH& h, uint8_t opcode, int32_t ireg[], uint32_t freg[]) {
 // プログラムのバイナリを読み込んで ROM に格納する
 int load_program(simulation_options *opt)
 {
+	int pc = 0;
 	// バイナリを読み込む
 	FILE* srcFile = fopen(opt->target_binary, "rb");
 	if (srcFile == NULL)
@@ -212,7 +214,8 @@ int load_program(simulation_options *opt)
 		sscanf(buf, "%x", &code);
 		inst = strchr(buf, '\t') + 1; // skip tab
 		Binary b(inst, code, false);
-		ROM.push_back(b);
+		ROM[pc] = b;
+		pc ++;
 	}
 	fclose(srcFile);
 	return 0;
@@ -245,6 +248,8 @@ int simulate(simulation_options * opt)
 	InputFile input_file = InputFile(opt);
 
 	bool debug_flag = false;
+
+	int end_marker = 0;
 
 	// メインループ
 	do
@@ -413,6 +418,10 @@ int simulate(simulation_options * opt)
 				logger.reg("FSQRT", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
 				break;
+			case SETL:
+				logger.reg("SETL", get_rt(inst), IMM);
+				IRT = IMM;
+				break;
 			case IMOVF:
 				logger.reg("IMOVF", get_rt(inst), IRS);
 				memcpy(&FRT, &IRS, 4);
@@ -519,8 +528,25 @@ int simulate(simulation_options * opt)
 				logger.reg("INPUTB", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
+				switch (IRT & 0xff) {
+				case 231:
+					if (end_marker == 0) { end_marker ++; }
+					else end_marker = 0;
+					break;
+				case 181:
+					if (end_marker == 1) { end_marker ++; }
+					else end_marker = 0;
+					break;
+				case 130:
+					if (end_marker == 2) { return 0; }
+					else end_marker = 0;
+					break;
+				default:
+					end_marker = 0;
+					break;
+				}
 				if (opt->enable_stdout &&
-				    IRT != 231 && IRT != 181 && IRT != 130) { // 終了マーカは無視。ログには出す
+				    end_marker == 0) { // 終了マーカは無視。ログには出す
 					printf("%c", (char)IRT);
 				}
 				logger.io((char)IRT);
@@ -546,6 +572,14 @@ int simulate(simulation_options * opt)
 				}
 				counter++;
 				break;
+			case PROGRAM:
+				{
+					char dummy[] = "loaded";
+					Binary b(dummy, IRT, false);
+					assert (IRS < ROM_SIZE);
+					ROM[IRS] = b;
+					break;
+				}
 			case DEBUG:
 				if (opt->lib_test_mode) {
 					break;
