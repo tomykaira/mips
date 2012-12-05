@@ -249,6 +249,8 @@ int simulate(simulation_options * opt)
 
 	bool debug_flag = false;
 
+	int end_marker = 0;
+
 	// メインループ
 	do
 	{
@@ -526,8 +528,25 @@ int simulate(simulation_options * opt)
 				logger.reg("INPUTB", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
+				switch (IRT & 0xff) {
+				case 231:
+					if (end_marker == 0) { end_marker ++; }
+					else end_marker = 0;
+					break;
+				case 181:
+					if (end_marker == 1) { end_marker ++; }
+					else end_marker = 0;
+					break;
+				case 130:
+					if (end_marker == 2) { return 0; }
+					else end_marker = 0;
+					break;
+				default:
+					end_marker = 0;
+					break;
+				}
 				if (opt->enable_stdout &&
-				    IRT != 231 && IRT != 181 && IRT != 130) { // 終了マーカは無視。ログには出す
+				    end_marker == 0) { // 終了マーカは無視。ログには出す
 					printf("%c", (char)IRT);
 				}
 				logger.io((char)IRT);
