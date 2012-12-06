@@ -179,15 +179,20 @@ let convert_instruction = function
   | Flow.Goto(l)       -> [Goto(l)]
   | Flow.ReturnVoid    -> [ReturnVoid]
 
-let temp_name = Id.unique "pointer"
-
 let assign_global { functions = funs; initialize_code = code } t =
   let assign_and_save value location =
-    [Assignment(temp_name, Const(value));
-     StoreHeapImm(temp_name, location)]
+    let var = Id.unique "value" in
+    [Assignment(var, Const(value));
+     StoreHeapImm(var, location)]
   in
   let rec push_zeros top size =
-    concat_map (fun i -> assign_and_save (Definition.IntVal 0) i) (range top (top + size - 1))
+    let pointer = Id.unique "start" in
+    let end_pointer = Id.unique "end" in
+    let initial_value = Id.unique "init" in
+    [Assignment(pointer, Const(IntVal(top)));
+     Assignment(end_pointer, Const(IntVal(top + size)));
+     Assignment(initial_value, Const(IntVal(0)));
+     Call(Id.L "initialize_array", [pointer; end_pointer; initial_value])]
   in
   match t with
     | Flow.Function(signature, insts) ->

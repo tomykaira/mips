@@ -1,3 +1,15 @@
+# put value into all elements from start to end
+# start end value
+initialize_array:
+	add	$r6, $r2, $r3
+	sti	$r5, $r6, 0
+	addi	$r3, $r3, 1
+	blt	$r3, $r4, initialize_array
+	nop
+	nop
+initialize_array_end:
+	return
+
 mul_sub:
 	beq	$r4, $r0, mul_beq_taken.1325
 	nop
