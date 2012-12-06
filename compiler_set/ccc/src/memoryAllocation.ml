@@ -14,6 +14,8 @@ type exp =
   | Or             of Reg.i * Reg.i
   | Add            of Reg.i * Reg.i
   | Sub            of Reg.i * Reg.i
+  | Sll            of Reg.i * int
+  | Sra            of Reg.i * int
   | Negate         of Reg.i
     deriving (Show)
 
@@ -60,6 +62,8 @@ let move_exp = function
   | Heap.Or(reg1, reg2)   -> Or(reg1, reg2)
   | Heap.Add(reg1, reg2)  -> Add(reg1, reg2)
   | Heap.Sub(reg1, reg2)  -> Sub(reg1, reg2)
+  | Heap.Sll(reg1, i)     -> Sll(reg1, i)
+  | Heap.Sra(reg1, i)     -> Sra(reg1, i)
   | Heap.Negate(reg1)     -> Negate(reg1)
   | Heap.LoadHeap(reg1)   -> assert false
   | Heap.LoadHeapImm(int) -> assert false

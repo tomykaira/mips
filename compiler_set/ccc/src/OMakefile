@@ -13,7 +13,6 @@ FILES[] =
 	parser
 	macroExpand
 	alpha
-	typing
 	branchExpansion
 	asm
 	reg

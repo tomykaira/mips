@@ -21,9 +21,11 @@ open Syntax
 %token EQUAL_EQUAL
 %token GT
 %token GT_EQUAL
+%token GT_GT
 %token INCREMENT
 %token LT
 %token LT_EQUAL
+%token LT_LT
 %token L_BRACE
 %token L_BRACKET
 %token L_PAREN
@@ -257,8 +259,10 @@ equality_exp:
 shift_expression:
 | additive_exp
     { $1 }
-/* | shift_expression '<<' additive_exp */
-/* | shift_expression '>>' additive_exp */
+| shift_expression LT_LT INT_VAL
+    { Sll($1, $3) }
+| shift_expression GT_GT INT_VAL
+    { Sra($1, $3) }
 
 additive_exp:
 |  mult_exp

@@ -34,10 +34,13 @@ let convert_exp = function
   | Add(a, b)          -> ADD(a, b)
   | Sub(a, b)          -> SUB(a, b)
   | Negate(a)          -> SUB(Reg.int_zero, a)
+  | Sll(a, i)          -> SLLI(a, i)
+  | Sra(a, i)          -> SRAI(a, i)
   | Const(IntVal(i))   -> Int(i)
   | Const(CharVal(c))  -> Int(Char.code c)
   | Const(FloatVal(f)) -> failwith "Float value is not yet supported"
-  | x -> failwith ("oops.. sorry, not supported: " ^ (Show.show<exp> x))
+  | (And(_) as x)
+  | (Or(_) as x) -> failwith ("oops.. sorry, not supported: " ^ (Show.show<exp> x))
 
 
 let convert_instruction = function

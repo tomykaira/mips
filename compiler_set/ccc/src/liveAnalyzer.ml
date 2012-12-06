@@ -17,9 +17,19 @@ let calculate_next live def use =
   S.union (S.diff live (S.of_list def)) (S.of_list use)
 
 let use_exp = function
-  | Mov(i) | LoadHeap(i) | Negate(i) -> [i]
-  | And(id1, id2) | Or(id1, id2) | Add(id1, id2) | Sub(id1, id2) -> [id1; id2]
-  | LoadHeapImm(_) | Const(_) -> []
+  | Mov(i)
+  | LoadHeap(i)
+  | Sll(i, _)
+  | Sra(i, _)
+  | Negate(i) -> [i]
+
+  | And(id1, id2)
+  | Or(id1, id2)
+  | Add(id1, id2)
+  | Sub(id1, id2) -> [id1; id2]
+
+  | LoadHeapImm(_)
+  | Const(_) -> []
 
 let use_instruction (E(_, inst)) = match inst with
   | Assignment(id, exp) ->

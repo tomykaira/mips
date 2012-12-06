@@ -9,6 +9,8 @@ type exp =
   | Or             of Id.v * Id.v
   | Add            of Id.v * Id.v
   | Sub            of Id.v * Id.v
+  | Sll            of Id.v * int
+  | Sra            of Id.v * int
   | Negate         of Id.v
   | ArrayGet       of Id.v * Id.v
     deriving (Show)
@@ -56,6 +58,8 @@ let expand_exp assign_to exp =
   | FlatExp.Or(a, b)       -> Exp(Or(a, b))
   | FlatExp.Add(a, b)      -> Exp(Add(a, b))
   | FlatExp.Sub(a, b)      -> Exp(Sub(a, b))
+  | FlatExp.Sll(a, i)      -> Exp(Sll(a, i))
+  | FlatExp.Sra(a, i)      -> Exp(Sra(a, i))
   | FlatExp.Negate(a)      -> Exp(Negate(a))
   | FlatExp.ArrayGet(a, b) -> Exp(ArrayGet(a, b))
 

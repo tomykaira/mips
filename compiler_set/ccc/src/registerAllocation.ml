@@ -359,6 +359,8 @@ let replace_registers live color_map insts =
     | Heap.Or(id1, id2)     -> Heap.Or(r id1, r id2)
     | Heap.Add(id1, id2)    -> Heap.Add(r id1, r id2)
     | Heap.Sub(id1, id2)    -> Heap.Sub(r id1, r id2)
+    | Heap.Sll(id1, i)      -> Heap.Sll(r id1, i)
+    | Heap.Sra(id1, i)      -> Heap.Sra(r id1, i)
     | Heap.Negate(id1)      -> Heap.Negate(r id1)
     | Heap.LoadHeap(id1)    -> Heap.LoadHeap(r id1)
     | Heap.LoadHeapImm(int) -> Heap.LoadHeapImm(int)
