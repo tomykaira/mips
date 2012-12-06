@@ -23,28 +23,65 @@ let rec fill' ds ret read write l =
   if List.length ds >= dsn then (ds, List.rev ret@l) else
   match l with
   | [] -> (ds, List.rev ret)
-  | (Label _ | BEq _ | BLT _ | BLE _ | FBEq _ | FBLT _ | FBLE _ | J _ | Jr _ | Call _ | CallR _ | Return | Halt)::_ -> (ds, List.rev ret@l) 
+  | (Label _ | BEq _ | BLT _ | BLE _ | FBEq _ | FBLT _ | FBLE _ | J _ | Jr _ | Call _ | CallR _ | Return | Halt)::_ -> (ds, List.rev ret@l)
   | i::xs ->
       let u = used i in
-      let a = match i with
-	| Inputb _ ->
-	    if List.exists (function Inputb _ -> true | _ -> false) ret then false
-	    else true
-	| Outputb _ ->
-	    if List.exists (function Outputb _ -> true | _ -> false) ret then false
-	    else true
-	| LdI _ | LdR _ | FLdI _ | FLdR _ ->
-	    if List.exists (function StI _ | FStI _ -> true | _ -> false) ret then false
-	    else true
-	| StI _ | FStI _ ->
-	    if List.exists (function LdI _ | StI _ | LdR _ | FLdI _ | FStI _ | FLdR _ -> true | _ -> false) ret then false
-	    else true
-	| Comment _ -> false
-	| _ -> true in
+      let a =
+	match i with
+	  | Label _ -> false
+	  | SetL _
+	  | Nop
+	  | Comment _ -> true
+
+	  | Add _
+	  | Sub _
+	  | Xor _ -> true
+
+	  | AddI _
+	  | SubI _
+	  | XorI _ -> true
+
+	  | FMvlo _
+	  | FMvhi _ -> true
+
+	  | SllI _
+	  | SraI _
+	  | IMovF _
+	  | FMovI _ -> true
+
+	  | FAdd _
+	  | FSub _
+	  | FMul _
+	  | FInv  _
+	  | FSqrt _ -> false
+
+	  | LdI _
+	  | StI _
+	  | LdR _
+	  | FLdI _
+	  | FStI _
+	  | FLdR _ -> false
+
+	  | BEq _
+	  | BLT _
+	  | BLE _
+	  | FBEq _
+	  | FBLT _
+	  | FBLE _ -> false
+
+	  | J _
+	  | Jr _
+	  | Call _
+	  | CallR _
+	  | Return
+	  | Inputb _
+	  | Outputb _
+	  | Halt -> false
+      in
       match target i with
       | Some x ->
 	  if not (S.mem x read) && S.is_empty (S.inter write u) && a then
-	    fill' (i::ds) ret read write xs 
+	    fill' (i::ds) ret read write xs
 	  else
 	    fill' ds (i::ret) (S.union u read) (S.add x write) xs
       | None ->
