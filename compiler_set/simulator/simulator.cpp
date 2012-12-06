@@ -251,6 +251,9 @@ int simulate(simulation_options * opt)
 
 	int end_marker = 0;
 
+	FR = RAM_SIZE-1;
+	HR = 0;
+
 	// メインループ
 	do
 	{
