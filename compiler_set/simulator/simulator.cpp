@@ -132,6 +132,8 @@ float asF(uint32_t r)
 #define DUMP_PC { printf("\tcurrent_pc: %d %s\n", pc, ROM[pc-1].getInst().c_str()); }
 #define DUMP_STACK { for (int i = 1; i < stack_pointer; i ++) {printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());} }
 
+#define DELAY_SLOT 2 //遅延スロットの数
+
 //-----------------------------------------------------------------------------
 //
 // エンディアンの変換
@@ -249,7 +251,13 @@ int simulate(simulation_options * opt)
 
 	bool debug_flag = false;
 
+
+
 	int end_marker = 0;
+
+	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
+	int dshd = 0;                      //キューの先頭
+
 
 	// メインループ
 	do
@@ -270,6 +278,10 @@ int simulate(simulation_options * opt)
 		}
 		assert(FR < RAM_SIZE);
 		assert(HR < RAM_SIZE);
+
+		dshd = (dshd+1)%(DELAY_SLOT+1);
+		pc += dspc[dshd];
+		dspc[dshd] = 0;
 
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)].getCode();
@@ -342,6 +354,8 @@ int simulate(simulation_options * opt)
 
 		cnt++;
 		pc += ROM_ADDRESSING_UNIT;
+
+
 
 		if (debug_flag) {
 			DUMP_PC
@@ -444,22 +458,22 @@ int simulate(simulation_options * opt)
 
 				break;
 			case BEQ:
-				if (IRS == IRT) pc += IMM + (-1);
+			        if (IRS == IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLT:
-				if (IRS <  IRT) pc += IMM + (-1);
+			        if (IRS <  IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLE:
-				if (IRS <= IRT) pc += IMM + (-1);
+			        if (IRS <= IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBEQ:
-				if (asF(FRS) == asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) == asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLT:
-				if (asF(FRS) < asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) <  asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLE:
-				if (asF(FRS) <= asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) <= asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case JR:
 			  	jump_logger.push_back(pc);

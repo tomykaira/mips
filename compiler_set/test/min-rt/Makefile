@@ -24,6 +24,9 @@ include ../Makefile.in
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim
 
+%.ppm: %.bin
+	$(SIMULATOR) -f $(SLD_PATH) $*.bin | tail -c +2 > output.ppm
+
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
 
@@ -31,3 +34,4 @@ include ../Makefile.in
 # ./cserver -b -B 460800 sld/contest.sld contest_new.ppm
 write: min-rt-new.bin
 	$(CORE_RUNNER) $< -R
+
