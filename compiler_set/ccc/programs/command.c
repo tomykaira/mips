@@ -94,8 +94,10 @@ void add_key_input() {
     next_line();
     format_line();
   } else if (input == 0x7f) {//  backspace
-    current_column -= 1;
-    buffer[C(current_line, current_column)] = 0;
+    if (current_column > 2) {
+      current_column -= 1;
+      buffer[C(current_line, current_column)] = 0;
+    }
   } else if (input != 0) {
     put_char(input);
   }
