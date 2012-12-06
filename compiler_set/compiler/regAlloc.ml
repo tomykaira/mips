@@ -62,20 +62,14 @@ let rec alloc cont regenv graph x t =
 let is_call = function
   | CallCls _ | CallDir _ -> true
   | _ -> false
-(* 式が分岐か判定 *)
-let is_br = function
-  | IfEq _ | IfLE _ | IfLT _ | IfFEq _ | IfFLE _ | IfFLT _ -> true
-  | _ -> false 
+
 
 
 (* 命令列から,関数呼び出しから関数呼び出しまでの一直線の区間を切り出す関数
    ついでにpreferの情報も集めておく.
    1番目の返り値は関数呼び出しがあったかどうか,2番目は切り出された命令列, 
    3番目はpreferの情報. *)
-let addm x y p =
-  if is_reg x || x.[0] = '%' || (List.hd y).[0] = '%' then p else
-  try M.add x (y@M.find x p) p
-  with Not_found -> M.add x y p
+
 (* 命令列中に関数呼び出しが存在するか判定 *)
 let rec ecall = function
   | Ans(exp) -> ecall' exp
@@ -87,10 +81,10 @@ and ecall' = function
 let rec simple dest = function
   | Ans(exp) -> simple' pg0 (Ans(Nop)) exp
   | Let(xt, exp, e) ->
-      let (a1, e1', p1) = simple' xt e exp in
-      if a1 then (a1, e1', p1)
-      else let (a2, e2', p2) = simple dest e in
-      (a2, concat e1' xt e2', M.fold addm p2 p1)
+      let (a1, e1') = simple' xt e exp in
+      if a1 then (a1, e1') else
+      let (a2, e2') = simple dest e in
+      (a2, concat e1' xt e2')
 and simple' dest cont = function
   | IfEq(x,y,e1,e2) ->
       simple'_if dest cont (fun e1 e2 -> Ans(IfEq(x,y,e1,e2))) e1 e2
@@ -104,24 +98,10 @@ and simple' dest cont = function
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLE(x,y,e1,e2))) e1 e2
   | IfFLT(x,y,e1,e2) ->
       simple'_if dest cont (fun e1 e2 -> Ans(IfFLT(x,y,e1,e2))) e1 e2
-  | CallCls(_,x,ys,zs) as c ->
-      let rec f x y = match (x,y) with
-	| ([],_) | (_,[]) -> []
-	| (z::xs,w::ys) -> (z,[w])::f xs ys in
-      let prefer = addm x [reg_cl] (List.fold_left (fun x (y, z) -> addm y z x) (List.fold_left (fun x (y, z) -> addm y z x) M.empty (f ys allregs)) (f zs allfregs)) in
-      (true, Ans(c), prefer)
-  | CallDir(_,ys,zs) as c ->
-      let rec f x y = match (x,y) with
-	| ([],_) | (_,[]) -> []
-	| (z::xs,w::ys) -> (z,[w])::f xs ys in
-      let prefer = List.fold_left (fun x (y, z) -> addm y z x) (List.fold_left (fun x (y, z) -> addm y z x) M.empty (f ys allregs)) (f zs allfregs) in
-      (true, Ans(c), prefer)
-  | (AddI(y,0) | FMov(y)) as x ->
-      let p = addm (fst dest) [y] (addm y [fst dest] M.empty) in
-      (false, Ans(x), p)
-  | exp -> (false, Ans(exp), M.empty)
+  | (CallCls _ | CallDir _) as c -> (true, Ans(c))
+  | exp -> (false, Ans(exp))
 and simple'_if dest cont constr e1 e2 =
-  let ((a1, e1', p1), (a2, e2', p2)) =
+  let ((a1, e1'), (a2, e2')) =
     if dest = pg0 then (simple dest e1, simple dest e2) else
     if ecall e1 then
       if ecall e2 then (simple dest e1, simple dest e2)
@@ -129,7 +109,7 @@ and simple'_if dest cont constr e1 e2 =
     else
       if ecall e2 then (simple pg0 (concat e1 dest cont), simple dest e2)
       else (simple dest e1, simple dest e2) in
-  (a1 || a2, constr e1' e2', M.fold addm p1 p2)
+  (a1 || a2, constr e1' e2')
 
 
 (* auxiliary function for g and g'_and_restore *)
@@ -145,9 +125,9 @@ let find x t regenv =
 (* 命令列の関数呼び出しまでの区間にレジスタ割り当て *)
 let rec gc dest cont regenv ifprefer e =
   let cont' = concat e dest cont in
-  let (_, e', prefer') = simple pg0 cont' in
-  let prefer = if ecall e then prefer' else M.fold addm prefer' ifprefer in
-  let (gr1, gf1) = make e' in
+  let (_, e') = simple pg0 cont' in
+  let (gr1, gf1, prefer') = make e' in
+  let prefer = if ecall e then prefer' else punion prefer' ifprefer in
   let (gr2, sr) = spill regenv prefer gr1 (List.length allregs) in
   let (gf2, sf) = spill regenv prefer gf1 (List.length allfregs) in
   let gr3 = color allregs regenv prefer gr2 sr in
@@ -253,10 +233,10 @@ let rec gc dest cont regenv ifprefer e =
       let ((e1', regenv1, graph1), (e2', regenv2, graph2)) =
 	if ecall e2 then
 	  let (e1', regenv1, graph1) = g dest cont regenv graph ifprefer e1 in
-	  ((e1', regenv1, graph1), g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv1 ifprefer) e2)
+	  ((e1', regenv1, graph1), g dest cont regenv graph (M.fold (fun x y p -> addp x [y] p) regenv1 ifprefer) e2)
 	else if ecall e1 then
 	  let (e2', regenv2, graph2) = g dest cont regenv graph ifprefer e2 in
-	  (g dest cont regenv graph (M.fold (fun x y p -> addm x [y] p) regenv2 ifprefer) e1, (e2', regenv2, graph2))
+	  (g dest cont regenv graph (M.fold (fun x y p -> addp x [y] p) regenv2 ifprefer) e1, (e2', regenv2, graph2))
 	else (g dest cont regenv graph ifprefer e1, g dest cont regenv graph ifprefer e2) in
       (* aがtrueなら1が,falseなら2が基準 *)
       let a = M.cardinal regenv1 < M.cardinal regenv2 in

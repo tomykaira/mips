@@ -21,7 +21,7 @@ let rec find env m r = function
       (match r with
       | [] -> find (addre s t env) m r (Label t::xs)
       | x::y -> find (addre s t env) m y (x::Label t::xs))
-  | (J x | BEq(_,_,x) | BLT(_,_,x) | BLE(_,_,x) | FBEq(_,_,x) | FBLT(_,_,x) | FBLE(_,_,x))::(Label y)::xs when x = y ->
+  | (J x | BEq(_,_,x,_) | BLT(_,_,x,_) | BLE(_,_,x,_) | FBEq(_,_,x,_) | FBLT(_,_,x,_) | FBLE(_,_,x,_))::(Label y)::xs when x = y ->
       (match r with
       | [] -> find env m r (Label y::xs)
       | p::q -> find env m q (p::Label y::xs))
@@ -51,18 +51,18 @@ and rename env r = function
   | [] -> List.rev r
   | SetL(x, l)::xs when M.mem l env ->
       rename env r (SetL(x, M.find l env)::xs)
-  | BEq(x, y, l)::xs when M.mem l env ->
-      rename env r (BEq(x, y, M.find l env)::xs)
-  | BLT(x, y, l)::xs when M.mem l env ->
-      rename env r (BLT(x, y, M.find l env)::xs)
-  | BLE(x, y, l)::xs when M.mem l env ->
-      rename env r (BLE(x, y, M.find l env)::xs)
-  | FBEq(x, y, l)::xs when M.mem l env ->
-      rename env r (FBEq(x, y, M.find l env)::xs)
-  | FBLT(x, y, l)::xs when M.mem l env ->
-      rename env r (FBLT(x, y, M.find l env)::xs)
-  | FBLE(x, y, l)::xs when M.mem l env ->
-      rename env r (FBLE(x, y, M.find l env)::xs)
+  | BEq(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (BEq(x, y, M.find l env, ds)::xs)
+  | BLT(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (BLT(x, y, M.find l env, ds)::xs)
+  | BLE(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (BLE(x, y, M.find l env, ds)::xs)
+  | FBEq(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (FBEq(x, y, M.find l env, ds)::xs)
+  | FBLT(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (FBLT(x, y, M.find l env, ds)::xs)
+  | FBLE(x, y, l, ds)::xs when M.mem l env ->
+      rename env r (FBLE(x, y, M.find l env, ds)::xs)
   | J l::xs when M.mem l env && M.find l env = !ret ->
       rename env (Return::r) xs 
   | J l::xs when M.mem l env ->
@@ -94,7 +94,7 @@ let rec h'' r s = function
   | x::xs -> h'' (x::r) s xs
 let rec h' s = function
   | [] -> s
-  | (SetL(_,l) | BEq(_,_,l) | BLE(_,_,l) | BLT(_,_,l) | FBEq(_,_,l) | FBLE(_,_,l)  | FBLT(_,_,l) | J l | Call l)::xs  -> h' (S.add l s) xs
+  | (SetL(_,l) | BEq(_,_,l,_) | BLE(_,_,l,_) | BLT(_,_,l,_) | FBEq(_,_,l,_) | FBLE(_,_,l,_)  | FBLT(_,_,l,_) | J l | Call l)::xs  -> h' (S.add l s) xs
   | _::xs -> h' s xs
 let h all = h'' [] (h' S.empty all) all
     
