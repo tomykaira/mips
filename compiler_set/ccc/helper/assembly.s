@@ -1460,3 +1460,6 @@ add_pc:
 load_end:
 	call	program_end
 	return
+
+halt:
+	halt

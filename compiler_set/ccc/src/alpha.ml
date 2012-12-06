@@ -47,7 +47,7 @@ let rec convert_exp (env : Id.v M.t) e =
   in
   match e with
     | Var(v) when M.mem v env -> Var(M.find v env)
-    | Var(v)              -> failwith "not found"
+    | Var(v)              -> failwith ("not found " ^ v)
     | ArrayRef(a, e) when M.mem a env -> ArrayRef(M.find a env, go e)
     | ArrayRef(a, _)      -> failwith (Printf.sprintf "Unknown array %s is referred." (Show.show<Id.t> a))
     | Const(v)            -> Const(v)

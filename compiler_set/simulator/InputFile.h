@@ -10,7 +10,7 @@ class InputFile {
 	FILE * fp;
 
  public:
-	InputFile(simulation_options * opt);
+	InputFile(const char * filename);
 	uint32_t read();
 };
 

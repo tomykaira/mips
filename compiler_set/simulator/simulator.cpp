@@ -228,7 +228,6 @@ int load_program(simulation_options *opt)
 //-----------------------------------------------------------------------------
 int simulate(simulation_options * opt)
 {
-	int counter = 0;
 	uint32_t inst;
 	int print_count=-1;
 	uint8_t opcode, funct;
@@ -245,7 +244,8 @@ int simulate(simulation_options * opt)
 		return 1;
 
 	Logger logger = Logger(opt);
-	InputFile input_file = InputFile(opt);
+	InputFile input_file = InputFile(opt->input_file);
+	InputFile key_file = InputFile(opt->key_file);
 
 	bool debug_flag = false;
 
@@ -538,7 +538,7 @@ int simulate(simulation_options * opt)
 					else end_marker = 0;
 					break;
 				case 130:
-					if (end_marker == 2) { return 0; }
+					if (end_marker == 2 && ! opt->disable_end_marker) { return 0; }
 					else end_marker = 0;
 					break;
 				default:
@@ -556,21 +556,11 @@ int simulate(simulation_options * opt)
 				break;
 			case READKEY:
 				if (! opt->lib_test_mode) {
-					fprintf(stderr, "Send 0x1C(A) for READKEY\n");
+					display.preview();
 					usleep(10*1000);
 				}
-				if (counter < 5) {
-					IRT = 0x340;
-				} else if (counter < 8) {
-					IRT = 0x30a;
-				} else if (counter < 14) {
-					IRT = 0x340;
-				} else if (counter < 18) {
-					IRT = 0x37f;
-				} else {
-					return 0;
-				}
-				counter++;
+				IRT = key_file.read();
+				logger.reg("READKEY", get_rt(inst), IRT);
 				break;
 			case PROGRAM:
 				{
@@ -615,7 +605,6 @@ int simulate(simulation_options * opt)
 					}
 					break;
 				case 8:
-					display.preview();
 					break;
 				default:
 					break;
@@ -650,8 +639,10 @@ int main(int argc, char** argv)
 	opt.enable_record_mem         = false;
 	opt.enable_record_register    = false;
 	opt.enable_record_io          = false;
+	opt.disable_end_marker        = false;
 	opt.lib_test_mode             = false;
 	opt.input_file                = NULL;
+	opt.key_file                  = NULL;
 	opt.target_binary             = NULL;
 
 	strcpy(dirpath, argv[0]);
@@ -666,11 +657,13 @@ int main(int argc, char** argv)
 			{"io",         no_argument,       0,  'o' },
 			{"no-stdout",  no_argument,       0,  'S' },
 			{"input",      required_argument, 0,  'f' },
+			{"keyread",    required_argument, 0,  'k' },
 			{"libtest",    no_argument,       0,  't' },
+			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:t", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:x", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -699,10 +692,20 @@ int main(int argc, char** argv)
 			opt.lib_test_mode = true;
 			break;
 
+		case 'x':
+			opt.disable_end_marker = true;
+			break;
+
 		case 'f':
 			length = strlen(optarg);
 			opt.input_file = (char*)calloc(length + 1, sizeof(char));
 			strcpy(opt.input_file, optarg);
+			break;
+
+		case 'k':
+			length = strlen(optarg);
+			opt.key_file = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.key_file, optarg);
 			break;
 
 		default:
