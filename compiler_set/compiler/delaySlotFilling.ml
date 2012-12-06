@@ -14,18 +14,6 @@ let target = function
   | SetL(x,_) | Add(x,_,_) | Sub(x,_,_) | Xor(x,_,_) | AddI(x,_,_) | SubI(x,_,_) | XorI(x,_,_) | FMvlo(x,_) | FMvhi(x,_) | SllI(x,_,_) | SraI(x,_,_) | IMovF(x,_) | FMovI(x,_) | FAdd(x,_,_) | FSub(x,_,_) | FMul(x,_,_) | FInv(x,_) | FSqrt(x,_) | LdI(x,_,_) | LdR(x,_,_) | FLdI(x,_,_) | FLdR(x,_,_) | Inputb(x) -> Some x
   | _ -> None
 
-(* 命令列の中にiと同じアドレスにアクセスする可能性のある命令があるか調べる *)
-let rec sa i = function
-  | (LdI _ | LdR _  | StI _ | FLdI _ | FStI _ | FLdR _ as x)::xs ->
-      same x y xs i || sa i xs
-  | x::xs -> sa i xs
-  | [] -> false
-(* 命令列の中にiと同じアドレスに書き込む可能性のある命令があるか調べる *)
-let rec sw i = function
-  | (StI _  | FStI _  _ as x)::xs ->
-      same x y xs i || sw i xs
-  | x::xs -> sw i xs
-  | [] -> false
 
 
 (* 遅延スロットに入れても大丈夫な命令を集める。
