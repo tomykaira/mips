@@ -5,9 +5,7 @@ open Definition
 open Asm
 
 let header =
-  [Exec(NOP);
-   AssignInt(Reg.frame, Int(0x1fffff));
-   AssignInt(Reg.heap_pointer, Int(0))]
+  [Exec(NOP)]
 
 let before_asm =
   [Exec(CALL (Id.L "main"));
@@ -20,8 +18,16 @@ let before_asm =
    Exec(RETURN);
    Label(Id.L "asm_here")]
 
-let end_label =
-  [Label(Id.L "program_end")]
+let end_label () =
+  [Label(Id.L "invoke_subprocess");
+   Exec(STI(Reg.heap_pointer, Reg.frame, 0));
+   AssignInt(Reg.frame, SUBI(Reg.frame, 1));
+   AssignInt(Reg.heap_pointer, Int(HeapAllocation.(heap.size)));
+   Exec(CALL(Id.L "program_end"));
+   AssignInt(Reg.frame, ADDI(Reg.frame, 1));
+   AssignInt(Reg.heap_pointer, LDI(Reg.frame, 0));
+   Exec(RETURN);
+   Label(Id.L "program_end")]
 
 let convert_exp = function
   | Mov(r)             -> ADD(Reg.int_zero, r)
@@ -76,4 +82,4 @@ let convert_function (name, code) =
   Label(name) :: concat_map convert_instruction code
 
 let convert { functions = funs; initialize_code = code } =
-  header @ concat_map convert_instruction code @ before_asm @ concat_map convert_function funs @ end_label
+  header @ concat_map convert_instruction code @ before_asm @ concat_map convert_function funs @ end_label ()

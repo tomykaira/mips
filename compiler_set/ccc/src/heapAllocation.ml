@@ -206,5 +206,6 @@ let assign_global { functions = funs; initialize_code = code } t =
 
 let convert ts =
   let result = List.fold_left assign_global { functions = []; initialize_code = []} ts in
+  Printf.eprintf "%d" (heap.size);
   print_endline (Show.show<t> result);
   result
