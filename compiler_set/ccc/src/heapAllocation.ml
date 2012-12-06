@@ -24,8 +24,8 @@ type instruction =
   | Call         of Id.l * Id.t list      (* just calling *)
   | Definition   of variable
   | BranchZero   of Id.t * Id.l
-  | BranchEqual  of Id.t * Id.t * Id.l
-  | BranchLT     of Id.t * Id.t * Id.l
+  | BranchEq     of Id.t * Id.t * Id.l
+  | BranchLt     of Id.t * Id.t * Id.l
   | Goto         of Id.l
   | Return       of Id.t
   | ReturnVoid
@@ -33,7 +33,7 @@ type instruction =
   | StoreHeapImm of Id.t * int
     deriving (Show)
 
-type t = { functions : (Definition.function_signature * instruction list) list;
+type t = { functions : (Id.v Definition.function_signature * instruction list) list;
            initialize_code : instruction list }
       deriving (Show)
 
@@ -156,14 +156,14 @@ let convert_instruction = function
     arg_assignments @ [Call(label, names)]
   | Flow.BranchZero(var, l) ->
     insert_load var (fun name -> [BranchZero(name, l)])
-  | Flow.BranchEqual(var1, var2, l) ->
+  | Flow.BranchEq(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchEqual(name1, name2, l)]))
-  | Flow.BranchLT(var1, var2, l) ->
+        [BranchEq(name1, name2, l)]))
+  | Flow.BranchLt(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchLT(name1, name2, l)]))
+        [BranchLt(name1, name2, l)]))
   | Flow.Return(var) ->
     insert_load var (fun name -> [Return(name)])
   | Flow.ArraySet(array, index, value) ->
@@ -206,5 +206,6 @@ let assign_global { functions = funs; initialize_code = code } t =
 
 let convert ts =
   let result = List.fold_left assign_global { functions = []; initialize_code = []} ts in
+  Printf.eprintf "%d" (heap.size);
   print_endline (Show.show<t> result);
   result

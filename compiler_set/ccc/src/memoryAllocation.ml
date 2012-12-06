@@ -20,8 +20,8 @@ type exp =
 type instruction =
   | Assignment  of Reg.i * exp
   | BranchZero  of Reg.i * Id.l
-  | BranchEqual of Reg.i * Reg.i * Id.l
-  | BranchLT    of Reg.i * Reg.i * Id.l
+  | BranchEq    of Reg.i * Reg.i * Id.l
+  | BranchLt    of Reg.i * Reg.i * Id.l
   | Call        of Id.l * int
   | Store       of Reg.i * memory_point
   | Load        of Reg.i * memory_point
@@ -94,8 +94,8 @@ let rec assign_local inst =
 
     | RegAlloc.Assignment(r, exp)     -> [Assignment(r, move_exp exp)]
     | RegAlloc.BranchZero(r, l)       -> [BranchZero(r, l)]
-    | RegAlloc.BranchEqual(r1, r2, l) -> [BranchEqual(r1, r2, l)]
-    | RegAlloc.BranchLT(r1, r2, l)    -> [BranchLT(r1, r2, l)]
+    | RegAlloc.BranchEq(r1, r2, l)    -> [BranchEq(r1, r2, l)]
+    | RegAlloc.BranchLt(r1, r2, l)    -> [BranchLt(r1, r2, l)]
     | RegAlloc.Label(l)               -> [Label(l)]
     | RegAlloc.Return                 -> [Return]
     | RegAlloc.Goto(l)                -> [Goto(l)]

@@ -27,6 +27,8 @@ let lexbuf outchan l =
       $ (notify "memory allocation")
       $ RegisterAllocation.convert
       $ (notify "register allocation")
+      $ Schedule.convert
+      $ (notify "scheduling")
       $ HeapAllocation.convert
       $ (notify "heap allocation")
       $ Flow.convert
@@ -35,6 +37,8 @@ let lexbuf outchan l =
       $ (notify "simple control")
       $ FlatExp.convert
       $ (notify "flat exp")
+      $ BranchExpansion.convert
+      $ (notify "branch expansion")
       $ Alpha.convert
       $ (notify "alpha")
       $ MacroExpand.convert

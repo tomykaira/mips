@@ -2,6 +2,7 @@
 //       入出力形式をえらべるようにする(ASCII, Hex...)
 //       window を設定可能にする
 #include "readwrite.h"
+#include <stdint.h>
 
 
 #define max(x, y) ((x < y) ? y : x)
@@ -142,7 +143,7 @@ int watch(int fdw, int fdr, Option *opts) {
 
 int send_program(const char * program_file, int fdw) {
   FILE *program_fp;
-  unsigned int inst, counter;
+  unsigned int counter;
 
   if (!program_file) return 0;
 
@@ -155,12 +156,20 @@ int send_program(const char * program_file, int fdw) {
 
   cerr << "Start to send file " << program_file << endl;
 
+  char *buf;
+  size_t size;
+
+  buf = (char *)calloc(1024, sizeof(char));
   counter = 0;
-  while(fscanf(program_fp, "%x", &inst) != EOF) {
+
+  while (getline(&buf, &size, program_fp) > 0) {
+    uint32_t inst;
+    sscanf(buf, "%x", &inst);
     if (inst == 0xffffffff) {
       cerr << "Instruction 0xffffffff is not allowed, because it is instruction terminator.";
       return 1;
     }
+
     // program data is big-endian, only here.
     inst = toggle_endian(inst);
     if (write(fdw, &inst, 4) != 4) {
@@ -169,6 +178,7 @@ int send_program(const char * program_file, int fdw) {
     }
     counter ++;
   }
+  fclose(program_fp);
 
   int end_marker = 0xffffffff;
   if (write(fdw, &end_marker, 4) != 4) {

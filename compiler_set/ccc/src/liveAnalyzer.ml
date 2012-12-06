@@ -14,7 +14,7 @@ module LiveMap =
 module S = ExtendedSet.Make(Id.TStruct)
 
 let calculate_next live def use =
-  S.union (S.diff live (S.of_option def)) (S.of_list use)
+  S.union (S.diff live (S.of_list def)) (S.of_list use)
 
 let use_exp = function
   | Mov(i) | LoadHeap(i) | Negate(i) -> [i]
@@ -27,22 +27,22 @@ let use_instruction (E(_, inst)) = match inst with
   | Call(l, args) -> args
   | CallAndSet(_, _, args) -> args
   | BranchZero(id, _) -> [id]
-  | BranchEqual(id1, id2, _) | BranchLT(id1, id2, _) -> [id1; id2]
+  | BranchEq(id1, id2, _) | BranchLt(id1, id2, _) -> [id1; id2]
   | Return(id) -> [id]
   | StoreHeap(id1, id2) -> [id1; id2]
   | StoreHeapImm(id1, _) -> [id1]
   | _ -> []
 
 let def_instruction (E(_, inst)) = match inst with
-  | Assignment(id, _) -> Some(id)
-  | Definition(Variable(id, _, _)) -> Some(id)
-  | CallAndSet(id, _, _) -> Some(id)
-  | _ -> None
+  | Assignment(id, _) -> [id]
+  | Definition(Variable(id, _, _)) -> [id]
+  | CallAndSet(id, _, _) -> [id]
+  | _ -> []
 
 type sucessor = Next | Jump of Id.l
 
 let successors (E(_, inst)) = match inst with
-  | BranchZero (_, l) | BranchEqual (_, _, l) | BranchLT (_, _, l) ->
+  | BranchZero (_, l) | BranchEq (_, _, l) | BranchLt (_, _, l) ->
     [Next; Jump l]
   | Goto(l) -> [Jump l]
   | Return _ | ReturnVoid -> []
@@ -94,4 +94,4 @@ let live_t instructions =
   loop LiveMap.empty
 
 let extract_nodes insts =
-  S.of_list (concat_map use_instruction insts @ concat_option (List.map def_instruction insts))
+  S.of_list (concat_map use_instruction insts @ concat_map def_instruction insts)
