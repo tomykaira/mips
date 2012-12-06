@@ -43,7 +43,7 @@ lambdaLift.ml closure.ml\
 flattenTuple.ml unfoldTuple.ml embedTuple.ml elimTuple.ml\
 asm.ml collectDanger.ml virtual.mli virtual.ml together.ml\
 simm.mli simm.ml graphColor.ml out.ml emit.ml\
-regAlloc.mli regAlloc.ml jumpElim.ml\
+regAlloc.mli regAlloc.ml jumpElim.ml delaySlotFilling.ml\
 main.mli main.ml
 
 include OCamlMakefile

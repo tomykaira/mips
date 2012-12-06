@@ -21,6 +21,7 @@ include ../Makefile.in
 	$(MIN_CAML) $(OPTION) $(call tmp,$*)
 	$(LINKER) $(LIB_ASM) $(call tmp,$*).s ${abspath $*.s}
 
+
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim
 
