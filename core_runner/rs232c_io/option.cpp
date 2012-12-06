@@ -1,6 +1,6 @@
 #include "readwrite.h"
 
-#define OPTSTRING "B:ah:cbd:Ri:"
+#define OPTSTRING "B:ah:cbd:Ri:x"
 
 int Option::read_option(int argc, char* argv[]) {
   while (1) {
@@ -57,6 +57,9 @@ int Option::read_option(int argc, char* argv[]) {
         perror("fopen input file");
         return -1;
       }
+      break;
+    case 'x':
+      no_end_code = true;
       break;
     default:
       fprintf(stderr, "Unknown option\n");

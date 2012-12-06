@@ -27,6 +27,7 @@ public:
   bool callback;
   bool blocking;
   bool no_read;
+  bool no_end_code;
   char * program_file;
   FILE * input_fp;
   char io_format[10];
@@ -37,6 +38,7 @@ public:
     callback = false;
     blocking = false;
     no_read = false;
+    no_end_code = false;
     program_file = NULL;
     input_fp = NULL;
   }

@@ -5,6 +5,7 @@ FILES[] =
 	test_alpha
 	test_reg
 	test_registerAllocation
+	test_schedule
 
 OCAMLPACKS += oUnit
 

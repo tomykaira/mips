@@ -4,63 +4,59 @@ open Definition
 type storage_class = Auto | Register | Static | Extern | Typedef
     deriving (Show)
 
-type assignee =
-  | VarSet of Id.v
-  | ArraySet of Id.v * exp
-and exp =
-  | Var            of Id.v
+type 'a assignee =
+  | VarSet of 'a
+  | ArraySet of 'a * 'a exp
+and 'a exp =
+  | Var            of 'a
   | Const          of const_value
-  | ArrayRef       of Id.v * exp
-  | Assign         of assignee * exp  (* TODO: refine first arg *)
-  | And            of exp * exp
-  | Or             of exp * exp
-  | Equal          of exp * exp
-  | LessThan       of exp * exp
-  | GreaterThan    of exp * exp
-  | Add            of exp * exp
-  | Sub            of exp * exp
-  | Mul            of exp * exp
-  | Div            of exp * exp
-  | Mod            of exp * exp
-  | Not            of exp
-  (* | Address        of exp *)
-  (* | Reference      of exp *)
-  | Negate         of exp
-  (* | ArrayReference of exp * exp *)
-  | CallFunction   of Id.l * exp list
-    deriving (Show)
+  | ArrayRef       of 'a * 'a exp
+  | Assign         of 'a assignee * 'a exp  (* TODO: refine first arg *)
+  | And            of 'a exp * 'a exp
+  | Or             of 'a exp * 'a exp
+  | Equal          of 'a exp * 'a exp
+  | LessThan       of 'a exp * 'a exp
+  | Add            of 'a exp * 'a exp
+  | Sub            of 'a exp * 'a exp
+  | Mul            of 'a exp * 'a exp
+  | Div            of 'a exp * 'a exp
+  | Mod            of 'a exp * 'a exp
+  | Not            of 'a exp
+  | Negate         of 'a exp
+  | CallFunction   of Id.l * 'a exp list
+      deriving (Show)
 
 (* Convert assignee to exp for parser *)
 let ref_of = function
   | VarSet(v) -> Var(v)
   | ArraySet(a, e) -> ArrayRef(a, e)
 
-type statement =
-  | Label  of Id.l * statement
-  | Exp    of exp
-  | Block  of variable list * statement list
-  | If     of exp * statement * statement option
-  | Switch of exp * switch_case list
-  | While  of exp * statement
+type 'a statement =
+  | Label  of Id.l
+  | Exp    of 'a exp
+  | Block  of 'a variable list * 'a statement list
+  | If     of 'a exp * 'a statement * 'a statement option
+  | Switch of 'a exp * 'a switch_case list
+  | While  of 'a exp * 'a statement
   | Goto   of Id.l
   | Continue
   | Break
-  | Return of exp option
-and switch_case =
-  | SwitchCase  of const_value * statement
-  | DefaultCase of statement
+  | Return of 'a exp option
+and 'a switch_case =
+  | SwitchCase  of const_value * 'a statement
+  | DefaultCase of 'a statement
     deriving (Show)
 
-type macro = ConstMacro of Id.t * const_value | ExpMacro of Id.t * Id.t list * exp
+type macro = ConstMacro of Id.t * const_value | ExpMacro of Id.t * Id.t list * Id.t exp
     deriving (Show)
 
 let signature id return_type params =
   { name = Id.L id; return_type = return_type; parameters = params }
 
-type t =
-  | Function of function_signature * statement
-  | FunctionDeclaration of function_signature
-  | GlobalVariable of variable
-  | Array of array_signature
+type 'a t =
+  | Function of 'a function_signature * 'a statement
+  | FunctionDeclaration of 'a function_signature
+  | GlobalVariable of 'a variable
+  | Array of 'a array_signature
   | DefineMacro of macro
     deriving (Show)

@@ -5,8 +5,8 @@ open Syntax
 exception Unify of Type.t * Type.t
 exception UndefinedVariable of Id.v
 exception UndefinedFunction of Id.l
-exception NotFunction of Syntax.exp * Type.t
-exception NotPrimitive of Syntax.exp
+exception NotFunction of Id.v Syntax.exp * Type.t
+exception NotPrimitive of Id.v Syntax.exp
 exception NotArray of Id.v
 
 module FunM = ExtendedMap.Make (Id.LStruct)
@@ -75,7 +75,7 @@ let rec get_exp_type env exp =
     unify (assignee_type assignee) t2;
     t2
   | And(e1, e2) | Or(e1, e2)
-  | Equal(e1, e2) | LessThan(e1, e2) | GreaterThan(e1, e2) ->
+  | Equal(e1, e2) | LessThan(e1, e2) ->
     assert_primitive e1; assert_primitive e2; Type.Int
   | Add(e1, e2) | Sub(e1, e2) | Mul(e1, e2) | Div(e1, e2) | Mod(e1, e2) ->
     let t1 = go e1 in
@@ -103,7 +103,6 @@ let rec check_statement env return_type stat =
   let go = check_statement env return_type in
   let go_exp = check_exp env in
   match stat with
-    | Label(_, stat) -> go stat
     | Exp(exp) -> go_exp exp
     | Block(variables, stats) ->
       let { variables = vs; functions = fs } = env in
@@ -183,8 +182,8 @@ let check ts =
     | UndefinedFunction(l) ->
       failwith (Printf.sprintf "Undefined function %s" (Show.show<Id.l> l))
     | NotFunction(exp, _) ->
-      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Syntax.exp> exp))
+      failwith (Printf.sprintf "Callee is not a function: %s" (Show.show<Id.v Syntax.exp> exp))
     | NotPrimitive(exp) ->
-      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Syntax.exp> exp))
+      failwith (Printf.sprintf "Primitive type expected, but not primitive: %s" (Show.show<Id.v Syntax.exp> exp))
     | NotArray(v) ->
       failwith (Printf.sprintf "Array expected, but not an array: %s" (Show.show<Id.v> v))
