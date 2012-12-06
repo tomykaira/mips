@@ -41,6 +41,8 @@ let offet = Global.offet := false; Global.offet
 let offlt = ref false
 let offsi = ref false
 let offto = ref false
+let offje = ref false
+let offds = ref false
 
 let off flag f x = if !flag then x else f x
 
@@ -72,7 +74,8 @@ let lexbuf outchan l =
   Id.counter := 0;
   Typing.extenv := M.empty;
   Out.f outchan
-    (JumpElim.f
+    (off offds DelaySlotFilling.f
+    (off offje JumpElim.f
      (Emit.f
       (debas dbra (RegAlloc.f
        (debas dbto (off offto Together.f
@@ -90,7 +93,7 @@ let lexbuf outchan l =
 	            (debkn dbal (Alpha.f
 	             (debkn dbkn (KNormal.f
 	              (debsy dbty (Typing.f
-	               (debsy dbpa (parse_buf_exn l)))))))))))))))))))))))))))))))))))
+	               (debsy dbpa (parse_buf_exn l))))))))))))))))))))))))))))))))))))
 
 
 
@@ -144,7 +147,9 @@ let () =
    ("-offEmbedTuple", Arg.Set offet, "off: NO Embed Tuple");
    ("-offElimTuple", Arg.Set offlt, "off: NO Elim Tuple");
    ("-offSimm", Arg.Set offsi, "off: NO Simm");
-   ("-offTogether", Arg.Set offto, "off: NO Together");]
+   ("-offTogether", Arg.Set offto, "off: NO Together");
+   ("-offJumpElim", Arg.Set offje, "off: NO jump elim");
+   ("-offDelaySlotFilling", Arg.Set offds, "off: NO delay slot filling");]
     (fun s -> files := !files @ [s])
     ("Mitou Min-Caml Compiler (C) Eijiro Sumii\n" ^
         Printf.sprintf "usage: %s [-inline m] [-iter n] ...filenames without \".ml\"..." Sys.argv.(0));
