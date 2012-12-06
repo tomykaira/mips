@@ -46,9 +46,30 @@ let addone l m =
   List.fold_left (fun x y -> addone' y x) m l
 (* 2つのグラフを合わせる関数 *)
 let union g1 g2 = M.fold addn' g1 g2 
+(* preferのグラフをいじる関数 *)
+let addp x y p =
+  if is_reg x || x.[0] = '%' || y = [] || (List.hd y).[0] = '%' then p else
+  try let (a,b) = M.find x p in M.add x (y@a,b) p
+  with Not_found -> M.add x (y,[]) p
+let addh x y p =
+  if is_reg x || x.[0] = '%' || y = [] || (List.hd y).[0] = '%' then p else
+  try let (a,b) = M.find x p in M.add x (a,y@b) p
+  with Not_found -> M.add x ([],y) p
+let punion p1 p2 =
+  M.fold
+    (fun x (p,q) p2 ->
+      try let (p',q') = M.find x p2 in M.add x (p@p',q@q') p2
+      with Not_found -> M.add x (p,q) p2)
+    p1
+    p2
+(* 式が分岐か判定 *)
+let is_br = function
+  | IfEq _ | IfLE _ | IfLT _ | IfFEq _ | IfFLE _ | IfFLT _ -> true
+  | _ -> false 
 (* 命令列(関数呼び出しなし)に対し整数,浮動小数のグラフを構成.グラフは,
-   変数名と(隣接頂点,同じ命令で使われる変数の集合,参照される回数)の連想集合 *)
-let rec make' rr rf dest cont = function
+   変数名と(隣接頂点,同じ命令で使われる変数の集合,参照される回数)の連想集合
+   ついでにpreferの情報も集める *)
+let rec make' vars rr rf dest cont = function
   | Ans(exp) -> make'' rr rf dest cont exp
   | Let((x,t) as xt, exp, e) ->
       let cont' = concat e dest cont in
@@ -64,30 +85,50 @@ let rec make' rr rf dest cont = function
 	    let fvs = remove_and_uniq (S.singleton x) (fv_float cont') in
 	    addn x fvs rf 
 	| _ -> rf in
-      let (rr'', rf'') = make'' rr' rf' xt cont' exp in
-      make' rr'' rf'' dest cont e
+      let (rr'', rf'', p1) = make'' rr' rf' xt cont' exp in
+      let vars' =
+	if is_br exp then S.empty else
+	match snd xt with
+	| Type.Unit -> vars
+	| Type.Float -> List.fold_left (fun vars x -> S.add x vars) vars (fv_float_exp exp)
+	| _ -> List.fold_left (fun vars x -> S.add x vars) vars (fv_int_exp exp) in
+      let (rr3, rf3, p2) = make' vars' rr'' rf'' dest cont e in
+      (rr3, rf3, S.fold (fun v p -> addh v [x] p) vars' (addh x (S.elements vars') (punion p2 p1)))
 and make'' rr rf dest cont = function
   | IfEq(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfLT(x,y,e1,e2) ->
-      let (rr1, rf1) = make' rr rf dest cont e1 in
-      let (rr2, rf2) = make' rr rf dest cont e2 in
+      let (rr1, rf1, p1) = make' S.empty rr rf dest cont e1 in
+      let (rr2, rf2, p2) = make' S.empty rr rf dest cont e2 in
       let f t = addvar [x;y] (addone [x;y] t) in
-      (f (union rr1 rr2), union rf1 rf2)
+      (f (union rr1 rr2), union rf1 rf2, punion p1 p2)
   | IfFEq(x,y,e1,e2) | IfFLE(x,y,e1,e2) | IfFLT(x,y,e1,e2) -> 
-      let (rr1, rf1) = make' rr rf dest cont e1 in
-      let (rr2, rf2) = make' rr rf dest cont e2 in
+      let (rr1, rf1, p1) = make' S.empty rr rf dest cont e1 in
+      let (rr2, rf2, p2) = make' S.empty rr rf dest cont e2 in
       let f t = addvar [x;y] (addone [x;y] t) in
-      (union rr1 rr2, f (union rf1 rf2))
+      (union rr1 rr2, f (union rf1 rf2), punion p1 p2)
   | exp ->
       let fvi = fv_int_exp exp in
       let fvf = fv_float_exp exp in
       let fi t = addvar fvi (addone fvi t) in
       let ff t = addvar fvf (addone fvf t) in
-      (fi rr, ff rf)
+      let prefer = match exp with
+      | CallCls(_,x,ys,zs) ->
+	  let rec f x y = match (x,y) with
+	  | ([],_) | (_,[]) -> []
+	  | (z::xs,w::ys) -> (z,[w])::f xs ys in
+      addp x [reg_cl] (List.fold_left (fun x (y, z) -> addp y z x) (List.fold_left (fun x (y, z) -> addp y z x) M.empty (f ys allregs)) (f zs allfregs))
+      | CallDir(_,ys,zs) ->
+	  let rec f x y = match (x,y) with
+	  | ([],_) | (_,[]) -> []
+	  | (z::xs,w::ys) -> (z,[w])::f xs ys in
+          List.fold_left (fun x (y, z) -> addp y z x) (List.fold_left (fun x (y, z) -> addp y z x) M.empty (f ys allregs)) (f zs allfregs)
+      | AddI(y,0) | FMov(y) -> addp (fst dest) [y] (addp y [fst dest] M.empty)
+      | _ -> M.empty in
+      (fi rr, ff rf, prefer)
 let make e =
   (* まず,一番最初に生きている変数で完全グラフを作る *)
   let rr = perf (fv_int e) in
   let rf = perf (fv_float e) in
-  make' rr rf ("%g0", Type.Unit) (Ans(Nop)) e
+  make' S.empty rr rf ("%g0", Type.Unit) (Ans(Nop)) e
 	
 
 (* グラフからコスト最小のものを選び出す関数 *)
@@ -110,6 +151,7 @@ let rem x g =
     (M.remove x g)
 (* グラフの各ノードにspillのコストをつける *)
 let score regenv prefer g =
+  let prefer = M.map fst prefer in
   M.mapi
     (fun x (l, s, r) ->
       (l,
@@ -128,7 +170,7 @@ let spill regenv prefer g n =
     if is_ok g n then (g, s) else
     try
       let (m,sc) = take_min g in
-      let (l,_,q) = M.find m g1 in 
+      let (l,_,_) = M.find m g1 in 
       spill' (rem m g) ((m,(l,sc))::s) 
     with Not_found -> (g, s) in
   let (g2, s) = spill' g1 [] in
@@ -149,9 +191,6 @@ let spill regenv prefer g n =
 	try (addn y l sc g', s'') with (Failure "fail") -> (g', s''@[(y,l)]))
       (g3, [])
       s in
-  let prelen x =
-    try List.length (remove_and_uniq S.empty (M.find x prefer))
-    with Not_found -> 63 in
   let g'' =
     List.map (fun (x, (l,_)) -> (x, l))
       (List.sort (fun (_, (_, sc)) (_, (_, sc')) -> compare sc' sc)
@@ -175,10 +214,13 @@ let color cs regenv prefer g s =
 	let y =
 	  if is_reg x then Colored(x) else
 	  try Colored(M.find x regenv) with Not_found ->
-	    let k =
-	      try List.filter (fun x -> List.mem_assoc x g || List.mem x cs) (M.find x prefer)
-	      with Not_found -> [] in
-	    Prefer (k, []) in
+	    let (k, h) =
+	      try
+		let (p,s) = M.find x prefer in
+		(List.filter (fun x -> List.mem_assoc x g || List.mem x cs) p,
+		 List.filter (fun x -> List.mem_assoc x g || List.mem x cs) s)
+	      with Not_found -> ([],[]) in
+	    Prefer (k, h) in
 	(x, (y, l)))
       g in
   let s1 =
@@ -186,12 +228,15 @@ let color cs regenv prefer g s =
       (fun (x, l) ->
 	let y =
 	  if is_reg x then Colored(x) else
-	  let k =
-	    try M.find x regenv::List.filter (fun x -> List.mem_assoc x g || List.mem x cs) (M.find x prefer)
-	    with Not_found -> try [M.find x regenv]
-	    with Not_found -> try (List.filter (fun x -> List.mem x allfregs) (M.find x prefer))
-	    with Not_found -> [] in
-	  Prefer (k,[]) in
+	  let (k, h) =
+	    try
+	      let (p,s) = M.find x prefer in
+	      try 
+	      (M.find x regenv::List.filter (fun x -> List.mem_assoc x g || List.mem x cs) p, List.filter (fun x -> List.mem_assoc x g || List.mem x cs) s)
+	      with Not_found -> (List.filter (fun x -> List.mem_assoc x g || List.mem x cs) p, List.filter (fun x -> List.mem_assoc x g || List.mem x cs) s)
+	    with Not_found -> try ([M.find x regenv], [])
+	    with Not_found -> ([], []) in
+	  Prefer (k, h) in
 	(x, (y, l)))
       s in
 
@@ -234,10 +279,13 @@ let color cs regenv prefer g s =
 	  | [] -> r
 	  | x::xs -> count (add x [] r) xs in
 	let p'' = List.map snd (List.sort (fun x y -> compare y x) (count [] p')) in
-	let (p2, p1) = List.partition (fun x -> List.mem x s) p'' in
+	let s' =
+	  List.map (fun x -> if is_reg x then x else match List.assoc x g with
+	  | (Colored c,_) -> c | _ -> x) s in
+	let (p2, p1) = List.partition (fun x -> List.mem x s') p'' in
 	let y =
 	  try Colored(List.find (fun c -> able c l g) (p1@p2))
-	  with Not_found -> Prefer (q', s) in
+	  with Not_found -> Prefer (q', s') in
         rewrite x (y, l) g
     | _ -> rewrite x z g in
 
@@ -246,13 +294,19 @@ let color cs regenv prefer g s =
     match y with
     | (Prefer (p,s), l) ->
         let q' = List.fold_left
-	    (fun q' x -> match List.assoc x g with
-	    | (Colored(c),_) -> c::q'
-	    | _ -> q')
+	    (fun q' x ->
+	      try
+		match List.assoc x g with
+		| (Colored(c),_) -> c::q'
+		| _ -> q'
+	      with Not_found -> q')
 	    []
   	    p in
-	let (q2, q1) = List.partition (fun x -> List.mem x s) q' in
-	let (cs2, cs1) = List.partition (fun x -> List.mem x s) cs in
+	let s' =
+	  List.map (fun x -> if is_reg x then x else try match List.assoc x g with
+	  | (Colored c,_) -> c | _ -> x with Not_found -> x) s in
+	let (q2, q1) = List.partition (fun x -> List.mem x s') q' in
+	let (cs2, cs1) = List.partition (fun x -> List.mem x s') cs in
         rewrite x (Colored(List.find (fun c -> able c l g) (q1@q2@cs1@cs2)), l) g
     | _ -> rewrite x y g in
 
@@ -262,7 +316,7 @@ let color cs regenv prefer g s =
 
   (* spillされた変数のうち,実は彩色できるものを彩色.残りは後で適当に塗る *)
   let el = function
-    | (Prefer (p, h), l) -> (Prefer (List.filter is_reg p, h), l)
+    | (Prefer (p, h), l) -> (Prefer (List.filter is_reg p, List.filter is_reg h), l)
     | c -> c in
 
   let g5 = List.fold_left col1 g4 s2 in

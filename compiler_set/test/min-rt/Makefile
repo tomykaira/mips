@@ -21,14 +21,17 @@ include ../Makefile.in
 	$(MIN_CAML) $(OPTION) $(call tmp,$*)
 	$(LINKER) $(LIB_ASM) $(call tmp,$*).s ${abspath $*.s}
 
-
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim
+
+%.ppm: %.bin
+	$(SIMULATOR) -f $(SLD_PATH) $*.bin | tail -c +2 > output.ppm
 
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
 
 # use this with cserver
 # ./cserver -b -B 460800 sld/contest.sld contest_new.ppm
-write: min-rt-new.bin
-	$(CORE_RUNNER) $< -R
+#write: min-rt-new.bin
+#	$(CORE_RUNNER) $< -R
+
