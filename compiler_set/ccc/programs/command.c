@@ -64,6 +64,10 @@ void execute_command() {
       && buffer[line_start + 1] == 'x'
       && buffer[line_start + 2] == 'i'
       && buffer[line_start + 3] == 't') {
+    put_char('b');
+    put_char('y');
+    put_char('e');
+    send_display(buffer);
     halt();
   }
 
@@ -81,6 +85,7 @@ void execute_command() {
     put_char('.');
     put_char('.');
     put_char('.');
+    send_display(buffer);
     load_program();
   }
 }
