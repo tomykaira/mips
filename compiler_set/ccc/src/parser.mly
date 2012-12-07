@@ -321,6 +321,8 @@ argument_exp_list:
     { $1 @ [$3] }
 
 const:
+| MINUS INT_VAL
+    { IntVal(0 - $2) }
 | INT_VAL
     { IntVal($1) }
 | CHAR_VAL
