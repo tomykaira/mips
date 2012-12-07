@@ -1,6 +1,6 @@
 #define COLS 80 /* replace before compile */
 #define ROWS 30
-#define EOF 242
+#define EOF '!'
 #define C(y, x) (((y) << 6) + ((y) << 4) + (x))
 
 char read_key();
@@ -31,13 +31,7 @@ void insert_character(char input) {
   int first = 0;
   int ptr = 0;
 
-  first = C(current_line, current_column) + 1;
-  ptr = C(current_line, COLS - 1);
-
-  while (ptr > first) {
-    buffer[ptr] = buffer[ptr - 1];
-    ptr -= 1;
-  }
+  move_memory(buffer + C(current_line, current_column), 1, COLS - current_column - 1);
   buffer[C(current_line, current_column)] = input;
   current_column += 1;
 }
