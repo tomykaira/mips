@@ -187,9 +187,9 @@ case_definitions:
     { $1 @ [$2] }
 
 case_definition:
-| CASE const COLON stat
+| CASE const COLON stat_list
     { SwitchCase($2, $4) }
-| DEFAULT COLON stat
+| DEFAULT COLON stat_list
     { DefaultCase($3) }
 
 iteration_stat:

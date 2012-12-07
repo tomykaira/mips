@@ -45,8 +45,8 @@ type 'a statement =
   | Break
   | Return of 'a exp option
 and 'a switch_case =
-  | SwitchCase  of const_value * 'a statement
-  | DefaultCase of 'a statement
+  | SwitchCase  of const_value * 'a statement list
+  | DefaultCase of 'a statement list
     deriving (Show)
 
 type macro = ConstMacro of Id.t * const_value | ExpMacro of Id.t * Id.t list * Id.t exp
