@@ -14,8 +14,8 @@ type statement =
   | Break
   | Return of Id.v Syntax.exp option
 and switch_case =
-  | SwitchCase  of const_value * statement
-  | DefaultCase of statement
+  | SwitchCase  of const_value * statement list
+  | DefaultCase of statement list
     deriving (Show)
 
 type t =
@@ -26,10 +26,10 @@ type t =
     deriving (Show)
 
 let rec convert_case = function
-  | Syntax.SwitchCase(const, stat) ->
-    SwitchCase(const, convert_statement stat)
-  | Syntax.DefaultCase(stat) ->
-    DefaultCase(convert_statement stat)
+  | Syntax.SwitchCase(const, stats) ->
+    SwitchCase(const, List.map convert_statement stats)
+  | Syntax.DefaultCase(stats) ->
+    DefaultCase(List.map convert_statement stats)
 and convert_statement exp =
   let go = convert_statement in
   let go_option = BatOption.map go in

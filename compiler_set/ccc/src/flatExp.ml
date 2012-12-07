@@ -46,8 +46,8 @@ type statement =
   | ReturnVoid
   | Nop
 and switch_case =
-  | SwitchCase  of const_value * statement
-  | DefaultCase of statement
+  | SwitchCase  of const_value * statement list
+  | DefaultCase of statement list
     deriving (Show)
 
 type t =
@@ -120,10 +120,10 @@ let rev_expand_exp exp =
   { result =  r; chain = List.rev c }
 
 let rec convert_case = function
-  | BranchExpansion.SwitchCase(const, stat) ->
-    SwitchCase(const, convert_statement stat)
-  | BranchExpansion.DefaultCase(stat) ->
-    DefaultCase(convert_statement stat)
+  | BranchExpansion.SwitchCase(const, stats) ->
+    SwitchCase(const, List.map convert_statement stats)
+  | BranchExpansion.DefaultCase(stats) ->
+    DefaultCase(List.map convert_statement stats)
 
 and convert_statement stat =
   let go_option = function

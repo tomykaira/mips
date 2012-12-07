@@ -86,8 +86,8 @@ let rec convert_statement (env : Id.v M.t) stat =
     | Switch(e, cases) ->
       let new_cases =
         List.map
-          (function SwitchCase(const, stat) -> SwitchCase(const, go stat)
-            | DefaultCase(stat) -> DefaultCase(go stat)) cases
+          (function SwitchCase(const, stats) -> SwitchCase(const, List.map go stats)
+            | DefaultCase(stats) -> DefaultCase(List.map go stats)) cases
       in
       Switch(go_exp e, new_cases)
     | While(e, stat) ->

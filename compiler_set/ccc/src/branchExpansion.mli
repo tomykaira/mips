@@ -13,8 +13,8 @@ type statement =
   | Break
   | Return of Id.v Syntax.exp option
 and switch_case =
-  | SwitchCase  of const_value * statement
-  | DefaultCase of statement
+  | SwitchCase  of const_value * statement list
+  | DefaultCase of statement list
     deriving (Show)
 
 type t =

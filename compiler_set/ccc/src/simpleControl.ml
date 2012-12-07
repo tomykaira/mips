@@ -77,17 +77,17 @@ let rec convert_statement env stat =
       let switch_env = { continue = current_cont; break = Some(end_label) } in
       let add_branch (header, body, default) case =
         match case with
-          | FlatExp.SwitchCase (const, stat) ->
+          | FlatExp.SwitchCase (const, stats) ->
             let label         = Id.gen_label "case" in
             let (id, ass)     = assign_const const in
-            let new_statement = convert_statement switch_env stat in
+            let new_statement = List.map (convert_statement switch_env) stats in
             (Assignments ass :: BranchEq(flag, id, label) :: header,
-             Label(label) :: new_statement :: body,
+             Label(label) :: new_statement @ body,
              default)
 
           (* default case overrides existing value *)
-          | FlatExp.DefaultCase (stat) ->
-            (header, body, [convert_statement switch_env stat; Goto(end_label)])
+          | FlatExp.DefaultCase (stats) ->
+            (header, body, List.map (convert_statement switch_env) stats @ [Goto(end_label)])
       in
       let (header, body, default_sequence) = List.fold_left add_branch ([], [], []) all_cases in
       Sequence(header @ default_sequence @ body @ [Label(end_label)])

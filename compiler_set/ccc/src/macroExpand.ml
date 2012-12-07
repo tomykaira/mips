@@ -72,8 +72,8 @@ let rec convert_statement macros stat =
     | Syntax.Switch(e, cases) ->
       let new_cases =
         List.map
-          (function Syntax.SwitchCase(const, stat) -> Syntax.SwitchCase(const, go stat)
-            | Syntax.DefaultCase(stat) -> Syntax.DefaultCase(go stat)) cases
+          (function Syntax.SwitchCase(const, stats) -> Syntax.SwitchCase(const, List.map go stats)
+            | Syntax.DefaultCase(stats) -> Syntax.DefaultCase(List.map go stats)) cases
       in
       Syntax.Switch(go_exp e, new_cases)
     | Syntax.While(e, stat) ->
