@@ -1362,13 +1362,13 @@ move_memory:
 	nop
 	nop
 move_memory_plus:
-	add	$r6, $r3, $r5       # index limit
+	add	$r6, $r3, $r5	# index limit
 	subi	$r6, $r6, 1	# last element
-	sub	$r4, $r0, $r4       # - offset (< 0)
 move_memory_plus_loop:
-	ldr	$r8, $r6, $r4
+	ldi	$r8, $r6, 0
+	add	$r7, $r6, $r4
+	sti	$r8, $r7, 0
 	subi	$r6, $r6, 1	# use stall to increment
-	sti	$r8, $r6, 1
 	ble	$r3, $r6, move_memory_plus_loop
 	nop
 	nop

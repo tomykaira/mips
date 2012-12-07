@@ -37,12 +37,13 @@ void insert_character(char input) {
     ptr -= 1;
   }
   buffer[C(current_line, current_column)] = input;
+  current_column += 1;
 }
 
 int break_line() {
   current_line += 1;
   current_column = 0;
-  move_memory(buffer + C(current_line, 0), 80, C(ROWS - current_line, 0));
+  move_memory(buffer + C(current_line, 0), 80, C(ROWS - current_line - 1, 0));
 }
 
 void write() {
