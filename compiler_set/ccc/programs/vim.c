@@ -13,6 +13,7 @@ int insert_mode = 0;
 
 char notification[80];
 char buffer[2400];
+char text_buffer[2400];
 
 void update_notification_line() {
   int i = 0;
@@ -47,7 +48,26 @@ int break_line() {
 }
 
 void write() {
-  send_rs(buffer, 2320);
+  int text_pointer = 0;
+  int line = 0;
+  int column = 0;
+
+  while ( line < ROWS ) {
+    int c = 0;
+    c = buffer[C(line, column)];
+    if (c != 0) {
+      text_buffer[text_pointer] = c;
+      text_pointer += 1;
+    }
+    column += 1;
+    if (column >= COLS) {
+      column = 0;
+      line += 1;
+      text_buffer[text_pointer] = '\n';
+      text_pointer += 1;
+    }
+  }
+  send_rs(text_buffer, text_pointer);
 }
 
 // int direction: 0: up, 1: right,  2: down, 3: left

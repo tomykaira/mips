@@ -1402,12 +1402,11 @@ send_rs:
 	addi	$r5, $r0, 0
 send_rs_start:
 	ldr	$r8, $r3, $r5
-	display	$r5, $r8
+	outputb	$r8
 	addi	$r5, $r5, 1
-	blt	$r5, $r4, clear_display_start
+	blt	$r5, $r4, send_rs_start
 	nop
 	nop
-	debug	8
 	return
 
 print_int:
