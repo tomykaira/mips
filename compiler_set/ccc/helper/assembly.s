@@ -1398,6 +1398,18 @@ clear_display_start:
 	debug	8
 	return
 
+send_rs:
+	addi	$r5, $r0, 0
+send_rs_start:
+	ldr	$r8, $r3, $r5
+	display	$r5, $r8
+	addi	$r5, $r5, 1
+	blt	$r5, $r4, clear_display_start
+	nop
+	nop
+	debug	8
+	return
+
 print_int:
 	outputb	$r3
 	srai	$r4, $r3, 8
