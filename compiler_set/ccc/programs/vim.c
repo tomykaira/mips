@@ -1,5 +1,6 @@
 #define COLS 80 /* replace before compile */
 #define ROWS 30
+#define EOF 242
 #define C(y, x) (((y) << 6) + ((y) << 4) + (x))
 
 char read_key();
@@ -55,7 +56,9 @@ void write() {
   while ( line < ROWS ) {
     int c = 0;
     c = buffer[C(line, column)];
-    if (c != 0) {
+    if (c == EOF) {
+      break;
+    } else if (c != 0) {
       text_buffer[text_pointer] = c;
       text_pointer += 1;
     }
@@ -122,6 +125,8 @@ int interpret_command(char input) {
 void main(int argc)
 {
   char input = 0;
+
+  buffer[0] = EOF;
 
   while (1) {
     input = read_key(); /* blocking */
