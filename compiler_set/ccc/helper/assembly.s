@@ -1416,6 +1416,10 @@ move_and_clear_minus_loop:
 	nop
 	return
 
+display:
+	display	$r3, $r4
+	return
+
 send_display:
 	addi	$r5, $r0, 0
 	addi	$r4, $r0, 2400

@@ -1,6 +1,7 @@
 #define COLS 80 /* replace before compile */
 #define ROWS 30
 #define EOF '!'
+#define EOL '\n'
 #define C(y, x) (((y) << 6) + ((y) << 4) + (x))
 
 char read_key();
@@ -61,16 +62,22 @@ void write() {
     if (column >= COLS) {
       column = 0;
       line += 1;
-      text_buffer[text_pointer] = '\n';
-      text_pointer += 1;
     }
   }
   send_rs(text_buffer, text_pointer);
 }
 
 void goto_last_column() {
-  while (buffer[C(current_line, current_column-1)] == 0) {
-    current_column -= 1;
+  int last = 0;
+
+  if (current_column > 0) {
+    while (buffer[C(current_line, current_column-1)] == 0) {
+      current_column -= 1;
+    }
+    last = buffer[C(current_line, current_column-1)];
+    if (last == EOL || last == EOF) {
+      current_column -= 1; // skip EOL
+    }
   }
 }
 
@@ -88,13 +95,13 @@ int interpret_command(char input) {
     write();
     break;
   case 'j':
-    if (current_line > 0 && buffer[C(current_line + 1, 0)] != 0) {
+    if (current_line < ROWS && buffer[C(current_line + 1, 0)] != 0) {
       current_line += 1;
       goto_last_column();
     }
     break;
   case 'k':
-    if (current_line < ROWS) {
+    if (current_line > 0) {
       current_line -= 1;
       goto_last_column();
     }
@@ -110,15 +117,19 @@ int interpret_command(char input) {
     }
     break;
   case 'x':
-    if (buffer[C(current_line, current_column)] != EOF) {
-      int end = 0;
-      int ptr = 0;
+    {
+      int current_char = 0;
+      current_char = buffer[C(current_line, current_column)];
+      if (current_char != EOF && current_char != EOL) {
+        int end = 0;
+        int ptr = 0;
 
-      end = -1;
-      ptr = C(current_line, current_column);
+        end = -1;
+        ptr = C(current_line, current_column);
 
-      move_memory(buffer + C(current_line, current_column), -1, COLS - current_column - 1);
-      buffer[C(current_line, COLS-1)] = 0;
+        move_memory(buffer + C(current_line, current_column), -1, COLS - current_column - 1);
+        buffer[C(current_line, COLS-1)] = 0;
+      }
     }
     break;
   }
@@ -136,6 +147,7 @@ void main(int argc)
     if (insert_mode == 1) {
       switch (input) {
       case '\n':
+        insert_character(input);
         break_line();
         break;
       case 0x7f:
@@ -157,5 +169,6 @@ void main(int argc)
     }
     // update_notification_line();
     send_display(buffer); /* give pointer to assembly function */
+    display(C(current_line, current_column), '_');
   }
 }
