@@ -20,7 +20,7 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
     | "0x" (['0' - '9']|['a' - 'f']|['A' - 'F'])+
         { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
 
-    | digit+
+    | ['-']? digit+
         { INT_VAL(int_of_string (Lexing.lexeme lexbuf)) }
     | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
         { FLOAT_VAL(float_of_string (Lexing.lexeme lexbuf)) }
@@ -51,10 +51,14 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
         { GT_EQUAL }
     | ">"
         { GT }
+    | ">>"
+        { GT_GT }
     | "++"
         { INCREMENT }
     | "<"
         { LT }
+    | "<<"
+        { LT_LT }
     | '{'
         { L_BRACE }
     | '['

@@ -21,6 +21,8 @@ and 'a exp =
   | Mul            of 'a exp * 'a exp
   | Div            of 'a exp * 'a exp
   | Mod            of 'a exp * 'a exp
+  | Sll            of 'a exp * int
+  | Sra            of 'a exp * int
   | Not            of 'a exp
   | Negate         of 'a exp
   | CallFunction   of Id.l * 'a exp list

@@ -50,6 +50,9 @@ let rec convert_exp ({const = const_macros; exp = exp_macros} as macros) exp =
     | Syntax.Div(e1, e2)         -> Syntax.Div(go e1, go e2)
     | Syntax.Mod(e1, e2)         -> Syntax.Mod(go e1, go e2)
 
+    | Syntax.Sll(e1, i)         -> Syntax.Sll(go e1, i)
+    | Syntax.Sra(e1, i)         -> Syntax.Sra(go e1, i)
+
     | Syntax.Not(e1)    -> Syntax.Not(go e1)
     | Syntax.Negate(e1) -> Syntax.Negate(go e1)
 
@@ -119,6 +122,9 @@ let rec replace_exp mapping exp =
     | Syntax.Mul(e1, e2)         -> Syntax.Mul(go e1, go e2)
     | Syntax.Div(e1, e2)         -> Syntax.Div(go e1, go e2)
     | Syntax.Mod(e1, e2)         -> Syntax.Mod(go e1, go e2)
+
+    | Syntax.Sll(e1, i)          -> Syntax.Sll(go e1, i)
+    | Syntax.Sra(e1, i)          -> Syntax.Sra(go e1, i)
 
     | Syntax.Not(e1)    -> Syntax.Not(go e1)
     | Syntax.Negate(e1) -> Syntax.Negate(go e1)

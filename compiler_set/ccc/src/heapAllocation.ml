@@ -8,6 +8,8 @@ type 'a exp =
   | Or             of 'a * 'a
   | Add            of 'a * 'a
   | Sub            of 'a * 'a
+  | Sll            of 'a * int
+  | Sra            of 'a * int
   | Negate         of 'a
   | LoadHeap       of 'a
   | LoadHeapImm    of int
@@ -100,6 +102,12 @@ let convert_exp exp =
       expand_exp var1 (fun n1 ->
         expand_exp var2 (fun n2 ->
           Exp(Sub(n1, n2))))
+    | Flow.Sll(var, i) ->
+      expand_exp var (fun n ->
+        Exp(Sll(n, i)))
+    | Flow.Sra(var, i) ->
+      expand_exp var (fun n ->
+        Exp(Sra(n, i)))
     | Flow.Negate(var) ->
       expand_exp var (fun n ->
         Exp(Negate(n)))

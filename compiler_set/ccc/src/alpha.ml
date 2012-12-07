@@ -62,6 +62,9 @@ let rec convert_exp (env : Id.v M.t) e =
     | Div(e1, e2)         -> Div(go e1, go e2)
     | Mod(e1, e2)         -> Mod(go e1, go e2)
 
+    | Sll(e1, i)          -> Sll(go e1, i)
+    | Sra(e1, i)          -> Sra(go e1, i)
+
     | Not(e1)    -> Not(go e1)
     | Negate(e1) -> Negate(go e1)
 

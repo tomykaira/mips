@@ -14,6 +14,8 @@ type exp =
   | Mul            of Id.v * Id.v
   | Div            of Id.v * Id.v
   | Mod            of Id.v * Id.v
+  | Sll            of Id.v * int
+  | Sra            of Id.v * int
   | Not            of Id.v
   | Negate         of Id.v
   | CallFunction   of Id.l * Id.v list
@@ -75,40 +77,43 @@ let rec expand_exp assign_to exp =
     assign (c2 @ c1) (constructor (id1, id2))
   in
   match exp with
-  | Syntax.Var(id) ->
-    (match assign_to with
-      | Some(assign_to) -> { result = assign_to; chain = [{ set = assign_to; exp = Var(id)}] }
-      | None -> { result = id; chain = [] })
-  | Syntax.Const(const) ->
-    assign [] (Const(const))
-  | Syntax.ArrayRef(id, index) ->
-    add1 index (fun t -> ArrayGet(id, t))
-  | Syntax.Assign(Syntax.VarSet(id), e2) ->
-    expand_exp (Some id) e2
-  | Syntax.Assign(Syntax.ArraySet(id, index), exp) ->
-    let { result = index_id; chain = index_chain } = expand_exp None index in
-    let { result = exp_id; chain = exp_chain } = expand_exp None exp in
-    let dummy_id = Id.gen () in
-    { result = exp_id;
-      chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: index_chain @ exp_chain }
+    | Syntax.Var(id) ->
+      (match assign_to with
+        | Some(assign_to) -> { result = assign_to; chain = [{ set = assign_to; exp = Var(id)}] }
+        | None -> { result = id; chain = [] })
+    | Syntax.Const(const) ->
+      assign [] (Const(const))
+    | Syntax.ArrayRef(id, index) ->
+      add1 index (fun t -> ArrayGet(id, t))
+    | Syntax.Assign(Syntax.VarSet(id), e2) ->
+      expand_exp (Some id) e2
+    | Syntax.Assign(Syntax.ArraySet(id, index), exp) ->
+      let { result = index_id; chain = index_chain } = expand_exp None index in
+      let { result = exp_id; chain = exp_chain } = expand_exp None exp in
+      let dummy_id = Id.gen () in
+      { result = exp_id;
+        chain = { set = dummy_id; exp = ArraySet(id, index_id, exp_id) } :: index_chain @ exp_chain }
 
-  | Syntax.And (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> And (t1, t2))
-  | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))
-  | Syntax.Equal (e1, e2)       -> concat2 e1 e2 (fun (t1, t2) -> Equal (t1, t2))
-  | Syntax.LessThan (e1, e2)    -> concat2 e1 e2 (fun (t1, t2) -> LessThan (t1, t2))
-  | Syntax.Add (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Add (t1, t2))
-  | Syntax.Sub (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Sub (t1, t2))
-  | Syntax.Mul (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Mul (t1, t2))
-  | Syntax.Div (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Div (t1, t2))
-  | Syntax.Mod (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Mod (t1, t2))
+    | Syntax.And (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> And (t1, t2))
+    | Syntax.Or (e1, e2)          -> concat2 e1 e2 (fun (t1, t2) -> Or (t1, t2))
+    | Syntax.Equal (e1, e2)       -> concat2 e1 e2 (fun (t1, t2) -> Equal (t1, t2))
+    | Syntax.LessThan (e1, e2)    -> concat2 e1 e2 (fun (t1, t2) -> LessThan (t1, t2))
+    | Syntax.Add (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Add (t1, t2))
+    | Syntax.Sub (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Sub (t1, t2))
+    | Syntax.Mul (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Mul (t1, t2))
+    | Syntax.Div (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Div (t1, t2))
+    | Syntax.Mod (e1, e2)         -> concat2 e1 e2 (fun (t1, t2) -> Mod (t1, t2))
 
-  | Syntax.Not (e) -> add1 e (fun t -> Not t)
-  | Syntax.Negate (e) -> add1 e (fun t -> Negate t)
+    | Syntax.Sll (e, i)          -> add1 e (fun t -> Sll (t, i))
+    | Syntax.Sra (e, i)          -> add1 e (fun t -> Sra (t, i))
 
-  | Syntax.CallFunction (l, args) ->
-    let args_binds = List.map (expand_exp None) args in
-    let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in
-    assign (List.concat (List.rev chains)) (CallFunction(l, ids))
+    | Syntax.Not (e)             -> add1 e (fun t -> Not t)
+    | Syntax.Negate (e)          -> add1 e (fun t -> Negate t)
+
+    | Syntax.CallFunction (l, args) ->
+      let args_binds = List.map (expand_exp None) args in
+      let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in
+      assign (List.concat (List.rev chains)) (CallFunction(l, ids))
 
 let rev_expand_exp exp =
   let { result =  r; chain = c } = expand_exp None exp in
