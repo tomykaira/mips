@@ -37,9 +37,10 @@ void insert_character(char input) {
 }
 
 int break_line() {
+  move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
+  move_and_clear_memory(buffer + C(current_line, current_column), COLS - current_column, COLS - current_column);
   current_line += 1;
   current_column = 0;
-  move_memory(buffer + C(current_line, 0), 80, C(ROWS - current_line - 1, 0));
 }
 
 void write() {

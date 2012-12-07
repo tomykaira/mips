@@ -1,5 +1,5 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean command.sim
+.PHONY: clean command.sim vim.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
@@ -26,4 +26,4 @@ command.sim: command.bin
 	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
-	$(SIMULATOR) $< -k test/vim$(CASE).case -x $(OPTION)
+	$(SIMULATOR) $< -t -k test/vim_$(CASE).case $(OPTION)

@@ -1385,6 +1385,37 @@ move_memory_minus_loop:
 	nop
 	return
 
+move_and_clear_memory:
+	blt	$r4, $r0, move_and_clear_minus
+	nop
+	nop
+move_and_clear_plus:
+	add	$r6, $r3, $r5	# index limit
+	subi	$r6, $r6, 1	# last element
+move_and_clear_plus_loop:
+	ldi	$r8, $r6, 0
+	sti	$r0, $r6, 0
+	add	$r7, $r6, $r4
+	sti	$r8, $r7, 0
+	subi	$r6, $r6, 1	# use stall to increment
+	ble	$r3, $r6, move_and_clear_plus_loop
+	nop
+	nop
+	return
+move_and_clear_minus:
+	add	$r6, $r3, $r5       # index limit
+	sub	$r4, $r0, $r4       # - offset (>0)
+move_and_clear_minus_loop:
+	ldr	$r8, $r3, $r4
+	add	$r7, $r3, $r4
+	sti	$r0, $r7, 0
+	addi	$r3, $r3, 1	# use stall to increment
+	sti	$r8, $r3, -1
+	blt	$r3, $r6, move_and_clear_minus_loop
+	nop
+	nop
+	return
+
 send_display:
 	addi	$r5, $r0, 0
 	addi	$r4, $r0, 2400
