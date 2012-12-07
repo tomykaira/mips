@@ -37,7 +37,7 @@ void insert_character(char input) {
   current_column += 1;
 }
 
-int break_line() {
+void break_line() {
   move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
   move_and_clear_memory(buffer + C(current_line, current_column), COLS - current_column, COLS - current_column);
   current_line += 1;
@@ -87,7 +87,18 @@ int interpret_command(char input) {
   switch (input) {
   case 'i':
     insert_mode = 1;
-    // set_string(notifications, "INPUT");
+    break;
+  case 'a':
+    insert_mode = 1;
+    break;
+  case 'o':
+    move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
+    move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
+    current_line += 1;
+    current_column = 0;
+    initialize_array(buffer + C(current_line, 0), buffer + C(current_line, COLS-1), 0);
+    buffer[C(current_line, 0)] = EOL;
+    insert_mode = 1;
     break;
   case 'q':
     return 1;
@@ -151,6 +162,15 @@ void main(int argc)
         break_line();
         break;
       case 0x7f:
+        {
+          int current_char = 0;
+          current_column -= 1;
+          current_char = buffer[C(current_line, current_column)];
+          if (current_column >= 0 && current_char != EOF && current_char != EOL) {
+            move_memory(buffer + C(current_line, current_column), -1, COLS - current_column - 1);
+            buffer[C(current_line, COLS-1)] = 0;
+          }
+        }
         break;
       case 27: // esc
         insert_mode = 0;
