@@ -21,8 +21,8 @@ void update_notification_line() {
   buffer_last_line = C(ROWS - 1, 0);
   while (i<COLS) {
     buffer[buffer_last_line + i] = notification[i];
+    i += 1;
   }
-  send_display(buffer);
 }
 
 void insert_character(char input) {
@@ -57,7 +57,7 @@ int interpret_command(char input) {
     insert_mode = 1;
     // set_string(notifications, "INPUT");
     break;
-  case 27:
+  case 'q':
     return 1;
   case 'w':
     write();
@@ -126,7 +126,7 @@ void main(int argc)
         return 0;
       }
     }
-    update_notification_line();
+    // update_notification_line();
     send_display(buffer); /* give pointer to assembly function */
   }
 }

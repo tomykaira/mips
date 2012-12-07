@@ -24,3 +24,6 @@ clean:
 
 command.sim: command.bin
 	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
+
+vim.sim: vim.bin
+	$(SIMULATOR) $< -k test/vim$(CASE).case -x $(OPTION)
