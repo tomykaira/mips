@@ -68,6 +68,12 @@ void write() {
   send_rs(text_buffer, text_pointer);
 }
 
+void goto_last_column() {
+  while (buffer[C(current_line, current_column-1)] == 0) {
+    current_column -= 1;
+  }
+}
+
 // int direction: 0: up, 1: right,  2: down, 3: left
 // return: 1 when quit
 int interpret_command(char input) {
@@ -82,13 +88,15 @@ int interpret_command(char input) {
     write();
     break;
   case 'j':
-    if (current_line > 0) {
+    if (current_line > 0 && buffer[C(current_line + 1, 0)] != 0) {
       current_line += 1;
+      goto_last_column();
     }
     break;
   case 'k':
     if (current_line < ROWS) {
       current_line -= 1;
+      goto_last_column();
     }
     break;
   case 'h':
@@ -97,12 +105,12 @@ int interpret_command(char input) {
     }
     break;
   case 'l':
-    if (current_column < COLS) {
+    if (current_column < COLS && buffer[C(current_line, current_column + 1)] != 0) {
       current_column += 1;
     }
     break;
   case 'x':
-    {
+    if (buffer[C(current_line, current_column)] != EOF) {
       int end = 0;
       int ptr = 0;
 

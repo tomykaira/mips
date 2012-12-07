@@ -2,8 +2,8 @@
 
 SIMULATOR = ../../../../simulator/simulator -t
 
-TEST_TARGETS = $(ls *.input)
-TEST_JOBS = $(replacesuffixes .input, .test, $(TEST_TARGETS))
+TEST_TARGETS = $(ls *.case)
+TEST_JOBS = $(replacesuffixes .case, .test, $(TEST_TARGETS))
 
 test: $(TEST_JOBS)
 
@@ -11,7 +11,7 @@ test: $(TEST_JOBS)
 	diff $*.output $*.result
 	touch $@
 
-%.result: %.input ../../vim.bin
+%.result: %.case ../../vim.bin
 	$(SIMULATOR) ../../vim.bin -k $< > $@
 
 clean:
