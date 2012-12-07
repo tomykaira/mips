@@ -37,8 +37,6 @@ type statement =
   | IfEq        of assignment_chain * assignment_chain * statement * statement option
   | IfLt        of assignment_chain * assignment_chain * statement * statement option
   | IfTrue       of assignment_chain * statement * statement option
-  | Switch      of assignment_chain * switch_case list
-  | While       of assignment_chain * statement
   | Goto        of Id.l
   | Continue
   | Break
@@ -119,20 +117,12 @@ let rev_expand_exp exp =
   let { result =  r; chain = c } = expand_exp None exp in
   { result =  r; chain = List.rev c }
 
-let rec convert_case = function
-  | BranchExpansion.SwitchCase(const, stats) ->
-    SwitchCase(const, List.map convert_statement stats)
-  | BranchExpansion.DefaultCase(stats) ->
-    DefaultCase(List.map convert_statement stats)
-
-and convert_statement stat =
+let rec convert_statement stat =
   let go_option = function
     | Some(stat) -> Some(convert_statement stat)
     | None -> None
   in
   match stat with
-  | BranchExpansion.Continue -> Continue
-  | BranchExpansion.Break -> Break
   | BranchExpansion.Return(None) -> ReturnVoid
   | BranchExpansion.Goto(l) ->
     Goto(l)
@@ -158,8 +148,6 @@ and convert_statement stat =
   | BranchExpansion.IfTrue(exp, stat_true, stat_false) ->
     IfTrue(rev_expand_exp exp, convert_statement stat_true, go_option stat_false)
 
-  | BranchExpansion.Switch(exp, cases) ->
-    Switch(rev_expand_exp exp, List.map convert_case cases)
   | BranchExpansion.Return(Some(exp)) ->
     Return (rev_expand_exp exp)
 

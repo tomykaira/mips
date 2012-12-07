@@ -8,14 +8,8 @@ type statement =
   | IfEq   of Id.v Syntax.exp * Id.v Syntax.exp * statement * statement option
   | IfLt   of Id.v Syntax.exp * Id.v Syntax.exp * statement * statement option
   | IfTrue of Id.v Syntax.exp * statement * statement option
-  | Switch of Id.v Syntax.exp * switch_case list
   | Goto   of Id.l
-  | Continue
-  | Break
   | Return of Id.v Syntax.exp option
-and switch_case =
-  | SwitchCase  of const_value * statement list
-  | DefaultCase of statement list
     deriving (Show)
 
 type t =
@@ -25,28 +19,35 @@ type t =
   | Array of Id.v array_signature
     deriving (Show)
 
-let rec convert_case = function
-  | Syntax.SwitchCase(const, stats) ->
-    SwitchCase(const, List.map convert_statement stats)
-  | Syntax.DefaultCase(stats) ->
-    DefaultCase(List.map convert_statement stats)
-and convert_statement exp =
-  let go = convert_statement in
+
+type while_environment = { continue : Id.l option; break : Id.l option }
+    deriving (Show)
+
+
+let assign_const const =
+  let id = Id.gen () in
+  (id, Exp(Syntax.Assign(Syntax.VarSet(id), Syntax.Const(const))))
+
+let rec convert_statement env exp =
+  let go = convert_statement env in
   let go_option = BatOption.map go in
   match exp with
     | Syntax.While(exp, stat) ->
       let start_label = Id.gen_label "while_start" in
+      let break_label = Id.gen_label "while_end" in
       let expanded =
         [Label(start_label);
-         go (Syntax.If(exp, Syntax.Block([], [stat; Syntax.Goto start_label]), None))]
+         convert_statement { continue = Some(start_label); break = Some(break_label) }
+           (Syntax.If(exp, Syntax.Block([], [stat; Syntax.Goto start_label]), None));
+         Label(break_label)]
       in
       Block([], expanded)
 
     | Syntax.If(Syntax.Not(exp), stat_true, Some(stat_false)) ->
-      convert_statement (Syntax.If(exp, stat_false, Some(stat_true)))
+      go (Syntax.If(exp, stat_false, Some(stat_true)))
     (* TODO: express NOP in better way *)
     | Syntax.If(Syntax.Not(exp), stat_true, None) ->
-      convert_statement (Syntax.If(exp, Syntax.Block([], []), Some(stat_true)))
+      go (Syntax.If(exp, Syntax.Block([], []), Some(stat_true)))
 
     | Syntax.If(Syntax.Equal(exp1, exp2), stat_true, stat_false) ->
       IfEq(exp1, exp2, go stat_true, go_option stat_false)
@@ -71,11 +72,17 @@ and convert_statement exp =
     (* ex: if (x) { ... } *)
     | Syntax.If(exp, stat_true, stat_false) ->
       IfTrue(exp, go stat_true, go_option stat_false)
+    | Syntax.Continue ->
+      (match env.continue with
+        | Some(l) -> Goto(l)
+        | None -> failwith "Unexpected continue.  No current continue label.")
+    | Syntax.Break ->
+      (match env.break with
+        | Some(l) -> Goto(l)
+        | None -> failwith "Unexpected break.  No current break label.")
 
     | Syntax.Label(l) ->
       Label(l)
-    | Syntax.Continue -> Continue
-    | Syntax.Break -> Break
     | Syntax.Return(Some(exp)) ->
       Return (Some(exp))
     | Syntax.Return(None) -> Return(None)
@@ -86,11 +93,23 @@ and convert_statement exp =
     | Syntax.Block (variables, stats) ->
       Block (variables, List.map go stats)
     | Syntax.Switch(exp, cases) ->
-      Switch(exp, List.map convert_case cases)
+      let end_label = Id.gen_label "switch_end" in
+      let switch_env = { env with break = Some(end_label) } in
+      let add_branch (cases, default) case =
+        match case with
+          | Syntax.SwitchCase (const, stats) ->
+            (IfEq(exp, Syntax.Const(const), Block([], List.map (convert_statement switch_env) stats), None) :: cases,
+             default)
+          (* default case overrides existing value *)
+          | Syntax.DefaultCase (stats) ->
+            (cases, [Block([], List.map (convert_statement switch_env) stats)])
+      in
+      let (cases, default) = List.fold_left add_branch ([], []) cases in
+      Block([], cases @ default @ [Label(end_label)])
 
 let convert_top = function
   | MacroExpand.Function(signature, statement) ->
-    Function(signature, convert_statement statement)
+    Function(signature, convert_statement {continue = None; break = None} statement)
   | MacroExpand.FunctionDeclaration(d) -> FunctionDeclaration(d)
   | MacroExpand.GlobalVariable(v)      -> GlobalVariable(v)
   | MacroExpand.Array(a)               -> Array(a)

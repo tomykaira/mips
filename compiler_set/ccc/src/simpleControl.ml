@@ -25,9 +25,10 @@ let assign_const const =
   (id, [{ FlatExp.set = id; FlatExp.exp = FlatExp.Const(const) }])
 
 type statement_environment = { continue : Id.l option; break : Id.l option }
+    deriving (Show)
 
 let rec convert_statement env stat =
-  let { continue = current_cont; break = current_break } = env in
+  Printf.printf "%s\n" (Show.show<statement_environment> env);
   let go = convert_statement env in
   let go_option = BatOption.map go in
   let expand_branch {FlatExp.result = id1; FlatExp.chain = ass1}
@@ -72,42 +73,13 @@ let rec convert_statement env stat =
                 BranchZero(flag, end_label);
                 go stat_true;
                 Label end_label])
-    | FlatExp.Switch ({FlatExp.result = flag; FlatExp.chain = ass}, all_cases) ->
-      let end_label = Id.gen_label "switch_end" in
-      let switch_env = { continue = current_cont; break = Some(end_label) } in
-      let add_branch (header, body, default) case =
-        match case with
-          | FlatExp.SwitchCase (const, stats) ->
-            let label         = Id.gen_label "case" in
-            let (id, ass)     = assign_const const in
-            let new_statement = List.map (convert_statement switch_env) stats in
-            (Assignments ass :: BranchEq(flag, id, label) :: header,
-             Label(label) :: new_statement @ body,
-             default)
-
-          (* default case overrides existing value *)
-          | FlatExp.DefaultCase (stats) ->
-            (header, body, List.map (convert_statement switch_env) stats @ [Goto(end_label)])
-      in
-      let (header, body, default_sequence) = List.fold_left add_branch ([], [], []) all_cases in
-      Sequence(header @ default_sequence @ body @ [Label(end_label)])
-    | FlatExp.While ({FlatExp.result = flag; FlatExp.chain = ass}, stat) ->
-      let start_label = Id.gen_label "while_start" in
-      let end_label = Id.gen_label "while_end" in
-      let new_statement = convert_statement { continue = Some(start_label); break = Some(end_label) } stat in
-      Sequence [Label(start_label);
-                Assignments ass;
-                BranchZero(flag, end_label);
-                new_statement;
-                Goto(start_label);
-                Label(end_label)]
     | FlatExp.Goto(l) -> Goto(l)
     | FlatExp.Continue ->
-      (match current_cont with
+      (match env.continue with
         | Some(l) -> Goto(l)
         | None -> failwith "Unexpected continue.  No current continue label.")
     | FlatExp.Break ->
-      (match current_break with
+      (match env.break with
         | Some(l) -> Goto(l)
         | None -> failwith "Unexpected break.  No current break label.")
     | FlatExp.Return {FlatExp.result = result; FlatExp.chain = ass} ->

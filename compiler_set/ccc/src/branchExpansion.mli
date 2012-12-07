@@ -7,14 +7,8 @@ type statement =
   | IfEq   of Id.v Syntax.exp * Id.v Syntax.exp * statement * statement option
   | IfLt   of Id.v Syntax.exp * Id.v Syntax.exp * statement * statement option
   | IfTrue of Id.v Syntax.exp * statement * statement option
-  | Switch of Id.v Syntax.exp * switch_case list
   | Goto   of Id.l
-  | Continue
-  | Break
   | Return of Id.v Syntax.exp option
-and switch_case =
-  | SwitchCase  of const_value * statement list
-  | DefaultCase of statement list
     deriving (Show)
 
 type t =
