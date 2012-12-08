@@ -393,8 +393,6 @@ let replace_registers live color_map insts =
         StoreHeap(r id1, r id2)
       | Heap.StoreHeapImm(id1, imm) ->
         StoreHeapImm(r id1, imm)
-      | Heap.Definition(Heap.Variable(id, _, const)) ->
-        Assignment(r id, Heap.Const(const))
 
       | Heap.ReturnVoid    -> Return
       | Heap.Label(l)      -> Label(l)

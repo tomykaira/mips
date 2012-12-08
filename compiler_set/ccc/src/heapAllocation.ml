@@ -24,7 +24,6 @@ type instruction =
   | Assignment   of Id.t * Id.t exp
   | CallAndSet   of Id.t * Id.l * Id.t list      (* with variable binding *)
   | Call         of Id.l * Id.t list      (* just calling *)
-  | Definition   of variable
   | BranchZero   of Id.t * Id.l
   | BranchEq     of Id.t * Id.t * Id.l
   | BranchLt     of Id.t * Id.t * Id.l
@@ -182,7 +181,6 @@ let convert_instruction = function
          Assignment(temp, Add(temp, index_name));
          StoreHeap(value_name, temp)]))
 
-  | Flow.Definition(Definition.Variable(id, typ, const)) -> [Definition(Variable(Id.raw id, typ, const))]
   | Flow.Label(l)      -> [Label(l)]
   | Flow.Goto(l)       -> [Goto(l)]
   | Flow.ReturnVoid    -> [ReturnVoid]

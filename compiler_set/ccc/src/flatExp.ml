@@ -33,7 +33,7 @@ type assignment_chain = { result : Id.v; chain : assignment list }
 type statement =
   | Label       of Id.l
   | Assignments of assignment list
-  | Block       of Id.v variable list * statement list
+  | Block       of assignment_chain list * statement list
   | IfEq        of assignment_chain * assignment_chain * statement * statement option
   | IfLt        of assignment_chain * assignment_chain * statement * statement option
   | IfTrue       of assignment_chain * statement * statement option
@@ -50,7 +50,7 @@ and switch_case =
 
 type t =
   | Function of Id.v function_signature * statement
-  | GlobalVariable of Id.v variable
+  | GlobalVariable of Id.v global_variable
   | Array of Id.v array_signature
     deriving (Show)
 
@@ -113,8 +113,8 @@ let rec expand_exp assign_to exp =
       let (ids, chains) = List.split (List.map (fun {result = i; chain = c} -> (i, c)) args_binds) in
       assign (List.concat (List.rev chains)) (CallFunction(l, ids))
 
-let rev_expand_exp exp =
-  let { result =  r; chain = c } = expand_exp None exp in
+let rev_expand_exp assign_to exp =
+  let { result =  r; chain = c } = expand_exp assign_to exp in
   { result =  r; chain = List.rev c }
 
 let rec convert_statement stat =
@@ -130,26 +130,29 @@ let rec convert_statement stat =
   | BranchExpansion.Label(l) ->
     Label(l)
   | BranchExpansion.Exp(exp) ->
-    let {chain = chain; _} = rev_expand_exp exp in
+    let {chain = chain; _} = rev_expand_exp None exp in
     Assignments chain
   | BranchExpansion.Block (variables, stats) ->
-    Block(variables, List.map convert_statement stats)
+    let new_variables =
+      List.map (fun (Variable(id, typ, exp)) -> rev_expand_exp (Some(id)) exp) variables
+    in
+    Block(new_variables, List.map convert_statement stats)
 
   | BranchExpansion.IfEq(exp1, exp2, stat_true, stat_false) ->
-    IfEq(rev_expand_exp exp1,
-         rev_expand_exp exp2,
+    IfEq(rev_expand_exp None exp1,
+         rev_expand_exp None exp2,
          convert_statement stat_true,
          go_option stat_false)
   | BranchExpansion.IfLt(exp1, exp2, stat_true, stat_false) ->
-    IfLt(rev_expand_exp exp1,
-         rev_expand_exp exp2,
+    IfLt(rev_expand_exp None exp1,
+         rev_expand_exp None exp2,
          convert_statement stat_true,
          go_option stat_false)
   | BranchExpansion.IfTrue(exp, stat_true, stat_false) ->
-    IfTrue(rev_expand_exp exp, convert_statement stat_true, go_option stat_false)
+    IfTrue(rev_expand_exp None exp, convert_statement stat_true, go_option stat_false)
 
   | BranchExpansion.Return(Some(exp)) ->
-    Return (rev_expand_exp exp)
+    Return (rev_expand_exp None exp)
 
 let convert_top = function
   | BranchExpansion.Function (signature, stat) ->

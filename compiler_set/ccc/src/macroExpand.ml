@@ -4,7 +4,7 @@ open Util
 type 'a t =
   | Function of 'a function_signature * 'a Syntax.statement
   | FunctionDeclaration of 'a function_signature
-  | GlobalVariable of 'a variable
+  | GlobalVariable of 'a global_variable
   | Array of 'a array_signature
     deriving (Show)
 

@@ -77,12 +77,16 @@ translation_unit:
 external_decl:
 | function_definition
     { $1 }
-| variable_definition
+| global_variable_definition
     { GlobalVariable($1) }
 | array_definition
     { $1 }
 | macro_definition
     { DefineMacro($1) }
+
+global_variable_definition:
+| type_class ID EQUAL const SEMICOLON
+    { Variable($2, $1, $4) }
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
@@ -134,7 +138,7 @@ variable_definition_list:
     { $1 @ [$2] }
 
 variable_definition:
-| type_class ID EQUAL const SEMICOLON
+| type_class ID EQUAL assignment_exp SEMICOLON
     { Variable($2, $1, $4) }
 
 

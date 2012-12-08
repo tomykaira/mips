@@ -20,7 +20,6 @@ type instruction =
   | Assignment  of Id.v * exp
   | CallAndSet  of Id.v * Id.l * Id.v list      (* with variable binding *)
   | Call        of Id.l * Id.v list      (* just calling *)
-  | Definition  of Id.v variable
   | BranchZero  of Id.v * Id.l
   | BranchEq    of Id.v * Id.v * Id.l
   | BranchLt    of Id.v * Id.v * Id.l
@@ -32,7 +31,7 @@ type instruction =
 
 type t =
   | Function of Id.v function_signature * instruction list
-  | GlobalVariable of Id.v variable
+  | GlobalVariable of Id.v global_variable
   | Array of Id.v array_signature
       deriving (Show)
 
@@ -95,8 +94,6 @@ let rec expand_statement = function
     concat_map expand_ass ass
   | SimpleControl.Sequence(stats) ->
     concat_map expand_statement stats
-  | SimpleControl.Block(vars, stats) ->
-    List.map (fun v -> Definition(v)) vars @ concat_map expand_statement stats
 
   | SimpleControl.Label(l)                 -> [Label(l)]
   | SimpleControl.BranchZero(id, l)        -> [BranchZero(id, l)]

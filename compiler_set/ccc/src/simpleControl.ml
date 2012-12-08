@@ -5,7 +5,6 @@ type statement =
   | Label       of Id.l
   | Assignments of FlatExp.assignment list
   | Sequence    of statement list
-  | Block       of Id.v variable list * statement list
   | BranchEq    of Id.v * Id.v * Id.l
   | BranchLt    of Id.v * Id.v * Id.l
   | BranchZero  of Id.v * Id.l
@@ -16,7 +15,7 @@ type statement =
 
 type t =
   | Function of Id.v function_signature * statement
-  | GlobalVariable of Id.v variable
+  | GlobalVariable of Id.v global_variable
   | Array of Id.v array_signature
     deriving (Show)
 
@@ -52,7 +51,8 @@ let rec convert_statement env stat =
     | FlatExp.Assignments (assignments) ->
       Assignments(assignments)
     | FlatExp.Block (variables, stats) ->
-      Block(variables, List.map go stats)
+      let variable_definitions = List.map (fun {FlatExp.result = result; FlatExp.chain = ass} -> Assignments ass) variables in
+      Sequence(variable_definitions @ (List.map go stats))
     | FlatExp.IfEq (exp1, exp2, stat_true, stat_false) ->
       expand_branch exp1 exp2 stat_true stat_false (fun id1 id2 label -> BranchEq(id1, id2, label))
     | FlatExp.IfLt (exp1, exp2, stat_true, stat_false) ->

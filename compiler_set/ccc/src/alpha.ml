@@ -5,10 +5,6 @@ open Util
 
 module M = ExtendedMap.Make (Id.TStruct)
 
-let rename_variable env (Variable(name, typ, const)) =
-  let new_id = Id.V (Id.unique name) in
-  (M.add name new_id env, Variable(new_id, typ, const))
-
 let rename_global_variable env (Variable(name, typ, const)) =
   let new_id = Id.G (Id.unique name) in
   (M.add name new_id env, Variable(new_id, typ, const))
@@ -26,10 +22,6 @@ let rename_parameter env = function
   | PointerParameter(typ, name) ->
     let new_id = Id.V (Id.unique name) in
     (M.add name new_id env, PointerParameter(typ, new_id))
-
-let fold_rename_variable v (e, vs) =
-  let (e', v') = rename_variable e v in
-  (e', v' :: vs)
 
 let fold_rename_parameter p (e, ps) =
   let (e', p') = rename_parameter e p in
@@ -69,6 +61,14 @@ let rec convert_exp (env : Id.v M.t) e =
     | Negate(e1) -> Negate(go e1)
 
     | CallFunction(l, args) -> CallFunction(l, List.map go args)
+
+let rename_variable env (Variable(name, typ, exp)) =
+  let new_id = Id.V (Id.unique name) in
+  (M.add name new_id env, Variable(new_id, typ, convert_exp env exp))
+
+let fold_rename_variable v (e, vs) =
+  let (e', v') = rename_variable e v in
+  (e', v' :: vs)
 
 let rec convert_statement (env : Id.v M.t) stat =
   let go = convert_statement env in

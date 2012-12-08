@@ -36,7 +36,7 @@ let ref_of = function
 type 'a statement =
   | Label  of Id.l
   | Exp    of 'a exp
-  | Block  of 'a variable list * 'a statement list
+  | Block  of ('a, 'a exp) variable list * 'a statement list
   | If     of 'a exp * 'a statement * 'a statement option
   | Switch of 'a exp * 'a switch_case list
   | While  of 'a exp * 'a statement
@@ -58,7 +58,7 @@ let signature id return_type params =
 type 'a t =
   | Function of 'a function_signature * 'a statement
   | FunctionDeclaration of 'a function_signature
-  | GlobalVariable of 'a variable
+  | GlobalVariable of ('a, const_value) variable
   | Array of 'a array_signature
   | DefineMacro of macro
     deriving (Show)

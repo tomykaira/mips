@@ -33,8 +33,11 @@ let parameter_type = function
   | Parameter(typ, _) -> convert_syntactic_type typ
   | PointerParameter(typ, _) -> Type.Array(convert_syntactic_type typ)
 
-type 'a variable =
-    Variable of 'a * type_class * const_value
+type ('a, 'b) variable =
+    Variable of 'a * type_class * 'b
+    deriving (Show)
+
+type 'a global_variable = ('a, const_value) variable
     deriving (Show)
 
 type 'a function_signature = { name: Id.l; return_type: type_class; parameters: 'a parameter list }

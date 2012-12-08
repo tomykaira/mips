@@ -45,7 +45,6 @@ let use_instruction (E(_, inst)) = match inst with
 
 let def_instruction (E(_, inst)) = match inst with
   | Assignment(id, _) -> [id]
-  | Definition(Variable(id, _, _)) -> [id]
   | CallAndSet(id, _, _) -> [id]
   | _ -> []
 
