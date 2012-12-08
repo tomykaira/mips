@@ -1,2 +1,2 @@
-(print . ((quote . (((1 . 2) . 3) . nil)) . nil))
-;;OUTPUT:((1 . 2) . 3)
+(print (quote ((1 . 2) 3)))
+;;OUTPUT:((1 . 2) 3)

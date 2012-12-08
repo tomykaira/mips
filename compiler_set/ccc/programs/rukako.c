@@ -31,6 +31,7 @@ int copy_string(char *dest, char * src);
 int copy_n_string(char *dest, char * src, int length);
 
 int evaluate_cond(int exp_id);
+void parse_input(int id);
 
 char id_map[3200];
 char input[1024];
@@ -66,6 +67,22 @@ void read_input() {
   }
 }
 
+void reconstruct_list(int exp_id) {
+  reconstruct(CAR(exp_id));
+  if (expression[CDR(exp_id)] == L_NIL) {
+    return;
+  } else if (ATOM(CDR(exp_id))) {
+    output[output_pointer] = ' ';
+    output[output_pointer + 1] = '.';
+    output[output_pointer + 2] = ' ';
+    output_pointer += 3;
+
+    reconstruct(CDR(exp_id));
+  } else {
+    reconstruct_list(CDR(exp_id));
+  }
+}
+
 void reconstruct(int exp_id) {
   if (ATOM(exp_id)) {
     output_pointer += copy_string(output + output_pointer, id_map + NTH_ATOM(expression[exp_id]));
@@ -75,12 +92,18 @@ void reconstruct(int exp_id) {
 
     reconstruct(CAR(exp_id));
 
-    output[output_pointer] = ' ';
-    output[output_pointer + 1] = '.';
-    output[output_pointer + 2] = ' ';
-    output_pointer += 3;
+    if (ATOM(CDR(exp_id)) && expression[CDR(exp_id)] != L_NIL) {
+      output[output_pointer] = ' ';
+      output[output_pointer + 1] = '.';
+      output[output_pointer + 2] = ' ';
+      output_pointer += 3;
 
-    reconstruct(CDR(exp_id));
+      reconstruct(CDR(exp_id));
+    } else {
+      output[output_pointer] = ' ';
+      output_pointer += 1;
+      reconstruct_list(CDR(exp_id));
+    }
 
     output[output_pointer] = ')';
     output_pointer += 1;
@@ -172,6 +195,19 @@ void skip_space() {
   }
 }
 
+void parse_list(int id) {
+  int left = exp_id();
+  int right = exp_id();
+  expression[id] = CONS(left, right);
+  parse_input(left);
+  skip_space();
+  if (input[input_pointer] == ')') {
+    expression[right] = L_NIL;
+  } else {
+    parse_list(right);
+  }
+}
+
 void parse_input(int id) {
   int exp_start = input_pointer;
 
@@ -184,11 +220,18 @@ void parse_input(int id) {
     skip_space();
     parse_input(left);
     skip_space();
-    input_pointer += 1; // .
-    skip_space();
-    parse_input(right);
-    skip_space();
-    input_pointer += 1; // )
+    if (input[input_pointer] == '.') {
+      input_pointer += 1;
+      skip_space();
+      parse_input(right);
+      if (input[input_pointer] == ')') {
+        input_pointer += 1;
+      } else {
+        error(')');
+      }
+    } else {
+      parse_list(right);
+    }
     skip_space();
 
   } else {
