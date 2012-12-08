@@ -19,9 +19,8 @@ char text_buffer[2400];
 
 void update_notification_line() {
   int i = 0;
-  int buffer_last_line = 0;
+  int buffer_last_line = C(ROWS - 1, 0);
 
-  buffer_last_line = C(ROWS - 1, 0);
   while (i<COLS) {
     buffer[buffer_last_line + i] = notification[i];
     i += 1;
@@ -29,9 +28,6 @@ void update_notification_line() {
 }
 
 void insert_character(char input) {
-  int first = 0;
-  int ptr = 0;
-
   move_memory(buffer + C(current_line, current_column), 1, COLS - current_column - 1);
   buffer[C(current_line, current_column)] = input;
   current_column += 1;
@@ -129,14 +125,10 @@ int interpret_command(char input) {
     break;
   case 'x':
     {
-      int current_char = 0;
-      current_char = buffer[C(current_line, current_column)];
+      int current_char = buffer[C(current_line, current_column)];
       if (current_char != EOF && current_char != EOL) {
-        int end = 0;
-        int ptr = 0;
-
-        end = -1;
-        ptr = C(current_line, current_column);
+        int end = -1;
+        int ptr = C(current_line, current_column);
 
         move_memory(buffer + C(current_line, current_column), -1, COLS - current_column - 1);
         buffer[C(current_line, COLS-1)] = 0;

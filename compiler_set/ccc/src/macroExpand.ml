@@ -57,6 +57,11 @@ let rec convert_exp ({const = const_macros; exp = exp_macros} as macros) exp =
     | Syntax.Negate(e1) -> Syntax.Negate(go e1)
 
 
+let convert_variable macros (Variable(id, typ, exp)) =
+  print_endline ("expanding "^id);
+  Variable(id, typ, convert_exp macros exp)
+
+
 let rec convert_statement macros stat =
   let go = convert_statement macros in
   let go_exp = convert_exp macros in
@@ -64,7 +69,7 @@ let rec convert_statement macros stat =
     | Syntax.Label(l)       -> Syntax.Label(l)
     | Syntax.Exp(e)         -> Syntax.Exp(go_exp e)
     | Syntax.Block(variables, statements) ->
-      Syntax.Block(variables, List.map go statements)
+      Syntax.Block(List.map (convert_variable macros) variables, List.map go statements)
     | Syntax.If(e, stat_true, Some(stat_false)) ->
       Syntax.If(go_exp e, go stat_true, Some(go stat_false))
     | Syntax.If(e, stat_true, None) ->
