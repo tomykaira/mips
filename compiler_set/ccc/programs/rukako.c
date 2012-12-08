@@ -26,6 +26,9 @@
 #define L_COND     7
 #define L_PRINT    8
 #define L_T        9
+#define L_LAMBDA  10
+#define L_LABEL   11
+#define L_APPLY   12
 
 int str_equal(char * str1, char * str2, int length);
 int copy_string(char *dest, char * src);
@@ -38,6 +41,7 @@ char id_map[3200];
 char input[1024];
 int input_pointer = 0;
 int expression[1024];
+int env[1024]; // id -> id
 
 int exp_counter = 0;
 int atom_counter = 0;
@@ -112,8 +116,31 @@ void reconstruct(int exp_id) {
   }
 }
 
+void print(int top_id) {
+  output_pointer = 0;
+  reconstruct(top_id);
+  send_rs(output, output_pointer);
+}
+
+int update_environment(int params, int args) {
+  while(!NILP(expression[params]) && !NILP(expression[args])) {
+    if (ATOM(CAR(params))) {
+      env[expression[CAR(params)]] = expression[CAR(args)];
+    } else {
+      print(params);
+      print(args);
+      error(999);
+    }
+    params = CDR(params);
+    args = CDR(args);
+  }
+}
+
 int evaluate(int exp_id) {
   if (ATOM(exp_id)) {
+    if (env[expression[exp_id]]) {
+      expression[exp_id] = env[expression[exp_id]];
+    }
     return;
   } else {
     switch (expression[CAR(exp_id)]) {
@@ -143,6 +170,8 @@ int evaluate(int exp_id) {
 
     // eq
     case 5:
+      evaluate(CADR(exp_id));
+      evaluate(CADDR(exp_id));
       if (expression[CADR(exp_id)] == expression[CADDR(exp_id)]) {
         expression[exp_id] = L_T;
       } else {
@@ -168,14 +197,28 @@ int evaluate(int exp_id) {
     // print
     case 8:
       evaluate(CADR(exp_id));
-      output_pointer = 0;
-      reconstruct(CADR(exp_id));
-      send_rs(output, output_pointer);
+      print(CADR(exp_id));
       expression[exp_id] = expression[CADR(exp_id)];
       break;
 
+    // apply
+    case 12:
+      {
+        int lambda = CADR(exp_id);
+        int args = CDDR(exp_id);
+        if (expression[CAR(lambda)] == L_LAMBDA) {
+          update_environment(CADR(lambda), args);
+          evaluate(CADDR(lambda));
+          expression[exp_id] = expression[CADDR(lambda)];
+        } else {
+          error(L_LAMBDA);
+        }
+      }
+      break;
+
     default:
-      error(exp_id + 1);
+      print(exp_id);
+      error(expression[exp_id] + 1, expression[CAR(exp_id)]);
       break;
     }
   }
@@ -320,7 +363,29 @@ int main() {
   // t
   id_map[NTH_ATOM(L_T) + 0] = 't';
 
-  atom_counter = 8;
+  // lambda
+  id_map[NTH_ATOM(L_LAMBDA) + 0] = 'l';
+  id_map[NTH_ATOM(L_LAMBDA) + 1] = 'a';
+  id_map[NTH_ATOM(L_LAMBDA) + 2] = 'm';
+  id_map[NTH_ATOM(L_LAMBDA) + 3] = 'b';
+  id_map[NTH_ATOM(L_LAMBDA) + 4] = 'd';
+  id_map[NTH_ATOM(L_LAMBDA) + 5] = 'a';
+
+  // label
+  id_map[NTH_ATOM(L_LABEL) + 0] = 'l';
+  id_map[NTH_ATOM(L_LABEL) + 1] = 'a';
+  id_map[NTH_ATOM(L_LABEL) + 2] = 'b';
+  id_map[NTH_ATOM(L_LABEL) + 3] = 'e';
+  id_map[NTH_ATOM(L_LABEL) + 4] = 'l';
+
+  // apply
+  id_map[NTH_ATOM(L_APPLY) + 0] = 'a';
+  id_map[NTH_ATOM(L_APPLY) + 1] = 'p';
+  id_map[NTH_ATOM(L_APPLY) + 2] = 'p';
+  id_map[NTH_ATOM(L_APPLY) + 3] = 'l';
+  id_map[NTH_ATOM(L_APPLY) + 4] = 'y';
+
+  atom_counter = L_APPLY;
 
   read_input();
 

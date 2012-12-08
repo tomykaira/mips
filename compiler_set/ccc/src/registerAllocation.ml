@@ -160,7 +160,9 @@ let make_worklist not_colored_nodes =
   spill_worklist    := S.empty;
   freeze_worklist   := S.empty;
   simplify_worklist := S.empty;
-  S.iter for_each_node not_colored_nodes
+  S.iter for_each_node not_colored_nodes;
+  Printf.printf "start with: %s\n" (Show.show<Id.t list> (S.elements !simplify_worklist))
+
 
 
 let push_select_stack node =
@@ -186,14 +188,17 @@ let remove_edges node =
       spill_worklist := S.remove node !spill_worklist;
       if move_related node then
         freeze_worklist := S.add node !freeze_worklist
-      else
-        simplify_worklist := S.add node !simplify_worklist
+      else begin
+        simplify_worklist := S.add node !simplify_worklist;
+        Printf.printf "%s added to simplify in remove_edges\n" (Show.show<Id.t> node)
+      end
     end else ()
   in
   List.iter update_worklist neighbors
 
 let simplify () =
   let (node, new_worklist) = S.pop !simplify_worklist in
+  Printf.printf "%s is popped from %s in simplify\n" (Show.show<Id.t> node) (Show.show<Id.t list> (S.elements !simplify_worklist));
   simplify_worklist := new_worklist;
   push_select_stack node;
   remove_edges node
@@ -213,7 +218,8 @@ let precolored_register node =
 let prepare_simplify node =
   if not (is_precolored node) && not (move_related node) && not (is_significant node) then begin
     freeze_worklist := S.remove node !freeze_worklist;
-    simplify_worklist := S.add node !simplify_worklist
+    simplify_worklist := S.add node !simplify_worklist;
+    Printf.printf "%s added to simplify in prepare_simplify\n" (Show.show<Id.t> node)
   end else
     ()
 
@@ -281,9 +287,12 @@ let freeze_moves node =
       else
         resolve_alias y
     in
-    if MoveS.is_empty (node_moves other_node) && not (is_significant other_node) then begin
+    if MoveS.is_empty (node_moves other_node)
+      && not (is_significant other_node)
+      && not (is_precolored other_node) then begin
       freeze_worklist := S.remove other_node !freeze_worklist;
-      simplify_worklist := S.add other_node !simplify_worklist
+      simplify_worklist := S.add other_node !simplify_worklist;
+      Printf.printf "%s added to simplify in freeze_moves\n" (Show.show<Id.t> other_node)
     end else
       ()
   in
@@ -293,6 +302,7 @@ let freeze () =
   let (node, new_worklist) = S.pop !freeze_worklist in
   freeze_worklist := new_worklist;
   simplify_worklist := S.add node !simplify_worklist;
+  Printf.printf "%s added to simplify in freeze\n" node;
   freeze_moves node
 
 
@@ -302,6 +312,7 @@ let select_spill () =
   let (node, new_worklist) = S.pop !spill_worklist in
   spill_worklist := new_worklist;
   simplify_worklist := S.add node !simplify_worklist;
+  Printf.printf "%s added to simplify in select_spill\n" node;
   freeze_moves node
 
 let assign_colors () =
@@ -439,6 +450,7 @@ and color_variables insts =
   make_worklist other_nodes;
   while S.not_empty !simplify_worklist || MoveS.not_empty !worklist_moves ||
     S.not_empty !freeze_worklist || S.not_empty !spill_worklist do
+    (Printf.printf "now: %s\n" (Show.show<Id.t list> (S.elements !simplify_worklist));
     if S.not_empty !simplify_worklist then
       simplify ()
     else if MoveS.not_empty !worklist_moves then
@@ -448,7 +460,7 @@ and color_variables insts =
     else if S.not_empty !spill_worklist then
       select_spill ()
     else
-      ()
+      ())
   done;
   print_endline ("edges: "^(Show.show<(Id.t * Id.t) list> !interference_edges));
   let colored_nodes = assign_colors () in
