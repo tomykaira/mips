@@ -68,14 +68,24 @@ and fv' = function
   | Tuple(xs) | ExtFunApp(_, xs) -> S.of_list xs
   | Put(x, y, z) -> S.of_list [x; y; z]
 
+let rec btoi = function (* 型の中のBool型をInt型に置き換える補助関数 *)
+  | Type.Bool -> Type.Int
+  | Type.Fun(a,b) -> Type.Fun(List.map btoi a, btoi b)
+  | Type.Tuple(a) -> Type.Tuple(List.map btoi a)
+  | Type.Array(a) -> Type.Array(btoi a)
+  | Type.Var(a) as t-> (match !a with Some(b) -> a := Some(btoi b) | _ -> ()); t
+  | Type.List(a) as t-> (match !a with Some(b) -> a := Some(btoi b) | _ -> ()); t
+  | t -> t
+let bis (x,t) = (x, btoi t)
+
 
 (* ネストしたletの簡約 *)
 let rec f = function 
-  | KNormal.Let(xt, e1, e2) -> concat (f e1) xt (f e2)
+  | KNormal.Let(xt, e1, e2) -> concat (f e1) (bis xt) (f e2)
   | KNormal.LetRec({ KNormal.name = xt; KNormal.args = yts; KNormal.body = e1 }, e2) ->
-      LetRec({ name = xt; args = yts; body = f e1 }, f e2)
-  | KNormal.LetTuple(xts, y, e) -> LetTuple(xts, y, f e)
-  | KNormal.LetList(xt, y, e) -> LetList(xt, y, f e)
+      LetRec({ name = bis xt; args = List.map bis yts; body = f e1 }, f e2)
+  | KNormal.LetTuple(xts, y, e) -> LetTuple(List.map bis xts, y, f e)
+  | KNormal.LetList(xt, y, e) -> LetList(bis xt, y, f e)
   | e -> Ans(f' e)
 and f' = function
   | KNormal.Unit -> Unit

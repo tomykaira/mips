@@ -30,8 +30,8 @@ let rec fill' ds ret read write l =
 	match i with
 	  | Label _ -> false
 	  | SetL _
-	  | Nop
-	  | Comment _ -> true
+	  | Nop      -> true
+	  | Comment _ -> false
 
 	  | Add _
 	  | Sub _
