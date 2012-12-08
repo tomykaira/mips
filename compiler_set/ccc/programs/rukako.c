@@ -1,5 +1,5 @@
 #define ATOM_LENGTH 32
-#define ATOM_COUNT 100
+#define ATOM_COUNT 256
 #define CONS(x, y) (((x) << 16) + (y))
 #define CAR(c) (expression[c] >> 16)
 #define CDR(c) ((expression[c] << 16) >> 16)
@@ -30,24 +30,29 @@
 #define L_LABEL   11
 #define L_APPLY   12
 
+#define DEBUG 0
+
 int str_equal(char * str1, char * str2, int length);
 int copy_string(char *dest, char * src);
 int copy_n_string(char *dest, char * src, int length);
 
 int evaluate_cond(int exp_id);
 void parse_input(int id);
+int evaluate(int exp_id);
 
-char id_map[3200];
-char input[1024];
+char id_map[8192];
+char input[4096];
 int input_pointer = 0;
-int expression[1024];
-int env[1024]; // id -> id
+int expression[4096];
+int env[4096]; // id -> id
 
 int exp_counter = 0;
 int atom_counter = 0;
 
 char output[1024];
 int output_pointer = 0;
+
+int indent = 0;
 
 int exp_id() {
   exp_counter += 1;
@@ -118,18 +123,25 @@ void reconstruct(int exp_id) {
 
 void print(int top_id) {
   output_pointer = 0;
+  while (output_pointer < indent*2) {
+    output[output_pointer] = ' ';
+    output_pointer += 1;
+  }
   reconstruct(top_id);
-  send_rs(output, output_pointer);
+  output[output_pointer] = '\n';
+  send_rs(output, output_pointer + 1);
 }
 
 int update_environment(int params, int args) {
   while(!NILP(expression[params]) && !NILP(expression[args])) {
     if (ATOM(CAR(params))) {
+      evaluate(CAR(args));
       env[expression[CAR(params)]] = expression[CAR(args)];
     } else {
+      debug(999);
       print(params);
       print(args);
-      error(999);
+      halt();
     }
     params = CDR(params);
     args = CDR(args);
@@ -147,11 +159,15 @@ int move_exp(int exp_id) {
 }
 
 int evaluate(int exp_id) {
+  if (DEBUG) {
+    print(exp_id);
+    indent += 1;
+  }
+
   if (ATOM(exp_id)) {
     if (env[expression[exp_id]]) {
       expression[exp_id] = env[expression[exp_id]];
     }
-    return;
   } else {
     switch (expression[CAR(exp_id)]) {
     // car
@@ -191,6 +207,7 @@ int evaluate(int exp_id) {
 
     // atom
     case 6:
+      evaluate(CADR(exp_id));
       if (ATOM(CADR(exp_id))) {
         expression[exp_id] = L_T;
       } else {
@@ -214,16 +231,33 @@ int evaluate(int exp_id) {
     // apply
     case 12:
       {
-        int lambda = CADR(exp_id);
+        int callee = CADR(exp_id);
         int args = CDDR(exp_id);
 
         // if expression stack is not sufficient,
         // you can save and restore max id here
-        if (expression[CAR(lambda)] == L_LAMBDA) {
-          int new_exp_id = move_exp(CADDR(lambda));
+        if (expression[CAR(callee)] == L_LAMBDA) {
+          int new_exp_id = move_exp(CADDR(callee));
+          update_environment(CADR(callee), args);
+          evaluate(new_exp_id);
+          expression[exp_id] = expression[new_exp_id];
+
+        } else if (expression[CAR(callee)] == L_LABEL) {
+          int lambda_name = CADR(callee);
+          int lambda = CADDR(callee);
+          int new_exp_id = 0;
+
+          if (ATOM(lambda_name)) {
+            env[expression[lambda_name]] = expression[lambda];
+          } else {
+            error(99);
+          }
+
+          new_exp_id = move_exp(CADDR(lambda));
           update_environment(CADR(lambda), args);
           evaluate(new_exp_id);
           expression[exp_id] = expression[new_exp_id];
+
         } else {
           error(L_LAMBDA);
         }
@@ -231,22 +265,42 @@ int evaluate(int exp_id) {
       break;
 
     default:
-      print(exp_id);
-      error(expression[exp_id] + 1, expression[CAR(exp_id)]);
+      if (env[expression[CAR(exp_id)]]) {
+        int cdr = (env[expression[CAR(exp_id)]] << 16) >> 16;
+        int new_exp_id = 0;
+        int args = CDR(exp_id);
+
+        new_exp_id = move_exp(CADR(cdr));
+
+        // FIXME: this is dangerous
+        update_environment(CAR(cdr), args);
+        evaluate(new_exp_id);
+        expression[exp_id] = expression[new_exp_id];
+      } else {
+        print(exp_id);
+        error(expression[exp_id] + 1, expression[CAR(exp_id)]);
+      }
       break;
     }
+  }
+  if (DEBUG) {
+    indent -= 1;
+    print(exp_id);
   }
 }
 
 int evaluate_cond(int exp_id) {
   if (NILP(expression[exp_id])) {
     return;
-  } else if (!NILP(evaluate(CAAR(exp_id)))) {
-    evaluate(CADAR(exp_id));
-    expression[exp_id] = expression[CADAR(exp_id)];
   } else {
-    evaluate_cond(CDR(exp_id));
-    expression[exp_id] = expression[CDR(exp_id)];
+    evaluate(CAAR(exp_id));
+    if (!NILP(expression[CAAR(exp_id)])) {
+      evaluate(CADAR(exp_id));
+      expression[exp_id] = expression[CADAR(exp_id)];
+    } else {
+      evaluate_cond(CDR(exp_id));
+      expression[exp_id] = expression[CDR(exp_id)];
+    }
   }
 }
 

@@ -15,7 +15,7 @@ test: $(TEST_JOBS)
 	$(SIMULATOR) ../../rukako.bin -f $< > $@
 
 %.output: %.lisp
-	ruby -e 'STDIN.readlines.each {|x| if m = /;;OUTPUT:(.*)/.match(x); print m[1]; end }' < $< > $@
+	ruby -e 'STDIN.readlines.each {|x| if m = /;;OUTPUT:(.*)/.match(x); puts m[1]; end }' < $< > $@
 
 clean:
 	rm -f *.result *.test *.output
