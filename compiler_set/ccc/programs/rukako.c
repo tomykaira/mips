@@ -15,6 +15,8 @@
 #define NTH_ATOM(x) ((x) << 6)
 #define NILP(x) (x == 0)
 #define LISTP(x) (!ATOM(x) || expression[x] == L_NIL)
+#define SET_BIT(x) ((x) + (1 << 31))
+#define REMOVE_BIT(x) ((x) - (1 << 31))
 
 #define L_NIL      0
 #define L_CAR      1
@@ -40,26 +42,32 @@ int evaluate_cond(int exp_id);
 void parse_input(int id);
 int evaluate(int exp_id);
 
-char id_map[8192];
-char input[4096];
 int input_pointer = 0;
-int expression[4096];
-int env[4096]; // id -> id
-
 int exp_counter = 0;
 int atom_counter = 0;
+int output_pointer = 0;
+int indent = 0;
+int call_depth = 0;
+
+char id_map[8192];
+char input[4096];
+int env[4096]; // id -> id
+int expression[32768];
 
 char output[1024];
-int output_pointer = 0;
-
-int indent = 0;
 
 int exp_id() {
+  if (exp_counter >= 32768) {
+    error(124);
+  }
   exp_counter += 1;
   return exp_counter;
 }
 
 int atom_id() {
+  if (atom_counter >= 256) {
+    error(242);
+  }
   atom_counter += 1;
   return atom_counter;
 }
@@ -123,7 +131,7 @@ void reconstruct(int exp_id) {
 
 void print(int top_id) {
   output_pointer = 0;
-  while (output_pointer < indent*2) {
+  while (output_pointer < (indent << 1)) {
     output[output_pointer] = ' ';
     output_pointer += 1;
   }
@@ -132,11 +140,17 @@ void print(int top_id) {
   send_rs(output, output_pointer + 1);
 }
 
+int eval_args(int args) {
+  while(!NILP(expression[args])) {
+    evaluate(CAR(args));
+    args = CDR(args);
+  }
+}
+
 int update_environment(int params, int args) {
   while(!NILP(expression[params]) && !NILP(expression[args])) {
     if (ATOM(CAR(params))) {
-      evaluate(CAR(args));
-      env[expression[CAR(params)]] = expression[CAR(args)];
+      env[(call_depth << 8) + expression[CAR(params)]] = SET_BIT(expression[CAR(args)]);
     } else {
       debug(999);
       print(params);
@@ -158,6 +172,34 @@ int move_exp(int exp_id) {
   return new_id;
 }
 
+int before_call() {
+  call_depth += 1;
+  if (call_depth >= 16) {
+    error(92);
+  }
+}
+
+int after_call() {
+  call_depth -= 1;
+  if (call_depth < 0) {
+    error(94);
+  }
+}
+
+int find_env(int exp_id) {
+  int level = call_depth;
+  int found = L_NIL;
+
+  while (level >= 0) {
+    found = env[(level << 8) + expression[exp_id]];
+    if (!NILP(found)){
+      return found;
+    }
+    level -= 1;
+  }
+  return L_NIL;
+}
+
 int evaluate(int exp_id) {
   if (DEBUG) {
     print(exp_id);
@@ -165,8 +207,9 @@ int evaluate(int exp_id) {
   }
 
   if (ATOM(exp_id)) {
-    if (env[expression[exp_id]]) {
-      expression[exp_id] = env[expression[exp_id]];
+    int found = find_env(exp_id);
+    if (!NILP(found)) {
+      expression[exp_id] = REMOVE_BIT(found);
     }
   } else {
     switch (expression[CAR(exp_id)]) {
@@ -234,6 +277,10 @@ int evaluate(int exp_id) {
         int callee = CADR(exp_id);
         int args = CDDR(exp_id);
 
+        eval_args(args);
+
+        before_call();
+
         // if expression stack is not sufficient,
         // you can save and restore max id here
         if (expression[CAR(callee)] == L_LAMBDA) {
@@ -248,7 +295,7 @@ int evaluate(int exp_id) {
           int new_exp_id = 0;
 
           if (ATOM(lambda_name)) {
-            env[expression[lambda_name]] = expression[lambda];
+            env[(call_depth << 8) + expression[lambda_name]] = SET_BIT(expression[lambda]);
           } else {
             error(99);
           }
@@ -261,24 +308,34 @@ int evaluate(int exp_id) {
         } else {
           error(L_LAMBDA);
         }
+
+        after_call();
       }
       break;
 
     default:
-      if (env[expression[CAR(exp_id)]]) {
-        int cdr = (env[expression[CAR(exp_id)]] << 16) >> 16;
-        int new_exp_id = 0;
-        int args = CDR(exp_id);
+      {
+        int found = find_env(CAR(exp_id));
+        if (!NILP(found)) {
+          int cdr = (REMOVE_BIT(found) << 16) >> 16;
+          int new_exp_id = 0;
+          int args = CDR(exp_id);
 
-        new_exp_id = move_exp(CADR(cdr));
+          eval_args(args);
 
-        // FIXME: this is dangerous
-        update_environment(CAR(cdr), args);
-        evaluate(new_exp_id);
-        expression[exp_id] = expression[new_exp_id];
-      } else {
-        print(exp_id);
-        error(expression[exp_id] + 1, expression[CAR(exp_id)]);
+          before_call();
+
+          new_exp_id = move_exp(CADR(cdr));
+
+          update_environment(CAR(cdr), args);
+          evaluate(new_exp_id);
+          expression[exp_id] = expression[new_exp_id];
+
+          after_call();
+        } else {
+          print(exp_id);
+          error(expression[exp_id] + 1, expression[CAR(exp_id)]);
+        }
       }
       break;
     }
