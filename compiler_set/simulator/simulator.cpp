@@ -56,7 +56,7 @@ void backup_registers() {
 }
 
 // いいかげんな call stack
-#define CALL_STACK_SIZE 255
+#define CALL_STACK_SIZE (1 << 20)
 
 // 即値
 #define IMM get_imm(inst)
@@ -481,7 +481,6 @@ int simulate(simulation_options * opt)
 				break;
 			case CALL:
 			        jump_logger.push_back(pc);
-			        cerr << ROM[pc-1].getInst() << endl;
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
@@ -617,16 +616,11 @@ int simulate(simulation_options * opt)
 					break;
 				case 6:
 					DUMP_PC
-					rep(j, 9) {
+					rep(j, 8) {
 						printf("%d: %08x\n", j, ireg[j]);
 					}
 					break;
 				case 8:
-					break;
-				case 9:
-					for (int i = 3200; i < 4224 && RAM[i] != 0; ++ i) {
-						printf("%c", RAM[i]);
-					}
 					break;
 				default:
 					break;
