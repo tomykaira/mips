@@ -56,4 +56,4 @@ tmp = /tmp/$(basename $(1))_$(notdir $(HOME))
 	ocaml $(call tmp,$*).ml > $*.ocaml
 
 clean:
-	rm -f *.ocaml *.sim *.core *.log $(ARTIFACTS)
+	rm -f *.ocaml *.sim *.core *.log *.ppm $(ARTIFACTS)

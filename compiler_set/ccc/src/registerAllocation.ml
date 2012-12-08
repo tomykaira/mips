@@ -6,8 +6,8 @@ module Heap = HeapAllocation
 type instruction =
   | Assignment   of Reg.i * Reg.i Heap.exp
   | BranchZero   of Reg.i * Id.l
-  | BranchEqual  of Reg.i * Reg.i * Id.l
-  | BranchLT     of Reg.i * Reg.i * Id.l
+  | BranchEq     of Reg.i * Reg.i * Id.l
+  | BranchLt     of Reg.i * Reg.i * Id.l
   | Call         of Id.l * Reg.i list * (Reg.i * Id.t) list
   | CallAndSet   of Reg.i * Id.l * Reg.i list * (Reg.i * Id.t) list
   | Spill        of Reg.i * Id.t
@@ -88,7 +88,7 @@ let register_move = function
   | Entity.E(_, Heap.Assignment(to_node, Heap.Mov(from_node))) as inst ->
     let move = (to_node, from_node) in
     worklist_moves := MoveS.add move !worklist_moves;
-    List.iter (fun id -> add_move id move) (use_instruction inst @ option_to_list (def_instruction inst))
+    List.iter (fun id -> add_move id move) (use_instruction inst @ def_instruction inst)
   | _ -> ()
 
 let add_edge u v =
@@ -107,7 +107,7 @@ let construct_graph live insts =
     in
     List.iter (fun d ->
       S.iter (fun l ->
-        add_edge l d) live_here) (option_to_list (def_instruction inst))
+        add_edge l d) live_here) (def_instruction inst)
   in
   List.iter proc insts
 
@@ -359,6 +359,8 @@ let replace_registers live color_map insts =
     | Heap.Or(id1, id2)     -> Heap.Or(r id1, r id2)
     | Heap.Add(id1, id2)    -> Heap.Add(r id1, r id2)
     | Heap.Sub(id1, id2)    -> Heap.Sub(r id1, r id2)
+    | Heap.Sll(id1, i)      -> Heap.Sll(r id1, i)
+    | Heap.Sra(id1, i)      -> Heap.Sra(r id1, i)
     | Heap.Negate(id1)      -> Heap.Negate(r id1)
     | Heap.LoadHeap(id1)    -> Heap.LoadHeap(r id1)
     | Heap.LoadHeapImm(int) -> Heap.LoadHeapImm(int)
@@ -378,10 +380,10 @@ let replace_registers live color_map insts =
         CallAndSet(r to_set, l, List.map r args, allocation)
       | Heap.BranchZero(id, l) ->
         BranchZero(r id, l)
-      | Heap.BranchEqual(id1, id2, l) ->
-        BranchEqual(r id1, r id2, l)
-      | Heap.BranchLT(id1, id2, l) ->
-        BranchLT(r id1, r id2, l)
+      | Heap.BranchEq(id1, id2, l) ->
+        BranchEq(r id1, r id2, l)
+      | Heap.BranchLt(id1, id2, l) ->
+        BranchLt(r id1, r id2, l)
       | Heap.Return(id) ->
         if r id = Reg.ret then
           Return
@@ -391,8 +393,6 @@ let replace_registers live color_map insts =
         StoreHeap(r id1, r id2)
       | Heap.StoreHeapImm(id1, imm) ->
         StoreHeapImm(r id1, imm)
-      | Heap.Definition(Heap.Variable(id, _, const)) ->
-        Assignment(r id, Heap.Const(const))
 
       | Heap.ReturnVoid    -> Return
       | Heap.Label(l)      -> Label(l)

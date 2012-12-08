@@ -1,4 +1,4 @@
-type type_class = Void | Char | Int | Long | Float | Signed | Unsigned (* | UserDefined of Id.t *)
+type type_class = Void | Char | Int | Long | Float | Signed | Unsigned
     deriving (Show)
 
 (* type type_qualifier = Const | Volatile *)
@@ -20,9 +20,9 @@ let const_type = function
   | CharVal _ -> Type.Char
   | FloatVal _ -> Type.Float
 
-type parameter =
-    Parameter of type_class * Id.v
-  | PointerParameter of type_class * Id.v (* pointer comes only in parameters *)
+type 'a parameter =
+    Parameter of type_class * 'a
+  | PointerParameter of type_class * 'a (* pointer comes only in parameters *)
     deriving (Show)
 
 let parameter_id = function
@@ -33,12 +33,15 @@ let parameter_type = function
   | Parameter(typ, _) -> convert_syntactic_type typ
   | PointerParameter(typ, _) -> Type.Array(convert_syntactic_type typ)
 
-type variable =
-    Variable of Id.v * type_class * const_value
+type ('a, 'b) variable =
+    Variable of 'a * type_class * 'b
     deriving (Show)
 
-type function_signature = { name: Id.l; return_type: type_class; parameters: parameter list }
+type 'a global_variable = ('a, const_value) variable
     deriving (Show)
 
-type array_signature = { id: Id.v; content_type: type_class; size: int }
+type 'a function_signature = { name: Id.l; return_type: type_class; parameters: 'a parameter list }
+    deriving (Show)
+
+type 'a array_signature = { id: 'a; content_type: type_class; size: int }
     deriving (Show)

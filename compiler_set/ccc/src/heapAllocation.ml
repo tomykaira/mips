@@ -8,6 +8,8 @@ type 'a exp =
   | Or             of 'a * 'a
   | Add            of 'a * 'a
   | Sub            of 'a * 'a
+  | Sll            of 'a * int
+  | Sra            of 'a * int
   | Negate         of 'a
   | LoadHeap       of 'a
   | LoadHeapImm    of int
@@ -22,10 +24,9 @@ type instruction =
   | Assignment   of Id.t * Id.t exp
   | CallAndSet   of Id.t * Id.l * Id.t list      (* with variable binding *)
   | Call         of Id.l * Id.t list      (* just calling *)
-  | Definition   of variable
   | BranchZero   of Id.t * Id.l
-  | BranchEqual  of Id.t * Id.t * Id.l
-  | BranchLT     of Id.t * Id.t * Id.l
+  | BranchEq     of Id.t * Id.t * Id.l
+  | BranchLt     of Id.t * Id.t * Id.l
   | Goto         of Id.l
   | Return       of Id.t
   | ReturnVoid
@@ -33,7 +34,7 @@ type instruction =
   | StoreHeapImm of Id.t * int
     deriving (Show)
 
-type t = { functions : (Definition.function_signature * instruction list) list;
+type t = { functions : (Id.v Definition.function_signature * instruction list) list;
            initialize_code : instruction list }
       deriving (Show)
 
@@ -100,6 +101,12 @@ let convert_exp exp =
       expand_exp var1 (fun n1 ->
         expand_exp var2 (fun n2 ->
           Exp(Sub(n1, n2))))
+    | Flow.Sll(var, i) ->
+      expand_exp var (fun n ->
+        Exp(Sll(n, i)))
+    | Flow.Sra(var, i) ->
+      expand_exp var (fun n ->
+        Exp(Sra(n, i)))
     | Flow.Negate(var) ->
       expand_exp var (fun n ->
         Exp(Negate(n)))
@@ -156,14 +163,14 @@ let convert_instruction = function
     arg_assignments @ [Call(label, names)]
   | Flow.BranchZero(var, l) ->
     insert_load var (fun name -> [BranchZero(name, l)])
-  | Flow.BranchEqual(var1, var2, l) ->
+  | Flow.BranchEq(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchEqual(name1, name2, l)]))
-  | Flow.BranchLT(var1, var2, l) ->
+        [BranchEq(name1, name2, l)]))
+  | Flow.BranchLt(var1, var2, l) ->
     insert_load var1 (fun name1 ->
       insert_load var2 (fun name2 ->
-        [BranchLT(name1, name2, l)]))
+        [BranchLt(name1, name2, l)]))
   | Flow.Return(var) ->
     insert_load var (fun name -> [Return(name)])
   | Flow.ArraySet(array, index, value) ->
@@ -174,20 +181,24 @@ let convert_instruction = function
          Assignment(temp, Add(temp, index_name));
          StoreHeap(value_name, temp)]))
 
-  | Flow.Definition(Definition.Variable(id, typ, const)) -> [Definition(Variable(Id.raw id, typ, const))]
   | Flow.Label(l)      -> [Label(l)]
   | Flow.Goto(l)       -> [Goto(l)]
   | Flow.ReturnVoid    -> [ReturnVoid]
 
-let temp_name = Id.unique "pointer"
-
 let assign_global { functions = funs; initialize_code = code } t =
   let assign_and_save value location =
-    [Assignment(temp_name, Const(value));
-     StoreHeapImm(temp_name, location)]
+    let var = Id.unique "value" in
+    [Assignment(var, Const(value));
+     StoreHeapImm(var, location)]
   in
   let rec push_zeros top size =
-    concat_map (fun i -> assign_and_save (Definition.IntVal 0) i) (range top (top + size - 1))
+    let pointer = Id.unique "start" in
+    let end_pointer = Id.unique "end" in
+    let initial_value = Id.unique "init" in
+    [Assignment(pointer, Const(IntVal(top)));
+     Assignment(end_pointer, Const(IntVal(top + size)));
+     Assignment(initial_value, Const(IntVal(0)));
+     Call(Id.L "initialize_array", [pointer; end_pointer; initial_value])]
   in
   match t with
     | Flow.Function(signature, insts) ->
@@ -206,5 +217,6 @@ let assign_global { functions = funs; initialize_code = code } t =
 
 let convert ts =
   let result = List.fold_left assign_global { functions = []; initialize_code = []} ts in
+  Printf.eprintf "%d" (heap.size);
   print_endline (Show.show<t> result);
   result

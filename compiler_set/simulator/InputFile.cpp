@@ -3,11 +3,11 @@
 
 using namespace std;
 
-InputFile::InputFile(simulation_options * opt) {
-	if (opt->input_file) {
-		fp = fopen(opt->input_file, "r");
+InputFile::InputFile(const char * filename) {
+	if (filename) {
+		fp = fopen(filename, "r");
 		if (fp == NULL) {
-			throw(string("input file is enabled, but failed to open: ") + string(opt->input_file));
+			throw(string("input file is enabled, but failed to open: ") + string(filename));
 		}
 	} else {
 		fp = NULL;

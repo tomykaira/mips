@@ -132,6 +132,8 @@ float asF(uint32_t r)
 #define DUMP_PC { printf("\tcurrent_pc: %d %s\n", pc, ROM[pc-1].getInst().c_str()); }
 #define DUMP_STACK { for (int i = 1; i < stack_pointer; i ++) {printf("\ts%2d: %5d %s\n", i, internal_stack[i]-1, ROM[internal_stack[i]-1].getInst().c_str());} }
 
+#define DELAY_SLOT 2 //遅延スロットの数
+
 //-----------------------------------------------------------------------------
 //
 // エンディアンの変換
@@ -228,7 +230,6 @@ int load_program(simulation_options *opt)
 //-----------------------------------------------------------------------------
 int simulate(simulation_options * opt)
 {
-	int counter = 0;
 	uint32_t inst;
 	int print_count=-1;
 	uint8_t opcode, funct;
@@ -245,11 +246,18 @@ int simulate(simulation_options * opt)
 		return 1;
 
 	Logger logger = Logger(opt);
-	InputFile input_file = InputFile(opt);
+	InputFile input_file = InputFile(opt->input_file);
+	InputFile key_file = InputFile(opt->key_file);
 
 	bool debug_flag = false;
 
 	int end_marker = 0;
+
+	FR = RAM_SIZE-1;
+	HR = 0;
+
+	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
+	int dshd = 0;                      //キューの先頭
 
 	// メインループ
 	do
@@ -270,6 +278,10 @@ int simulate(simulation_options * opt)
 		}
 		assert(FR < RAM_SIZE);
 		assert(HR < RAM_SIZE);
+
+		dshd = (dshd+1)%(DELAY_SLOT+1);
+		pc += dspc[dshd];
+		dspc[dshd] = 0;
 
 		assert(rom_addr(pc) >= 0);
 		inst = ROM[rom_addr(pc)].getCode();
@@ -342,6 +354,8 @@ int simulate(simulation_options * opt)
 
 		cnt++;
 		pc += ROM_ADDRESSING_UNIT;
+
+
 
 		if (debug_flag) {
 			DUMP_PC
@@ -444,22 +458,22 @@ int simulate(simulation_options * opt)
 
 				break;
 			case BEQ:
-				if (IRS == IRT) pc += IMM + (-1);
+			        if (IRS == IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLT:
-				if (IRS <  IRT) pc += IMM + (-1);
+			        if (IRS <  IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLE:
-				if (IRS <= IRT) pc += IMM + (-1);
+			        if (IRS <= IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBEQ:
-				if (asF(FRS) == asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) == asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLT:
-				if (asF(FRS) < asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) <  asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLE:
-				if (asF(FRS) <= asF(FRT)) pc += IMM + (-1);
+			        if (asF(FRS) <= asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case JR:
 			  	jump_logger.push_back(pc);
@@ -528,22 +542,24 @@ int simulate(simulation_options * opt)
 				logger.reg("INPUTB", get_rt(inst), IRT);
 				break;
 			case OUTPUTB:
-				switch (IRT & 0xff) {
-				case 231:
-					if (end_marker == 0) { end_marker ++; }
-					else end_marker = 0;
-					break;
-				case 181:
-					if (end_marker == 1) { end_marker ++; }
-					else end_marker = 0;
-					break;
-				case 130:
-					if (end_marker == 2) { return 0; }
-					else end_marker = 0;
-					break;
-				default:
-					end_marker = 0;
-					break;
+				if (!opt->disable_end_marker) {
+					switch (IRT & 0xff) {
+					case 231:
+						if (end_marker == 0) { end_marker ++; }
+						else end_marker = 0;
+						break;
+					case 181:
+						if (end_marker == 1) { end_marker ++; }
+						else end_marker = 0;
+						break;
+					case 130:
+						if (end_marker == 2) { return 0; }
+						else end_marker = 0;
+						break;
+					default:
+						end_marker = 0;
+						break;
+					}
 				}
 				if (opt->enable_stdout &&
 				    end_marker == 0) { // 終了マーカは無視。ログには出す
@@ -556,21 +572,11 @@ int simulate(simulation_options * opt)
 				break;
 			case READKEY:
 				if (! opt->lib_test_mode) {
-					fprintf(stderr, "Send 0x1C(A) for READKEY\n");
+					display.preview();
 					usleep(10*1000);
 				}
-				if (counter < 5) {
-					IRT = 0x340;
-				} else if (counter < 8) {
-					IRT = 0x30a;
-				} else if (counter < 14) {
-					IRT = 0x340;
-				} else if (counter < 18) {
-					IRT = 0x37f;
-				} else {
-					return 0;
-				}
-				counter++;
+				IRT = key_file.read();
+				logger.reg("READKEY", get_rt(inst), IRT);
 				break;
 			case PROGRAM:
 				{
@@ -615,7 +621,6 @@ int simulate(simulation_options * opt)
 					}
 					break;
 				case 8:
-					display.preview();
 					break;
 				default:
 					break;
@@ -650,8 +655,10 @@ int main(int argc, char** argv)
 	opt.enable_record_mem         = false;
 	opt.enable_record_register    = false;
 	opt.enable_record_io          = false;
+	opt.disable_end_marker        = false;
 	opt.lib_test_mode             = false;
 	opt.input_file                = NULL;
+	opt.key_file                  = NULL;
 	opt.target_binary             = NULL;
 
 	strcpy(dirpath, argv[0]);
@@ -666,11 +673,13 @@ int main(int argc, char** argv)
 			{"io",         no_argument,       0,  'o' },
 			{"no-stdout",  no_argument,       0,  'S' },
 			{"input",      required_argument, 0,  'f' },
+			{"keyread",    required_argument, 0,  'k' },
 			{"libtest",    no_argument,       0,  't' },
+			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:t", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:x", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -699,10 +708,20 @@ int main(int argc, char** argv)
 			opt.lib_test_mode = true;
 			break;
 
+		case 'x':
+			opt.disable_end_marker = true;
+			break;
+
 		case 'f':
 			length = strlen(optarg);
 			opt.input_file = (char*)calloc(length + 1, sizeof(char));
 			strcpy(opt.input_file, optarg);
+			break;
+
+		case 'k':
+			length = strlen(optarg);
+			opt.key_file = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.key_file, optarg);
 			break;
 
 		default:

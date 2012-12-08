@@ -56,6 +56,8 @@ and statement =
   | STI   of Reg.i * Reg.i * int
   | FSTI  of Reg.i * Reg.f * int
   | RETURN
+  | INPUTB of Reg.i
+  | OUTPUTB of Reg.i
   | HALT
 
 let rec print_stat out_channel stat =
@@ -113,6 +115,11 @@ let rec print_stat out_channel stat =
       print_save "sti" reg1 reg2 off
     | FSTI(reg1, reg2, off) ->
       print_save "fsti" reg1 reg2 off
+
+    | OUTPUTB(reg1) ->
+      print1 "outputb" (Reg.show reg1)
+    | INPUTB(reg1) ->
+      print1 "inputb" (Reg.show reg1)
 
 let rec print_int_exp out_channel destination exp =
   let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s\n" inst (Reg.show destination) arg in

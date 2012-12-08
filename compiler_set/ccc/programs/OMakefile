@@ -1,9 +1,9 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean
+.PHONY: clean command.sim vim.sim vim.test
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
-SIMULATOR = ../../simulator/simulator -t
+SIMULATOR = ../../simulator/simulator
 LINKER = ../helper/linker.sh
 
 %.bin: %.s
@@ -21,3 +21,11 @@ clean:
 
 .BUILD_FAILURE:
 	true
+
+command.sim: command.bin
+	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
+
+vim.sim: vim.bin
+	$(SIMULATOR) $< -k test/vim/$(CASE).case $(OPTION)
+
+.SUBDIRS: test/vim

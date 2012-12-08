@@ -21,9 +21,11 @@ open Syntax
 %token EQUAL_EQUAL
 %token GT
 %token GT_EQUAL
+%token GT_GT
 %token INCREMENT
 %token LT
 %token LT_EQUAL
+%token LT_LT
 %token L_BRACE
 %token L_BRACKET
 %token L_PAREN
@@ -61,7 +63,7 @@ open Syntax
 
 %token <Id.t> ID
 
-%type <Syntax.t list> translation_unit
+%type <Id.t Syntax.t list> translation_unit
 %start translation_unit
 
 %%
@@ -75,12 +77,16 @@ translation_unit:
 external_decl:
 | function_definition
     { $1 }
-| variable_definition
+| global_variable_definition
     { GlobalVariable($1) }
 | array_definition
     { $1 }
 | macro_definition
     { DefineMacro($1) }
+
+global_variable_definition:
+| type_class ID EQUAL const SEMICOLON
+    { Variable($2, $1, $4) }
 
 function_definition:
 | type_class ID L_PAREN parameter_list R_PAREN compound_stat
@@ -100,9 +106,9 @@ parameter_list:
 
 parameter:
 | type_class ID
-    { Parameter($1, Id.V $2) }
+    { Parameter($1, $2) }
 | type_class ASTERISK ID
-    { PointerParameter($1, Id.V $3) }
+    { PointerParameter($1, $3) }
 
 type_class:
 | TYPE_CLASS
@@ -110,7 +116,7 @@ type_class:
 
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
-    { Array({id = Id.A $2; content_type = $1; size = $4}) }
+    { Array({id = $2; content_type = $1; size = $4}) }
 
 macro_definition:
 | SHARP_DEFINE ID const
@@ -132,8 +138,8 @@ variable_definition_list:
     { $1 @ [$2] }
 
 variable_definition:
-| type_class ID EQUAL const SEMICOLON
-    { Variable(Id.V $2, $1, $4) }
+| type_class ID EQUAL assignment_exp SEMICOLON
+    { Variable($2, $1, $4) }
 
 
 stat:
@@ -151,21 +157,18 @@ stat:
     { $1 }
 
 labeled_stat:
-| ID COLON stat
-    { Label(Id.L $1, $3) }
+| ID COLON
+    { Label(Id.L $1) }
 
 exp_stat:
 | exp SEMICOLON
     { Exp($1) }
-/* |     SEMICOLON */
 
 compound_stat:
 | L_BRACE stat_list R_BRACE
     { Block([], $2) }
 | L_BRACE variable_definition_list stat_list R_BRACE
     { Block($2, $3) }
-/* | L_BRACE decl_list           R_BRACE */
-/* | L_BRACE                     R_BRACE */
 
 stat_list:
 | stat
@@ -188,23 +191,14 @@ case_definitions:
     { $1 @ [$2] }
 
 case_definition:
-| CASE const COLON stat
+| CASE const COLON stat_list
     { SwitchCase($2, $4) }
-| DEFAULT COLON stat
+| DEFAULT COLON stat_list
     { DefaultCase($3) }
 
 iteration_stat:
 | WHILE L_PAREN exp R_PAREN stat
     { While($3, $5) }
-/* | 'do' stat 'while' L_PAREN exp R_PAREN SEMICOLON */
-/* | 'for' L_PAREN exp SEMICOLON exp SEMICOLON exp R_PAREN stat */
-/* | 'for' L_PAREN exp SEMICOLON exp SEMICOLON	R_PAREN stat */
-/* | 'for' L_PAREN exp SEMICOLON	SEMICOLON exp R_PAREN stat */
-/* | 'for' L_PAREN exp SEMICOLON	SEMICOLON	R_PAREN stat */
-/* | 'for' L_PAREN	SEMICOLON exp SEMICOLON exp R_PAREN stat */
-/* | 'for' L_PAREN	SEMICOLON exp SEMICOLON	R_PAREN stat */
-/* | 'for' L_PAREN	SEMICOLON	SEMICOLON exp R_PAREN stat */
-/* | 'for' L_PAREN	SEMICOLON	SEMICOLON	R_PAREN stat */
 
 jump_stat:
 | GOTO ID SEMICOLON
@@ -234,30 +228,17 @@ assignment_exp:
 
 assignee_exp:
 | ID
-    { VarSet(Id.V $1) }
+    { VarSet($1) }
 | ID L_BRACKET exp R_BRACKET
-    { ArraySet(Id.A $1, $3) }
-
-/* TODO */
-/* assignment_operator: */
-/* | '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' */
-/* | '>>=' | '&=' | '^=' | '|=' */
+    { ArraySet($1, $3) }
 
 conditional_exp:
 | binary_exp
     { $1 }
-/* | binary_exp '?' exp ':' conditional_exp */
-/*     { ConditionalOperator($1, $3, $5) } */
 
 binary_exp:
 | equality_exp
     { $1 }
-/* | and_exp AND equality_exp */
-/*     { BitAnd($1, $3) } */
-/* | exclusive_or_exp '^' and_exp */
-/*     { BitXor($1, $3) } */
-/* | inclusive_or_exp '|' exclusive_or_exp */
-/*     { BitOr($1, $3) } */
 | binary_exp AND_AND equality_exp
     { And($1, $3) }
 | binary_exp PIPE_PIPE equality_exp
@@ -273,17 +254,19 @@ equality_exp:
 | equality_exp LT shift_expression
     { LessThan($1, $3) }
 | equality_exp GT shift_expression
-    { GreaterThan($1, $3) }
+    { LessThan($3, $1) }
 | equality_exp LT_EQUAL shift_expression
-    { Not(GreaterThan($1, $3)) }
+    { Not(LessThan($3, $1)) }
 | equality_exp GT_EQUAL shift_expression
     { Not(LessThan($1, $3)) }
 
 shift_expression:
 | additive_exp
     { $1 }
-/* | shift_expression '<<' additive_exp */
-/* | shift_expression '>>' additive_exp */
+| shift_expression LT_LT INT_VAL
+    { Sll($1, $3) }
+| shift_expression GT_GT INT_VAL
+    { Sra($1, $3) }
 
 additive_exp:
 |  mult_exp
@@ -306,8 +289,6 @@ mult_exp:
 cast_exp:
 | unary_exp
     { $1 }
-/* | L_PAREN type_name R_PAREN cast_exp */
-/*     { TypeCast($2, $4) } */
 
 unary_exp:
 | postfix_exp
@@ -329,9 +310,9 @@ postfix_exp:
 
 primary_exp:
 | ID
-    { Var(Id.V $1) }
+    { Var($1) }
 | ID L_BRACKET exp R_BRACKET
-    { ArrayRef(Id.A $1, $3) }
+    { ArrayRef($1, $3) }
 | const
     { Const($1) }
 | L_PAREN exp R_PAREN
@@ -344,6 +325,8 @@ argument_exp_list:
     { $1 @ [$3] }
 
 const:
+| MINUS INT_VAL
+    { IntVal(0 - $2) }
 | INT_VAL
     { IntVal($1) }
 | CHAR_VAL

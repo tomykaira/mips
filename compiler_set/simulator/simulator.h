@@ -8,7 +8,9 @@ typedef struct _options {
 	bool enable_record_register;
 	bool enable_record_io;
 	bool lib_test_mode;
+	bool disable_end_marker;
 	char * input_file;
+	char * key_file;
 	char * target_binary;
 } simulation_options;
 

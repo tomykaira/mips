@@ -147,68 +147,68 @@ and g' = function (* 各命令のアセンブリ生成 *)
 
   | Tail, IfEq(x, y, e1, e2) ->
       let b_taken = Id.genid "beq_taken" in
-      Out.print buf (Out.BEq(x, y, b_taken));
+      Out.print buf (Out.BEq(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
   | Tail, IfLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfLE(y,x,e2,e1)) else
       let b_taken = Id.genid "blt_taken" in
-      Out.print buf (Out.BLT(x, y, b_taken));
+      Out.print buf (Out.BLT(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
   | Tail, IfLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfLT(y,x,e2,e1)) else
       let b_taken = Id.genid "ble_taken" in
-      Out.print buf (Out.BLE(x, y, b_taken));
+      Out.print buf (Out.BLE(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
   | Tail, IfFEq(x, y, e1, e2) ->
       let b_taken = Id.genid "fbeq_taken" in
-      Out.print buf (Out.FBEq(x, y, b_taken));
+      Out.print buf (Out.FBEq(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
   | Tail, IfFLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfFLE(y,x,e2,e1)) else
       let b_taken = Id.genid "fblt_taken" in
-      Out.print buf (Out.FBLT(x, y, b_taken));
+      Out.print buf (Out.FBLT(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
   | Tail, IfFLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (Tail, IfFLT(y,x,e2,e1)) else
       let b_taken = Id.genid "fble_taken" in
-      Out.print buf (Out.FBLE(x, y, b_taken));
+      Out.print buf (Out.FBLE(x, y, b_taken, []));
       g'_tail_if e1 e2 b_taken
 
   | NonTail(z), IfEq(x, y, e1, e2) ->
       let b_taken = Id.genid "beq_taken" in
-      Out.print buf (Out.BEq(x, y, b_taken));
+      Out.print buf (Out.BEq(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "beq" b_taken
   | NonTail(z), IfLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (NonTail(z), IfLE(y,x,e2,e1)) else
       let b_taken = Id.genid "blt_taken" in
-      Out.print buf (Out.BLT(x, y, b_taken));
+      Out.print buf (Out.BLT(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "blt" b_taken
   | NonTail(z), IfLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (NonTail(z), IfLT(y,x,e2,e1)) else
       let b_taken = Id.genid "ble_taken" in
-      Out.print buf (Out.BLE(x, y, b_taken));
+      Out.print buf (Out.BLE(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "ble" b_taken
   | NonTail(z), IfFEq(x, y, e1, e2) ->
       let b_taken = Id.genid "fbeq_taken" in
-      Out.print buf (Out.FBEq(x, y, b_taken));
+      Out.print buf (Out.FBEq(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "fbeq" b_taken
   | NonTail(z), IfFLT(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (NonTail(z), IfFLE(y,x,e2,e1)) else
       let b_taken = Id.genid "fblt_taken" in
-      Out.print buf (Out.FBLT(x, y, b_taken));
+      Out.print buf (Out.FBLT(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "fblt" b_taken
   | NonTail(z), IfFLE(x, y, e1, e2) ->
       if e1 = Ans(Nop) && e2 = Ans(Nop) then () else
       if e2 = Ans(Nop) then g' (NonTail(z), IfFLT(y,x,e2,e1)) else
       let b_taken = Id.genid "fble_taken" in
-      Out.print buf (Out.FBLE(x, y, b_taken));
+      Out.print buf (Out.FBLE(x, y, b_taken, []));
       g'_non_tail_if (NonTail(z)) e1 e2 "fble" b_taken
 
 (* 関数呼び出しの仮想命令の実装 *)
@@ -262,8 +262,6 @@ and g' = function (* 各命令のアセンブリ生成 *)
 
 and g'_tail_if e1 e2 b_taken =
   let stackset_back = !stackset in
-  Out.print buf Out.Nop;
-  Out.print buf Out.Nop;
   g (Tail, e2);
   Out.print buf (Out.Label b_taken);
   stackset := stackset_back;
@@ -271,8 +269,6 @@ and g'_tail_if e1 e2 b_taken =
 and g'_non_tail_if dest e1 e2 b b_taken =
   let b_cont = Id.genid (b ^ "_cont") in
   let stackset_back = !stackset in
-  Out.print buf Out.Nop;
-  Out.print buf Out.Nop;
   g (dest, e2);
   let stackset1 = !stackset in
   Out.print buf (Out.J b_cont);

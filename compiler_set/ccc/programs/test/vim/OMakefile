@@ -1,0 +1,18 @@
+.PHONY: clean test
+
+SIMULATOR = ../../../../simulator/simulator -t
+
+TEST_TARGETS = $(ls *.case)
+TEST_JOBS = $(replacesuffixes .case, .test, $(TEST_TARGETS))
+
+test: $(TEST_JOBS)
+
+%.test: %.output %.result
+	diff $*.output $*.result
+	touch $@
+
+%.result: %.case ../../vim.bin
+	$(SIMULATOR) ../../vim.bin -k $< > $@
+
+clean:
+	rm -f *.result *.test

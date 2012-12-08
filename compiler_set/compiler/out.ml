@@ -38,12 +38,12 @@ type exp = (* 一つ一つの命令に対応する式 *)
   | FStI of Id.t * Id.t * int
   | FLdR of Id.t * Id.t * Id.t
 
-  | BEq of Id.t * Id.t * string
-  | BLT of Id.t * Id.t * string
-  | BLE of Id.t * Id.t * string
-  | FBEq of Id.t * Id.t * string
-  | FBLT of Id.t * Id.t * string
-  | FBLE of Id.t * Id.t * string
+  | BEq of Id.t * Id.t * string * t
+  | BLT of Id.t * Id.t * string * t
+  | BLE of Id.t * Id.t * string * t
+  | FBEq of Id.t * Id.t * string * t
+  | FBLT of Id.t * Id.t * string * t
+  | FBLE of Id.t * Id.t * string * t
 
   | J of string
   | Jr of Id.t
@@ -53,13 +53,26 @@ type exp = (* 一つ一つの命令に対応する式 *)
   | Inputb of Id.t
   | Outputb of Id.t
   | Halt
-type t = exp list
+and t = exp list
 
 let print buf = function
   | AddI(x,y,i) | SubI(x,y,i) when x = y && i = 0 -> ()
   | t -> buf := t::!buf
 
-let o oc = function
+let dsn = 2 (* 遅延スロットの数 *)
+
+(* 遅延スロットを出力する関数 *)
+let rec print_ds oc ds =
+  assert (List.length ds <= dsn);
+  let rec print_ds_sub n ds =
+    if n <= 0 then () else
+    match ds with
+    | [] -> Printf.fprintf oc "\tnop\n"; print_ds_sub (n-1) []
+    | x::xs -> o oc x; print_ds_sub (n-1) xs in
+  print_ds_sub dsn ds
+
+(* 本体 *)
+and o oc = function
   | Label l -> Printf.fprintf oc "%s:\n" l
   | SetL (x, l)  -> Printf.fprintf oc "\tsetl\t%s, %s\n" x l
   | Nop -> Printf.fprintf oc "\tnop\n"
@@ -94,12 +107,24 @@ let o oc = function
   | FStI (x, y, i) -> Printf.fprintf oc "\tfsti\t%s, %s, %d\n" x y i
   | FLdR (x, y, z) -> Printf.fprintf oc "\tfldr\t%s, %s, %s\n" x y z
 
-  | BEq (x, y, l) -> Printf.fprintf oc "\tbeq\t%s, %s, %s\n" x y l
-  | BLT (x, y, l) -> Printf.fprintf oc "\tblt\t%s, %s, %s\n" x y l
-  | BLE (x, y, l) -> Printf.fprintf oc "\tble\t%s, %s, %s\n" x y l
-  | FBEq (x, y, l) -> Printf.fprintf oc "\tfbeq\t%s, %s, %s\n" x y l
-  | FBLT (x, y, l) -> Printf.fprintf oc "\tfblt\t%s, %s, %s\n" x y l
-  | FBLE (x, y, l) -> Printf.fprintf oc "\tfble\t%s, %s, %s\n" x y l
+  | BEq (x, y, l, ds) ->
+      Printf.fprintf oc "\tbeq\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
+  | BLT (x, y, l, ds) ->
+      Printf.fprintf oc "\tblt\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
+  | BLE (x, y, l, ds) ->
+      Printf.fprintf oc "\tble\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
+  | FBEq (x, y, l, ds) ->
+      Printf.fprintf oc "\tfbeq\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
+  | FBLT (x, y, l, ds) ->
+      Printf.fprintf oc "\tfblt\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
+  | FBLE (x, y, l, ds) ->
+      Printf.fprintf oc "\tfble\t%s, %s, %s\n" x y l;
+      print_ds oc ds;
 
   | J l -> Printf.fprintf oc "\tj\t%s\n" l
   | Jr x -> Printf.fprintf oc "\tjr\t%s\n" x

@@ -24,22 +24,24 @@ int read_byte_from_rs(int fdr, int write_done, Option *opts) {
     break;
   default:
     for (int i = 0; i < ret; i++) {
-      switch (buf[i]) {
-      case 231:
-        if (end_marker == 0) { end_marker ++; goto no_print; }
-        else end_marker = 0;
-        break;
-      case 181:
-        if (end_marker == 1) { end_marker ++; goto no_print; }
-        else end_marker = 0;
-        break;
-      case 130:
-        if (end_marker == 2) { return 1; }
-        else end_marker = 0;
-        break;
-      default:
-        end_marker = 0;
-        break;
+      if (!opts->no_end_code) {
+        switch (buf[i]) {
+        case 231:
+          if (end_marker == 0) { end_marker ++; goto no_print; }
+          else end_marker = 0;
+          break;
+        case 181:
+          if (end_marker == 1) { end_marker ++; goto no_print; }
+          else end_marker = 0;
+          break;
+        case 130:
+          if (end_marker == 2) { return 1; }
+          else end_marker = 0;
+          break;
+        default:
+          end_marker = 0;
+          break;
+        }
       }
       if (opts->io_type == 0) {
         printf("%c", buf[i]);

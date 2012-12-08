@@ -17,12 +17,13 @@ when 'test'
   target_directories = ['small', 'compare', 'io', 'large', 'min-rt', 'Loreley/test/with-ocaml', 'Loreley/test/with-answer']
   task_suffix = 'test'
 when 'core'
-  target_directories = ['asm', 'small', 'compare', 'io', 'large', 'min-rt']
+  target_directories = ['small', 'compare', 'io', 'large', 'min-rt']
   task_suffix = 'test_core'
 when 'min-rt'
   target_directories = ['min-rt']
   task_suffix = 'test'
 else
+  target_directories = ARGV
   STDERR.puts "Unknown test mode.  \"test\" or \"core\""
 end
 

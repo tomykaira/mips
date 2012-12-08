@@ -2,7 +2,8 @@
 
 COMPILER = ../../src/main
 ASSEMBLER = ../../../assembler/assembler
-SIMULATOR = ../../../simulator/simulator -t
+SIMULATOR = ../../../simulator/simulator
+SIM_OPTION = -t
 LINKER = ../../helper/linker.sh
 C_HEADER = ../../helper/runner.c
 
@@ -17,8 +18,8 @@ test: $(TEST_JOBS)
 	diff $*.gcc $*.sim
 	touch $@
 
-%.sim: %.bin
-	$(SIMULATOR) $< | $(FORMATTER) > $@
+%.sim: %.bin $(SIMULATOR)
+	$(SIMULATOR) $(SIM_OPTION) $< | $(FORMATTER) > $@
 
 %.bin: %.s
 	$(ASSEMBLER) $< $@
@@ -32,7 +33,7 @@ test: $(TEST_JOBS)
 %.gcc_c: %.c
 	cat $(C_HEADER) $< > $@
 
-%.s: %.c
+%.s: %.c $(COMPILER) $(LINKER)
 	$(COMPILER) $< > /dev/null
 	$(LINKER) $@
 

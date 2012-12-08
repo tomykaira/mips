@@ -51,6 +51,10 @@ add_pc:
 	addi	$r10, $r10, 1
 	j	load_start
 load_end:
+	addi	$r1, $r0, 63
+	slli	$r1, $r1, 15
+	addi	$r1, $r1, 32767
+	addi	$r2, $r0, 0
 	call	end_of_loader
 	j	loader
 	halt			# never reach here

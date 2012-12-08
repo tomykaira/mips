@@ -5,26 +5,27 @@ FILES[] =
 	extendedSet
 	extendedMap
 	entity
+	util
 	definition
+	type
 	syntax
 	lexer
 	parser
-	main
-	type
-	typing
-	util
+	macroExpand
+	alpha
+	branchExpansion
 	asm
 	reg
 	flatExp
 	simpleControl
-	alpha
 	flow
 	heapAllocation
+	schedule
 	liveAnalyzer
 	registerAllocation
 	memoryAllocation
 	generateAsm
-	macroExpand
+	main
 
 LIB = ccc
 PROGRAM = main
