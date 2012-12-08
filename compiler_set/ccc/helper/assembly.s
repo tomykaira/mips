@@ -1520,3 +1520,73 @@ load_end:
 
 halt:
 	halt
+
+inputb:
+	inputb	$r3
+	return
+
+str_equal:
+	addi	$r6, $r0, 0
+str_equal_loop:
+	ldr	$r7, $r3, $r6
+	ldr	$r8, $r4, $r6
+	beq	$r7, $r8, str_equal_next
+	nop
+	nop
+	j	str_equal_false
+str_equal_next:
+	addi	$r6, $r6, 1
+	blt	$r6, $r5, str_equal_loop
+	nop
+	nop
+str_equal_true:
+	addi	$r3, $r0, 1
+	return
+str_equal_false:
+	addi	$r3, $r0, 0
+	return
+
+# return string length
+copy_string:
+	addi	$r6, $r3, 0
+	addi	$r3, $r0, 0
+copy_string_loop:
+	ldr	$r7, $r4, $r3
+	beq	$r7, $r0, copy_string_end
+	add	$r8, $r6, $r3
+	nop
+	sti	$r7, $r8, 0
+	addi	$r3, $r3, 1
+	j	copy_string_loop
+	nop
+	nop
+copy_string_end:
+	return
+
+copy_n_string:
+	addi	$r6, $r3, 0
+	addi	$r3, $r0, 0
+copy_n_string_loop:
+	ldr	$r7, $r4, $r3
+	beq	$r7, $r0, copy_n_string_end
+	add	$r8, $r6, $r3
+	nop
+	sti	$r7, $r8, 0
+	addi	$r3, $r3, 1
+	blt	$r3, $r5, copy_n_string_loop
+	nop
+	nop
+copy_n_string_end:
+	return
+
+error:
+	debug	6
+	halt
+
+debug:
+	debug	6
+	return
+
+debug_input:
+	debug	9
+	return

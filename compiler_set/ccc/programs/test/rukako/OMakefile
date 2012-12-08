@@ -1,0 +1,21 @@
+.PHONY: clean test
+
+SIMULATOR = ../../../../simulator/simulator
+
+TEST_TARGETS = $(ls *.lisp)
+TEST_JOBS = $(replacesuffixes .lisp, .test, $(TEST_TARGETS))
+
+test: $(TEST_JOBS)
+
+%.test: %.output %.result
+	diff $*.output $*.result
+	touch $@
+
+%.result: %.lisp ../../rukako.bin $(SIMULATOR)
+	$(SIMULATOR) ../../rukako.bin -f $< > $@
+
+%.output: %.lisp
+	ruby -e 'STDIN.readlines.each {|x| if m = /;;OUTPUT:(.*)/.match(x); puts m[1]; end }' < $< > $@
+
+clean:
+	rm -f *.result *.test *.output

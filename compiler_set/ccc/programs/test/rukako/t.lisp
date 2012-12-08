@@ -1,0 +1,2 @@
+(print t)
+;;OUTPUT:t
