@@ -136,6 +136,16 @@ int update_environment(int params, int args) {
   }
 }
 
+int move_exp(int exp_id) {
+  int new_id = exp_id();
+  if (ATOM(exp_id)) {
+    expression[new_id] = expression[exp_id];
+  } else {
+    expression[new_id] = CONS(move_exp(CAR(exp_id)), move_exp(CDR(exp_id)));
+  }
+  return new_id;
+}
+
 int evaluate(int exp_id) {
   if (ATOM(exp_id)) {
     if (env[expression[exp_id]]) {
@@ -206,10 +216,14 @@ int evaluate(int exp_id) {
       {
         int lambda = CADR(exp_id);
         int args = CDDR(exp_id);
+
+        // if expression stack is not sufficient,
+        // you can save and restore max id here
         if (expression[CAR(lambda)] == L_LAMBDA) {
+          int new_exp_id = move_exp(CADDR(lambda));
           update_environment(CADR(lambda), args);
-          evaluate(CADDR(lambda));
-          expression[exp_id] = expression[CADDR(lambda)];
+          evaluate(new_exp_id);
+          expression[exp_id] = expression[new_exp_id];
         } else {
           error(L_LAMBDA);
         }
