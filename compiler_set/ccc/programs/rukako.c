@@ -228,9 +228,11 @@ int evaluate_cond(int exp_id) {
   if (NILP(expression[exp_id])) {
     return;
   } else if (!NILP(evaluate(CAAR(exp_id)))) {
-    expression[exp_id] = evaluate(CADAR(exp_id));
+    evaluate(CADAR(exp_id));
+    expression[exp_id] = expression[CADAR(exp_id)];
   } else {
-    expression[exp_id] = evaluate_cond(CDR(exp_id));
+    evaluate_cond(CDR(exp_id));
+    expression[exp_id] = expression[CDR(exp_id)];
   }
 }
 
