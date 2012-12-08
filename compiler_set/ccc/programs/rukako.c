@@ -32,6 +32,18 @@
 #define L_LABEL   11
 #define L_APPLY   12
 
+#define TOO_MANY_INPUT        0xf01
+#define TOO_MANY_EXP          0xf02
+#define TOO_MANY_ATOM         0xf03
+#define INVALID_PARAM         0xf04
+#define TOO_DEEP_CALL         0xf05
+#define NEGATIVE_CALL_DEPTH   0xf06
+#define LIST_EXPECTED         0xf07
+#define NOT_LAMBDA            0xf08
+#define INVALID_LABEL_NAME    0xf09
+#define FUNCTION_NOT_FOUND    0xf0a
+#define R_PAREN_NOT_FOUND     0xf0b
+
 #define DEBUG 0
 
 int str_equal(char * str1, char * str2, int length);
@@ -58,7 +70,7 @@ char output[1024];
 
 int exp_id() {
   if (exp_counter >= 32768) {
-    error(124);
+    error(TOO_MANY_EXP);
   }
   exp_counter += 1;
   return exp_counter;
@@ -66,7 +78,7 @@ int exp_id() {
 
 int atom_id() {
   if (atom_counter >= 256) {
-    error(242);
+    error(TOO_MANY_ATOM);
   }
   atom_counter += 1;
   return atom_counter;
@@ -82,6 +94,9 @@ void read_input() {
     }
     input[i] = byte;
     i += 1;
+  }
+  if (i >= 1024) {
+    error(TOO_MANY_INPUT);
   }
 }
 
@@ -152,10 +167,8 @@ int update_environment(int params, int args) {
     if (ATOM(CAR(params))) {
       env[(call_depth << 8) + expression[CAR(params)]] = SET_BIT(expression[CAR(args)]);
     } else {
-      debug(999);
       print(params);
-      print(args);
-      halt();
+      error(INVALID_PARAM);
     }
     params = CDR(params);
     args = CDR(args);
@@ -175,14 +188,14 @@ int move_exp(int exp_id) {
 int before_call() {
   call_depth += 1;
   if (call_depth >= 16) {
-    error(92);
+    error(TOO_DEEP_CALL);
   }
 }
 
 int after_call() {
   call_depth -= 1;
   if (call_depth < 0) {
-    error(94);
+    error(NEGATIVE_CALL_DEPTH);
   }
 }
 
@@ -216,12 +229,18 @@ int evaluate(int exp_id) {
     // car
     case 1:
       evaluate(CADR(exp_id));
+      if (ATOM(CADR(exp_id))) {
+        error(LIST_EXPECTED);
+      }
       expression[exp_id] = expression[CAADR(exp_id)];
       break;
 
     // cdr
     case 2:
       evaluate(CADR(exp_id));
+      if (ATOM(CADR(exp_id))) {
+        error(LIST_EXPECTED);
+      }
       expression[exp_id] = expression[CDR(CADR(exp_id))];
       break;
 
@@ -297,7 +316,7 @@ int evaluate(int exp_id) {
           if (ATOM(lambda_name)) {
             env[(call_depth << 8) + expression[lambda_name]] = SET_BIT(expression[lambda]);
           } else {
-            error(99);
+            error(INVALID_LABEL_NAME);
           }
 
           new_exp_id = move_exp(CADDR(lambda));
@@ -306,7 +325,7 @@ int evaluate(int exp_id) {
           expression[exp_id] = expression[new_exp_id];
 
         } else {
-          error(L_LAMBDA);
+          error(NOT_LAMBDA);
         }
 
         after_call();
@@ -334,7 +353,7 @@ int evaluate(int exp_id) {
           after_call();
         } else {
           print(exp_id);
-          error(expression[exp_id] + 1, expression[CAR(exp_id)]);
+          error(FUNCTION_NOT_FOUND);
         }
       }
       break;
@@ -403,7 +422,7 @@ void parse_input(int id) {
     if (input[input_pointer] == ')') {
       input_pointer += 1;
     } else {
-      error(')');
+      error(R_PAREN_NOT_FOUND);
     }
     skip_space();
 
