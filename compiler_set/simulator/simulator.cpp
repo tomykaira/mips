@@ -56,7 +56,7 @@ void backup_registers() {
 }
 
 // いいかげんな call stack
-#define CALL_STACK_SIZE (1 << 20)
+#define CALL_STACK_SIZE 255
 
 // 即値
 #define IMM get_imm(inst)
@@ -481,6 +481,7 @@ int simulate(simulation_options * opt)
 				break;
 			case CALL:
 			        jump_logger.push_back(pc);
+			        cerr << ROM[pc-1].getInst() << endl;
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
