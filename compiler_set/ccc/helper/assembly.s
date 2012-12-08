@@ -1583,6 +1583,10 @@ error:
 	debug	6
 	halt
 
+debug:
+	debug	6
+	return
+
 debug_input:
 	debug	9
 	return

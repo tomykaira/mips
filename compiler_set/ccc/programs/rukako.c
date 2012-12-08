@@ -14,6 +14,7 @@
 #define GEN_ATOM(x) (x)
 #define NTH_ATOM(x) ((x) << 6)
 #define NILP(x) (x == 0)
+#define LISTP(x) (!ATOM(x) || expression[x] == L_NIL)
 
 #define L_NIL      0
 #define L_CAR      1
@@ -68,20 +69,21 @@ void read_input() {
 }
 
 void reconstruct_list(int exp_id) {
-  reconstruct(CAR(exp_id));
-  if (expression[CDR(exp_id)] == L_NIL) {
+  if (expression[exp_id] == L_NIL) {
     return;
-  } else if (ATOM(CDR(exp_id))) {
+  }
+  output[output_pointer] = ' ';
+  output_pointer += 1;
+  reconstruct(CAR(exp_id));
+  if (LISTP(CDR(exp_id))) {
+    reconstruct_list(CDR(exp_id));
+  } else {
     output[output_pointer] = ' ';
     output[output_pointer + 1] = '.';
     output[output_pointer + 2] = ' ';
     output_pointer += 3;
 
     reconstruct(CDR(exp_id));
-  } else {
-    output[output_pointer] = ' ';
-    output_pointer += 1;
-    reconstruct_list(CDR(exp_id));
   }
 }
 
@@ -94,17 +96,15 @@ void reconstruct(int exp_id) {
 
     reconstruct(CAR(exp_id));
 
-    if (ATOM(CDR(exp_id)) && expression[CDR(exp_id)] != L_NIL) {
+    if (LISTP(CDR(exp_id))) {
+      reconstruct_list(CDR(exp_id));
+    } else {
       output[output_pointer] = ' ';
       output[output_pointer + 1] = '.';
       output[output_pointer + 2] = ' ';
       output_pointer += 3;
 
       reconstruct(CDR(exp_id));
-    } else {
-      output[output_pointer] = ' ';
-      output_pointer += 1;
-      reconstruct_list(CDR(exp_id));
     }
 
     output[output_pointer] = ')';
@@ -200,12 +200,12 @@ void skip_space() {
 void parse_list(int id) {
   int left = exp_id();
   int right = exp_id();
-  expression[id] = CONS(left, right);
-  parse_input(left);
-  skip_space();
   if (input[input_pointer] == ')') {
     expression[right] = L_NIL;
   } else {
+    expression[id] = CONS(left, right);
+    parse_input(left);
+    skip_space();
     parse_list(right);
   }
 }
@@ -240,7 +240,7 @@ void parse_input(int id) {
   } else {
     // read ATOM
     int length = 0;
-    int atom_pointer = 1;
+    int atom_pointer = 0;
     int new_id = atom_id();
 
     while (input[input_pointer] != ' '
