@@ -1,2 +1,2 @@
-(print . (t . nil))
+(print t)
 ;;OUTPUT:t

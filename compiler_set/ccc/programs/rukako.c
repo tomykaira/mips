@@ -79,6 +79,8 @@ void reconstruct_list(int exp_id) {
 
     reconstruct(CDR(exp_id));
   } else {
+    output[output_pointer] = ' ';
+    output_pointer += 1;
     reconstruct_list(CDR(exp_id));
   }
 }
@@ -224,13 +226,14 @@ void parse_input(int id) {
       input_pointer += 1;
       skip_space();
       parse_input(right);
-      if (input[input_pointer] == ')') {
-        input_pointer += 1;
-      } else {
-        error(')');
-      }
+      skip_space();
     } else {
       parse_list(right);
+    }
+    if (input[input_pointer] == ')') {
+      input_pointer += 1;
+    } else {
+      error(')');
     }
     skip_space();
 

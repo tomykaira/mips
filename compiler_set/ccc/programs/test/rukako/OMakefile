@@ -18,4 +18,4 @@ test: $(TEST_JOBS)
 	ruby -e 'STDIN.readlines.each {|x| if m = /;;OUTPUT:(.*)/.match(x); print m[1]; end }' < $< > $@
 
 clean:
-	rm -f *.result *.test
+	rm -f *.result *.test *.output

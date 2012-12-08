@@ -1,2 +1,2 @@
-(print . ((eq . (A . (A . nil))) . nil))
+(print (eq A A))
 ;;OUTPUT:t

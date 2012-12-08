@@ -1,2 +1,2 @@
-(print . ((atom . (nil . nil)) . nil))
+(print (atom nil))
 ;;OUTPUT:t

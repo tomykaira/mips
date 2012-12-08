@@ -1,2 +1,2 @@
-(print . ((cons ((a . (b . nil)) . nil)) . nil))
+(print (cons a b))
 ;;OUTPUT:(a . b)
