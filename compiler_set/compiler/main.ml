@@ -35,6 +35,7 @@ let offin = ref false
 let offcf = ref false
 let offte = ref false
 let offel = ref false
+let offaa = ref false
 let offll = ref false
 let offut = ref false
 let offet = Global.offet := false; Global.offet
@@ -51,7 +52,7 @@ let off flag f x = if !flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' = off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offaa AliasAnalysis.f (off offbe Beta.f (off offcs Cse.f e)))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'
@@ -142,6 +143,7 @@ let () =
    ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
    ("-offIfThenElse", Arg.Set offel, "off: NO if then else");
    ("-offElim", Arg.Set offel, "off: NO Elim");
+   ("-offAliasAnalysis", Arg.Set offaa, "off: NO Alias Analysis");
    ("-offLambdaLift", Arg.Set offll, "off: NO LambdaLift");
    ("-offUnfoldTuple", Arg.Set offut, "off: NO Unfold Tuple");
    ("-offEmbedTuple", Arg.Set offet, "off: NO Embed Tuple");
