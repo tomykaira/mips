@@ -10,6 +10,7 @@
 #define TOO_LARGE_FILE 0xf01
 #define NO_EMPTY_TABLE 0xf02
 #define NO_EMPTY_DIRECTORY_ENTRY_POSITION 0xf03
+#define CLUSTER_NOT_FOUND 0xf04
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
@@ -162,7 +163,7 @@ int read_directory_entry(int rde) {
 int find_empty_directory_index(int rde) {
   int index = 0;
   while (index < DIRECTORY_ENTRY_SIZE) {
-    int first = read_sd(D(RDE, index, 0));
+    int first = read_sd(D(rde, index, 0));
     if (first == 0) {
       return index;
     }
@@ -351,17 +352,30 @@ void write_file(int cluster_id, int length) {
   int start = ((cluster_id - 2) << 14) + 0x18000;
   int i = 0;
 
-  // empty entries should be 0
-  while (i < CLUSTER_SIZE) {
-    write_sd(start + i, 0);
-    i += 1;
-  }
-
   i = 0;
   while (i < length) {
     write_sd(start + i, file[i]);
     i += 1;
   }
+}
+
+void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
+  int index = 0;
+  int rde = ((cluster_id - 2) << 14) + 0x18000;
+  while (index < DIRECTORY_ENTRY_SIZE) {
+    int address = D(rde, index, 0);
+    int cluster_id = (read_sd(address + 27) << 8) + read_sd(address + 26);
+    debug(cluster_id, file_cluster_id);
+    if (cluster_id == file_cluster_id) {
+      write_sd(address + 28, new_size);
+      write_sd(address + 29, new_size >> 8);
+      write_sd(address + 30, new_size >> 16);
+      write_sd(address + 31, new_size >> 24);
+      return ;
+    }
+    index += 1;
+  }
+  error(CLUSTER_NOT_FOUND);
 }
 
 void main() {
@@ -396,6 +410,20 @@ void main() {
   extname[1] = 'X';
   extname[2] = 'T';
   create_file_entry(RDE + (empty_index << 5), 0, cluster_id, file_length);
+
+  // update file
+  cluster_id = 0x0b4a;
+  read_file(0x2d38000, 0x09);
+  file[9] = 'x';
+  file[10] = 'x';
+  file[11] = 'x';
+  file[12] = 'x';
+  file[13] = 'x';
+  file[14] = 'x';
+  file[15] = 'x';
+  file_length = 16;
+  write_file(cluster_id, file_length);
+  update_file_size(0xb49, cluster_id, file_length);
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
