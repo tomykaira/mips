@@ -1590,3 +1590,14 @@ debug:
 debug_input:
 	debug	9
 	return
+
+# byte read_sd(int address)
+read_sd:
+	addi	$r4, $r3, 0
+	readsd	$r4, $r3
+	return
+
+# void write_sd(int address, int data)
+write_sd:
+	writesd	$r3, $r4
+	return
