@@ -72,6 +72,8 @@
 #define DISPLAY (0b001000)
 #define READKEY (0b001001)
 #define PROGRAM (0b001010)
+#define READSD  (0b001011)
+#define WRITESD (0b001100)
 
 using namespace std;
 #endif

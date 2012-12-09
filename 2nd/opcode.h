@@ -48,3 +48,5 @@ parameter HALT    = 6'b111111;
 parameter DISPLAY = 6'b001000;
 parameter READKEY = 6'b001001;
 parameter PROGRAM = 6'b001010;
+parameter READSD  = 6'b001011;
+parameter WRITESD = 6'b001100;
