@@ -7,6 +7,7 @@ open Syntax
 %token <int>   INT_VAL
 %token <float> FLOAT_VAL
 %token <char>  CHAR_VAL
+%token <string> STRING
 
 /* alphabetical order */
 %token AND
@@ -116,7 +117,9 @@ type_class:
 
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
-    { Array({id = $2; content_type = $1; size = $4}) }
+    { Array({id = $2; content_type = $1; size = $4; initial = None}) }
+| type_class ID L_BRACKET INT_VAL R_BRACKET EQUAL STRING SEMICOLON
+    { Array({id = $2; content_type = $1; size = $4; initial = Some($7)}) }
 
 macro_definition:
 | SHARP_DEFINE ID const

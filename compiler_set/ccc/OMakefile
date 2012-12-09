@@ -19,7 +19,7 @@ BYTE_ENABLED = $(not $(OCAMLOPT_EXISTS))
 OCAMLPPFLAGS  += -pp 'deriving'
 OCAMLDEPFLAGS += $(OCAMLPPFLAGS)
 
-.SUBDIRS: src test programs test/cases
+.SUBDIRS: src test programs
 
 clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc

@@ -21,3 +21,5 @@ all : $(OCamlProgram $(PROGRAM), $(FILES))
 
 check : all
 	./$(PROGRAM)
+
+.SUBDIRS: cases example
