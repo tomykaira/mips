@@ -5,13 +5,21 @@ COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
 SIMULATOR = ../../simulator/simulator
 LINKER = ../helper/linker.sh
+LIBRARIES[]=
+	base.c
+	daru.c
 
 %.bin: %.s
 	$(ASSEMBLER) $< $@
 
-%.s: %.c ../helper/assembly.s
-	$(COMPILER) $< > /dev/null
-	$(LINKER) $@
+Compile(file)=
+	tmp = $(tmpfile file)
+	cat $(LIBRARIES) $(file).c > $(tmp).c
+	$(COMPILER) $(tmp).c > /dev/null
+	$(LINKER) $(tmp).s > $(file).s
+
+%.s: %.c $(LIBRARIES) ../helper/assembly.s
+	Compile($*)
 
 clean:
 	rm -f *.s *.sim *.bin

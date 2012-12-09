@@ -18,18 +18,14 @@
 #define FAT_ENTRY(address) ((read_sd(address + 1) << 8) + read_sd(address))
 #define B(cluster_id) ((((cluster_id) - 2) << 14) + 0x18000)
 
-// constant strings
-int copied0[8] = "COPIED0";
-int new[8] = "NEW";
-int txt[3] = "TXT";
-int xxx[8] = "xxxxxxxx";
-
 int output_length = 0;
 int file_length = 0;
 
 char directory_name[8];
 char output[1024];
 char file[0x4000];
+char filename[8];
+char extname[3];
 
 int directory_entries[0x4000];
 
@@ -55,7 +51,8 @@ int div_binary_search(int a, int b, int left, int right) {
   }
 }
 
-void print_int (int x) {
+void print_int (char * output, int x) {
+  int size = 0;
   int tx = 0;
   int dx = 0;
   int flg = 0;
@@ -261,9 +258,6 @@ int create_fat_entry() {
   error(NO_EMPTY_TABLE);
 }
 
-char filename[8];
-char extname[3];
-
 void write_filename(int address) {
   int pointer = 0;
   int got_null = 0;
@@ -400,57 +394,4 @@ void delete_file(int cluster_id, int file_cluster_id) {
   int address = D(rde, index, 0);
 
   write_sd(address, 0xe5);
-}
-
-void main() {
-  int entry_count = 0;
-  int cluster_id = 0;
-  int empty_index = 0;
-
-  // create directory
-  cluster_id = create_fat_entry();
-  create_empty_directory(cluster_id, 0); // parent = RDE
-  empty_index = find_empty_directory_index(RDE);
-  copy_n_string(new, 4);
-  filename[3] = 0;
-  extname[0] = 0;
-  create_file_entry(RDE + (empty_index << 5), 1, cluster_id, 0);
-
-  // create file
-  // create copied0.txt under the root
-  cluster_id = create_fat_entry();
-  read_file(0x2d38000, 0x09);
-  write_file(cluster_id, file_length);
-  empty_index = find_empty_directory_index(RDE);
-  copy_n_string(filename, copied0, 8);
-  copy_n_string(extname, txt, 3);
-  create_file_entry(RDE + (empty_index << 5), 0, cluster_id, file_length);
-
-  // update file
-  // add xxxxx to the last of hoge/test
-  cluster_id = 0x0b4a;
-  read_file(0x2d38000, 0x09);
-  copy_n_string(file + 9, xxx, 8);
-  file_length = 16;
-  write_file(cluster_id, file_length);
-  update_file_size(0xb49, cluster_id, file_length);
-
-  // delete file
-  // delete cebackup/backup.bk1
-  cluster_id = 0x03;
-  delete_file(0x02, cluster_id);
-
-  entry_count = read_directory_entry(RDE);
-  list_directory(entry_count);
-  send_rs(output, output_length);
-
-  entry_count = read_directory_entry(0x2d34000);
-  list_directory(entry_count);
-  send_rs(output, output_length);
-
-  read_file(0x2d38000, 0x09);
-  copy_n_string(output, file, file_length);
-  output_length = file_length;
-  send_rs(output, output_length);
-  return;
 }
