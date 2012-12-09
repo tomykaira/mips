@@ -4,13 +4,18 @@
 #define RDE 0x14000
 #define DIRECTORY_ENTRY_SIZE 0x200 // 512
 #define DIRECTORY_ENTRY_LINE 0x20 // 32
+#define USER_DATA 0x18000
+
+#define TOO_LARGE_FILE 0xf01
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
 
 int output_length = 0;
+int file_length = 0;
 
 char output[1024];
+char file[0x4000];
 
 int directory_entries[0x4000];
 
@@ -67,13 +72,33 @@ int list_directory(int count) {
   }
 }
 
+int read_file(int address, int size) {
+  int i = 0;
+  if (size > 0x4000) {
+    error(TOO_LARGE_FILE);
+  }
+  while (i < size) {
+    file[i] = read_sd(address + i);
+    i += 1;
+  }
+  file_length = size;
+  return size;
+}
+
 void main() {
   int entry_count = 0;
 
   entry_count = read_directory_entry(RDE);
-
   list_directory(entry_count);
+  send_rs(output, output_length);
 
+  entry_count = read_directory_entry(0x2d34000);
+  list_directory(entry_count);
+  send_rs(output, output_length);
+
+  read_file(0x2d38000, 0x09);
+  copy_n_string(output, file, file_length);
+  output_length = file_length;
   send_rs(output, output_length);
   return;
 }
