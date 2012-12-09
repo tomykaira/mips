@@ -19,6 +19,120 @@ char file[0x4000];
 
 int directory_entries[0x4000];
 
+void put_char(char c) {
+  output[output_length] = c;
+  output_length += 1;
+}
+
+int div_binary_search(int a, int b, int left, int right) {
+  int mid = (left + right) >> 1;
+  int x = mid*b;
+
+  if (right - left <= 1) {
+    return left;
+  } else {
+    if (x < a) {
+      return div_binary_search(a, b, mid, right);
+    } else if (x == a) {
+      return mid;
+    } else {
+      return div_binary_search(a, b, left, mid);
+    }
+  }
+}
+
+void print_int (int x) {
+  int tx = 0;
+  int dx = 0;
+  int flg = 0;
+  if (x<0) {
+    put_char('-');
+    x = -x;
+  }
+
+  tx = div_binary_search(x, 100000000, 0, 3);
+  dx = tx*100000000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 10000000, 0, 10);
+  dx = tx*10000000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 1000000, 0, 10);
+  dx = tx*1000000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 100000, 0, 10);
+  dx = tx*100000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 10000, 0, 10);
+  dx = tx*10000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 1000, 0, 10);
+  dx = tx*1000;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 100, 0, 10);
+  dx = tx*100;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  tx = div_binary_search(x, 10, 0, 10);
+  dx = tx*10;
+  x = x - dx;
+  if (tx <= 0)
+    flg = 0;
+  else {
+    put_char('0' + tx);
+    flg = 1;
+  }
+
+  put_char('0' + x);
+}
+
 int read_directory_entry(int rde) {
   int disk_entry_id = 0;
   int logical_entry_id = 0;
@@ -37,11 +151,6 @@ int read_directory_entry(int rde) {
     disk_entry_id += 1;
   }
   return logical_entry_id;
-}
-
-void put_char(char c) {
-  output[output_length] = c;
-  output_length += 1;
 }
 
 int list_directory(int count) {
@@ -87,6 +196,11 @@ int read_file(int address, int size) {
 
 void main() {
   int entry_count = 0;
+
+  output_length = 0;
+  print_int(12529);
+  send_rs(output, output_length);
+  return;
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
