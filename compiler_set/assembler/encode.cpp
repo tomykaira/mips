@@ -496,7 +496,7 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	if (eq(instName, "readsd"))
 	{
 	  int n = sscanf(buffer, formRR, dummy, &rs, &rt);
-	  if (n == 2)
+	  if (n == 3)
 	    {
 	      code = _readsd(rs, rt, rd);
 	      return true;
@@ -505,7 +505,7 @@ bool encode(char* instName, char* buffer, map<uint32_t, string>& labelNames, uin
 	if (eq(instName, "writesd"))
 	{
 	  int n = sscanf(buffer, formRR, dummy, &rs, &rt);
-	  if (n == 2)
+	  if (n == 3)
 	    {
 	      code = _writesd(rs, rt, rd);
 	      return true;

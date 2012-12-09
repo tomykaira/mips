@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "InputFile.h"
 #include "Display.h"
+#include "SDCard.h"
 
 #include <cmath>
 #include <cassert>
@@ -248,6 +249,7 @@ int simulate(simulation_options * opt)
 	Logger logger = Logger(opt);
 	InputFile input_file = InputFile(opt->input_file);
 	InputFile key_file = InputFile(opt->key_file);
+	SDCard sd_card = SDCard(opt->sd_file);
 
 	bool debug_flag = false;
 
@@ -688,7 +690,7 @@ int main(int argc, char** argv)
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:tk:x", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:xs:", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -735,7 +737,7 @@ int main(int argc, char** argv)
 
 		case 's':
 			length = strlen(optarg);
-			opt.key_file = (char*)calloc(length + 1, sizeof(char));
+			opt.sd_file = (char*)calloc(length + 1, sizeof(char));
 			strcpy(opt.sd_file, optarg);
 			break;
 

@@ -5,4 +5,4 @@ LD = g++
 RM = rm -f
 CFLAGS = -O3 -g -funroll-loops -Wall
 CXXFLAGS = -O3 -g -funroll-loops -Wall
-LDFLAGS = -O3 -lm
+LDFLAGS = -O3 -g -lm
