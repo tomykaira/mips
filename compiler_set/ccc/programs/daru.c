@@ -10,6 +10,7 @@
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
+#define DIRECTORY_BIT(attribute) (((attribute) << 27) >> 26)
 
 int output_length = 0;
 int file_length = 0;
@@ -155,15 +156,17 @@ int read_directory_entry(int rde) {
 
 int list_directory(int count) {
   int i = 0;
+  int cluster = 0;
+  int size = 0;
 
   output_length = 0;
   while (i < count) {
     int file_name = 0;
     int ext_name = 0;
-    while (directory_entries[E(i, file_name)] != 0x20) {
+    while (directory_entries[E(i, file_name)] != 0x20 && file_name < 8) {
       file_name += 1;
     }
-    while (directory_entries[E(i, ext_name + 8)] != 0x20) {
+    while (directory_entries[E(i, ext_name + 8)] != 0x20 && ext_name < 3) {
       ext_name += 1;
     }
 
@@ -175,6 +178,25 @@ int list_directory(int count) {
       copy_n_string(output + output_length, directory_entries + E(i, 8), ext_name);
       output_length += ext_name;
     }
+    put_char(' ');
+
+    if (DIRECTORY_BIT(directory_entries[E(i, 11)])) {
+      put_char('D');
+    } else {
+      put_char('F');
+    }
+    put_char(' ');
+
+    cluster = (directory_entries[E(i, 27)] << 8) + directory_entries[E(i, 26)];
+    print_int(cluster);
+    put_char(' ');
+
+    size = (directory_entries[E(i, 31)] << 24)
+      + (directory_entries[E(i, 30)] << 16)
+      + (directory_entries[E(i, 29)] << 8)
+      + directory_entries[E(i, 28)];
+    print_int(size);
+
     put_char('\n');
 
     i += 1;
@@ -196,11 +218,6 @@ int read_file(int address, int size) {
 
 void main() {
   int entry_count = 0;
-
-  output_length = 0;
-  print_int(12529);
-  send_rs(output, output_length);
-  return;
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
