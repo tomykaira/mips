@@ -16,6 +16,7 @@
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
 #define DIRECTORY_BIT(attribute) (((attribute) << 27) >> 26)
 #define FAT_ENTRY(address) ((read_sd(address + 1) << 8) + read_sd(address))
+#define B(cluster_id) ((((cluster_id) - 2) << 14) + 0x18000)
 
 int output_length = 0;
 int file_length = 0;
@@ -323,7 +324,7 @@ void create_file_entry(int start_address, int is_dir, int cluster_id, int size) 
 }
 
 void create_empty_directory(int cluster_id, int parent_directory) {
-  int start = ((cluster_id - 2) << 14) + 0x18000;
+  int start = B(cluster_id);
   int pointer = 0;
   int i = 0;
 
@@ -349,7 +350,7 @@ void create_empty_directory(int cluster_id, int parent_directory) {
 
 // read from file[0x4000]
 void write_file(int cluster_id, int length) {
-  int start = ((cluster_id - 2) << 14) + 0x18000;
+  int start = B(cluster_id);
   int i = 0;
 
   i = 0;
@@ -359,23 +360,40 @@ void write_file(int cluster_id, int length) {
   }
 }
 
-void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
+int find_directory_entry_index(int cluster_id, int file_cluster_id) {
   int index = 0;
-  int rde = ((cluster_id - 2) << 14) + 0x18000;
+  int rde = B(cluster_id);
   while (index < DIRECTORY_ENTRY_SIZE) {
     int address = D(rde, index, 0);
     int cluster_id = (read_sd(address + 27) << 8) + read_sd(address + 26);
-    debug(cluster_id, file_cluster_id);
-    if (cluster_id == file_cluster_id) {
-      write_sd(address + 28, new_size);
-      write_sd(address + 29, new_size >> 8);
-      write_sd(address + 30, new_size >> 16);
-      write_sd(address + 31, new_size >> 24);
-      return ;
+    if (read_sd(address + 0) != 0x00
+        && read_sd(address + 0) != 0x05
+        && read_sd(address + 0) != 0xe5
+        && cluster_id == file_cluster_id) {
+      return index;
     }
     index += 1;
   }
   error(CLUSTER_NOT_FOUND);
+}
+
+void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
+  int rde = B(cluster_id);
+  int index = find_directory_entry_index(cluster_id, file_cluster_id);
+  int address = D(rde, index, 0);
+
+  write_sd(address + 28, new_size);
+  write_sd(address + 29, new_size >> 8);
+  write_sd(address + 30, new_size >> 16);
+  write_sd(address + 31, new_size >> 24);
+}
+
+void delete_file(int cluster_id, int file_cluster_id) {
+  int rde = B(cluster_id);
+  int index = find_directory_entry_index(cluster_id, file_cluster_id);
+  int address = D(rde, index, 0);
+
+  write_sd(address, 0xe5);
 }
 
 void main() {
@@ -395,6 +413,7 @@ void main() {
   create_file_entry(RDE + (empty_index << 5), 1, cluster_id, 0);
 
   // create file
+  // create copied0.txt under the root
   cluster_id = create_fat_entry();
   read_file(0x2d38000, 0x09);
   write_file(cluster_id, file_length);
@@ -412,6 +431,7 @@ void main() {
   create_file_entry(RDE + (empty_index << 5), 0, cluster_id, file_length);
 
   // update file
+  // add xxxxx to the last of hoge/test
   cluster_id = 0x0b4a;
   read_file(0x2d38000, 0x09);
   file[9] = 'x';
@@ -424,6 +444,11 @@ void main() {
   file_length = 16;
   write_file(cluster_id, file_length);
   update_file_size(0xb49, cluster_id, file_length);
+
+  // delete file
+  // delete cebackup/backup.bk1
+  cluster_id = 0x03;
+  delete_file(0x02, cluster_id);
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
