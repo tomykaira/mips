@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "InputFile.h"
 #include "Display.h"
+#include "SDCard.h"
 
 #include <cmath>
 #include <cassert>
@@ -248,6 +249,7 @@ int simulate(simulation_options * opt)
 	Logger logger = Logger(opt);
 	InputFile input_file = InputFile(opt->input_file);
 	InputFile key_file = InputFile(opt->key_file);
+	SDCard sd_card = SDCard(opt->sd_file);
 
 	bool debug_flag = false;
 
@@ -586,6 +588,13 @@ int simulate(simulation_options * opt)
 					ROM[IRS] = b;
 					break;
 				}
+			case READSD:
+				IRT = sd_card.read_at(IRS);
+				logger.reg("READSD", get_rt(inst), IRT);
+				break;
+			case WRITESD:
+				sd_card.write_at(IRS, IRT);
+				break;
 			case DEBUG:
 				if (opt->lib_test_mode) {
 					break;
@@ -659,6 +668,7 @@ int main(int argc, char** argv)
 	opt.lib_test_mode             = false;
 	opt.input_file                = NULL;
 	opt.key_file                  = NULL;
+	opt.sd_file                   = NULL;
 	opt.target_binary             = NULL;
 
 	strcpy(dirpath, argv[0]);
@@ -674,12 +684,13 @@ int main(int argc, char** argv)
 			{"no-stdout",  no_argument,       0,  'S' },
 			{"input",      required_argument, 0,  'f' },
 			{"keyread",    required_argument, 0,  'k' },
+			{"sdcard",     required_argument, 0,  's' },
 			{"libtest",    no_argument,       0,  't' },
 			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:tk:x", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:xs:", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -722,6 +733,12 @@ int main(int argc, char** argv)
 			length = strlen(optarg);
 			opt.key_file = (char*)calloc(length + 1, sizeof(char));
 			strcpy(opt.key_file, optarg);
+			break;
+
+		case 's':
+			length = strlen(optarg);
+			opt.sd_file = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.sd_file, optarg);
 			break;
 
 		default:

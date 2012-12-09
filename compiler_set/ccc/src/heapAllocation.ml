@@ -200,6 +200,19 @@ let assign_global { functions = funs; initialize_code = code } t =
      Assignment(initial_value, Const(IntVal(0)));
      Call(Id.L "initialize_array", [pointer; end_pointer; initial_value])]
   in
+  let assign_string top size string =
+    let chars = BatString.to_list string in
+    let temp_var = Id.unique "temp" in
+    if List.length chars > size then
+      failwith (Printf.sprintf "Given string \"%s\" is too long for %d bytes" string size)
+    else
+      let string_setter = List.concat
+        (List.mapi (fun i c -> [Assignment(temp_var, Const(CharVal(c))); StoreHeapImm(temp_var, top + i)]) chars) in
+      if size > List.length chars then
+        string_setter @ push_zeros (top + List.length chars) (size - List.length chars)
+      else
+        string_setter
+  in
   match t with
     | Flow.Function(signature, insts) ->
       let new_insts = concat_map convert_instruction insts in
@@ -209,11 +222,16 @@ let assign_global { functions = funs; initialize_code = code } t =
       heap.size <- heap.size + 1;
       heap.allocation <- M.add id top heap.allocation;
       { functions = funs; initialize_code = code @ assign_and_save initial top }
-    | Flow.Array({ Definition.id = id; Definition.size = size; _ }) ->
+    | Flow.Array({ Definition.id = id; Definition.size = size; initial = initial }) ->
       let top = heap.size in
       heap.size <- heap.size + size;
       heap.allocation <- M.add id top heap.allocation;
-      { functions = funs; initialize_code = code @ push_zeros top size }
+      let initialize_code =
+        match initial with
+          | Some(str) -> assign_string top size str
+          | None -> push_zeros top size
+      in
+      { functions = funs; initialize_code = code @ initialize_code }
 
 let convert ts =
   let result = List.fold_left assign_global { functions = []; initialize_code = []} ts in

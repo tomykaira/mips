@@ -74,6 +74,8 @@ PROTO_I(_debug);
 PROTO_R(_display);
 PROTO_R(_readkey);
 PROTO_R(_program);
+PROTO_R(_readsd);
+PROTO_R(_writesd);
 
 
 // 0オペランド命令の読み込みフォーマット

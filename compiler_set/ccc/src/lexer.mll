@@ -25,6 +25,10 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
     | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
         { FLOAT_VAL(float_of_string (Lexing.lexeme lexbuf)) }
 
+    | '"'
+        { let buffer = Buffer.create 20 in
+          STRING (string buffer lexbuf) }
+
     | '&'
         { AND }
     | "&&"
@@ -167,3 +171,25 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
         { failwith "warning: unterminated comment@." }
     | _
         { comment lexbuf }
+
+  (* http://stackoverflow.com/questions/5793702/using-ocamllex-for-lexing-strings-the-tiger-compiler *)
+  and  string buffer = parse
+    | '"'
+        { Buffer.contents buffer }
+    | "\\t"
+        { Buffer.add_char buffer '\t';
+          string buffer lexbuf }
+    | "\\n"
+        { Buffer.add_char buffer '\n';
+          string buffer lexbuf }
+    | '\\' '"'
+        { Buffer.add_char buffer '"';
+          string buffer lexbuf }
+    | '\\' '\\'
+        { Buffer.add_char buffer '\\';
+          string buffer lexbuf }
+    | eof
+        { raise End_of_file }
+    | _ as char
+        { Buffer.add_char buffer char;
+          string buffer lexbuf }

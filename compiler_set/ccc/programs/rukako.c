@@ -54,6 +54,20 @@ int evaluate_cond(int exp_id);
 void parse_input(int id);
 int evaluate(int exp_id);
 
+char l_nil[32]    = "nil";
+char l_car[32]    = "car";
+char l_cdr[32]    = "cdr";
+char l_cons[32]   = "cons";
+char l_quote[32]  = "quote";
+char l_eq[32]     = "eq";
+char l_atom[32]   = "atom";
+char l_cond[32]   = "cond";
+char l_print[32]  = "print";
+char l_t[32]      = "t";
+char l_lambda[32] = "lambda";
+char l_label[32]  = "label";
+char l_apply[32]  = "apply";
+
 int input_pointer = 0;
 int exp_counter = 0;
 int atom_counter = 0;
@@ -455,81 +469,20 @@ void parse_input(int id) {
 
 int main() {
   // predefined functions
-  // nil
-  id_map[NTH_ATOM(L_NIL) + 0] = 'n';
-  id_map[NTH_ATOM(L_NIL) + 1] = 'i';
-  id_map[NTH_ATOM(L_NIL) + 2] = 'l';
+  copy_string(id_map + NTH_ATOM(L_NIL), l_nil);
+  copy_string(id_map + NTH_ATOM(L_CAR), l_car);
+  copy_string(id_map + NTH_ATOM(L_CDR), l_cdr);
+  copy_string(id_map + NTH_ATOM(L_CONS), l_cons);
+  copy_string(id_map + NTH_ATOM(L_QUOTE), l_quote);
+  copy_string(id_map + NTH_ATOM(L_EQ), l_eq);
+  copy_string(id_map + NTH_ATOM(L_ATOM), l_atom);
+  copy_string(id_map + NTH_ATOM(L_COND), l_cond);
+  copy_string(id_map + NTH_ATOM(L_PRINT), l_print);
+  copy_string(id_map + NTH_ATOM(L_T), l_t);
+  copy_string(id_map + NTH_ATOM(L_LAMBDA), l_lambda);
+  copy_string(id_map + NTH_ATOM(L_LABEL), l_label);
+  copy_string(id_map + NTH_ATOM(L_APPLY), l_apply);
 
-  // car
-  id_map[NTH_ATOM(L_CAR) + 0] = 'c';
-  id_map[NTH_ATOM(L_CAR) + 1] = 'a';
-  id_map[NTH_ATOM(L_CAR) + 2] = 'r';
-
-  // cdr
-  id_map[NTH_ATOM(L_CDR) + 0] = 'c';
-  id_map[NTH_ATOM(L_CDR) + 1] = 'd';
-  id_map[NTH_ATOM(L_CDR) + 2] = 'r';
-
-  // cons
-  id_map[NTH_ATOM(L_CONS) + 0] = 'c';
-  id_map[NTH_ATOM(L_CONS) + 1] = 'o';
-  id_map[NTH_ATOM(L_CONS) + 2] = 'n';
-  id_map[NTH_ATOM(L_CONS) + 3] = 's';
-
-  // qoute
-  id_map[NTH_ATOM(L_QUOTE) + 0] = 'q';
-  id_map[NTH_ATOM(L_QUOTE) + 1] = 'u';
-  id_map[NTH_ATOM(L_QUOTE) + 2] = 'o';
-  id_map[NTH_ATOM(L_QUOTE) + 3] = 't';
-  id_map[NTH_ATOM(L_QUOTE) + 4] = 'e';
-
-  // eq
-  id_map[NTH_ATOM(L_EQ) + 0] = 'e';
-  id_map[NTH_ATOM(L_EQ) + 1] = 'q';
-
-  // atom
-  id_map[NTH_ATOM(L_ATOM) + 0] = 'a';
-  id_map[NTH_ATOM(L_ATOM) + 1] = 't';
-  id_map[NTH_ATOM(L_ATOM) + 2] = 'o';
-  id_map[NTH_ATOM(L_ATOM) + 3] = 'm';
-
-  // cond
-  id_map[NTH_ATOM(L_COND) + 0] = 'c';
-  id_map[NTH_ATOM(L_COND) + 1] = 'o';
-  id_map[NTH_ATOM(L_COND) + 2] = 'n';
-  id_map[NTH_ATOM(L_COND) + 3] = 'd';
-
-  // print (my extension)
-  id_map[NTH_ATOM(L_PRINT) + 0] = 'p';
-  id_map[NTH_ATOM(L_PRINT) + 1] = 'r';
-  id_map[NTH_ATOM(L_PRINT) + 2] = 'i';
-  id_map[NTH_ATOM(L_PRINT) + 3] = 'n';
-  id_map[NTH_ATOM(L_PRINT) + 4] = 't';
-
-  // t
-  id_map[NTH_ATOM(L_T) + 0] = 't';
-
-  // lambda
-  id_map[NTH_ATOM(L_LAMBDA) + 0] = 'l';
-  id_map[NTH_ATOM(L_LAMBDA) + 1] = 'a';
-  id_map[NTH_ATOM(L_LAMBDA) + 2] = 'm';
-  id_map[NTH_ATOM(L_LAMBDA) + 3] = 'b';
-  id_map[NTH_ATOM(L_LAMBDA) + 4] = 'd';
-  id_map[NTH_ATOM(L_LAMBDA) + 5] = 'a';
-
-  // label
-  id_map[NTH_ATOM(L_LABEL) + 0] = 'l';
-  id_map[NTH_ATOM(L_LABEL) + 1] = 'a';
-  id_map[NTH_ATOM(L_LABEL) + 2] = 'b';
-  id_map[NTH_ATOM(L_LABEL) + 3] = 'e';
-  id_map[NTH_ATOM(L_LABEL) + 4] = 'l';
-
-  // apply
-  id_map[NTH_ATOM(L_APPLY) + 0] = 'a';
-  id_map[NTH_ATOM(L_APPLY) + 1] = 'p';
-  id_map[NTH_ATOM(L_APPLY) + 2] = 'p';
-  id_map[NTH_ATOM(L_APPLY) + 3] = 'l';
-  id_map[NTH_ATOM(L_APPLY) + 4] = 'y';
 
   atom_counter = L_APPLY;
 

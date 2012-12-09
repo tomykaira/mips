@@ -1,0 +1,27 @@
+.PHONY: test clean
+
+COMPILER = ../../src/main
+ASSEMBLER = ../../../assembler/assembler
+SIMULATOR = ../../../simulator/simulator
+SIM_OPTION = -t
+LINKER = ../../helper/linker.sh
+
+%.sim: %.bin $(SIMULATOR)
+	$(SIMULATOR) $(SIM_OPTION) $< > $@
+	cat $@
+
+%.bin: %.s
+	$(ASSEMBLER) $< $@
+
+%.s: %.c $(COMPILER) $(LINKER)
+	$(COMPILER) $< > /dev/null
+	$(LINKER) $@
+
+clean:
+	rm -f *.s *.sim *.bin
+
+.BUILD_SUCCESS:
+	true
+
+.BUILD_FAILURE:
+	true

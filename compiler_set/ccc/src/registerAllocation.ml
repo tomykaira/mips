@@ -179,8 +179,6 @@ let enable_moves node_set =
   S.iter (fun node -> MoveS.iter update_moves (node_moves node)) node_set
 
 let remove_edges node =
-  let (updated, removed) = List.partition (fun (u, v) -> u != node && v != node) !interference_edges in
-  let neighbors = List.map (fun (u, v) -> if u = node then v else u) removed in
   (* corresponds to DecrementDegree *)
   let update_worklist node =
     if just_not_significant node then begin
@@ -194,7 +192,7 @@ let remove_edges node =
       end
     end else ()
   in
-  List.iter update_worklist neighbors
+  List.iter update_worklist (S.elements (adjacent_nodes node))
 
 let simplify () =
   let (node, new_worklist) = S.pop !simplify_worklist in

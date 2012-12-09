@@ -66,7 +66,7 @@ let rename_variable env (Variable(name, typ, exp)) =
   let new_id = Id.V (Id.unique name) in
   (M.add name new_id env, Variable(new_id, typ, convert_exp env exp))
 
-let fold_rename_variable v (e, vs) =
+let fold_rename_variable (e, vs) v =
   let (e', v') = rename_variable e v in
   (e', v' :: vs)
 
@@ -77,8 +77,8 @@ let rec convert_statement (env : Id.v M.t) stat =
     | Label(l) -> Label(l)
     | Exp(e) -> Exp(go_exp e)
     | Block(variables, statements) ->
-      let (new_env, variables) = List.fold_right fold_rename_variable variables (env, []) in
-      Block(variables, List.map (convert_statement new_env) statements)
+      let (new_env, variables) = List.fold_left fold_rename_variable (env, []) variables in
+      Block(List.rev variables, List.map (convert_statement new_env) statements)
     | If(e, stat_true, Some(stat_false)) ->
       If(go_exp e, go stat_true, Some(go stat_false))
     | If(e, stat_true, None) ->

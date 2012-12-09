@@ -11,6 +11,7 @@ typedef struct _options {
 	bool disable_end_marker;
 	char * input_file;
 	char * key_file;
+	char * sd_file;
 	char * target_binary;
 } simulation_options;
 

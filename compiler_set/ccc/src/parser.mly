@@ -7,6 +7,7 @@ open Syntax
 %token <int>   INT_VAL
 %token <float> FLOAT_VAL
 %token <char>  CHAR_VAL
+%token <string> STRING
 
 /* alphabetical order */
 %token AND
@@ -116,7 +117,9 @@ type_class:
 
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
-    { Array({id = $2; content_type = $1; size = $4}) }
+    { Array({id = $2; content_type = $1; size = $4; initial = None}) }
+| type_class ID L_BRACKET INT_VAL R_BRACKET EQUAL STRING SEMICOLON
+    { Array({id = $2; content_type = $1; size = $4; initial = Some($7)}) }
 
 macro_definition:
 | SHARP_DEFINE ID const
@@ -277,27 +280,23 @@ additive_exp:
     { Sub($1, $3) }
 
 mult_exp:
-| cast_exp
-    { $1 }
-| mult_exp ASTERISK cast_exp
-    { Mul($1, $3) }
-| mult_exp SLASH cast_exp
-    { Div($1, $3) }
-| mult_exp PERCENT cast_exp
-    { Mod($1, $3) }
-
-cast_exp:
 | unary_exp
     { $1 }
+| mult_exp ASTERISK unary_exp
+    { Mul($1, $3) }
+| mult_exp SLASH unary_exp
+    { Div($1, $3) }
+| mult_exp PERCENT unary_exp
+    { Mod($1, $3) }
 
 unary_exp:
 | postfix_exp
     { $1 }
-| PLUS cast_exp
+| PLUS postfix_exp
     { $2 }
-| MINUS cast_exp
+| MINUS postfix_exp
     { Negate($2) }
-| BANG cast_exp
+| BANG postfix_exp
     { Not($2) }
 
 postfix_exp:
@@ -325,8 +324,6 @@ argument_exp_list:
     { $1 @ [$3] }
 
 const:
-| MINUS INT_VAL
-    { IntVal(0 - $2) }
 | INT_VAL
     { IntVal($1) }
 | CHAR_VAL
