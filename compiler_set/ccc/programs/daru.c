@@ -5,16 +5,21 @@
 #define DIRECTORY_ENTRY_SIZE 0x200 // 512
 #define DIRECTORY_ENTRY_LINE 0x20 // 32
 #define USER_DATA 0x18000
+#define CLUSTER_SIZE 0x4000
 
 #define TOO_LARGE_FILE 0xf01
+#define NO_EMPTY_TABLE 0xf02
+#define NO_EMPTY_DIRECTORY_ENTRY_POSITION 0xf03
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
 #define DIRECTORY_BIT(attribute) (((attribute) << 27) >> 26)
+#define FAT_ENTRY(address) ((read_sd(address + 1) << 8) + read_sd(address))
 
 int output_length = 0;
 int file_length = 0;
 
+char directory_name[8];
 char output[1024];
 char file[0x4000];
 
@@ -154,6 +159,18 @@ int read_directory_entry(int rde) {
   return logical_entry_id;
 }
 
+int find_empty_directory_index(int rde) {
+  int index = 0;
+  while (index < DIRECTORY_ENTRY_SIZE) {
+    int first = read_sd(D(RDE, index, 0));
+    if (first == 0) {
+      return index;
+    }
+    index += 1;
+  }
+  error(NO_EMPTY_DIRECTORY_ENTRY_POSITION);
+}
+
 int list_directory(int count) {
   int i = 0;
   int cluster = 0;
@@ -205,7 +222,7 @@ int list_directory(int count) {
 
 int read_file(int address, int size) {
   int i = 0;
-  if (size > 0x4000) {
+  if (size > CLUSTER_SIZE) {
     error(TOO_LARGE_FILE);
   }
   while (i < size) {
@@ -216,8 +233,134 @@ int read_file(int address, int size) {
   return size;
 }
 
+// find first empty cluster and mark it as the last cluster (0xffff)
+int create_fat_entry() {
+  int index = 0;
+  int entry = 0;
+  while (index < TABLE_SIZE) {
+    int address = FAT_TABLE1 + (index << 1);
+    entry = FAT_ENTRY(address);
+    if (entry == 0) {
+      write_sd(address, 0xff);
+      write_sd(address + 1, 0xff);
+      write_sd(FAT_TABLE2 + (index << 1), 0xff);
+      write_sd(FAT_TABLE2 + (index << 1) + 1, 0xff);
+      return index;
+    }
+    read_sd(FAT_TABLE1 + index);
+    index += 1;
+  }
+  error(NO_EMPTY_TABLE);
+}
+
+char filename[8];
+char extname[3];
+
+void write_filename(int address) {
+  int pointer = 0;
+  int got_null = 0;
+  int data = 0;
+  while (pointer < 8) {
+    if (filename[pointer] == 0) {
+      got_null = 1;
+    }
+    if (got_null) {
+      data = 0x20;
+    } else {
+      data = filename[pointer];
+    }
+    write_sd(address + pointer, data);
+    pointer += 1;
+  }
+}
+
+void write_extname(int address) {
+  int pointer = 0;
+  int got_null = 0;
+  int data = 0;
+  while (pointer < 3) {
+    if (extname[pointer] == 0) {
+      got_null = 1;
+    }
+    if (got_null) {
+      data = 0x20;
+    } else {
+      data = extname[pointer];
+    }
+    write_sd(address + pointer, data);
+    pointer += 1;
+  }
+}
+
+void create_file_entry(int start_address, int is_dir, int cluster_id, int size) {
+  int data = 0;
+  int i = 0;
+
+  write_filename(start_address);
+  write_extname(start_address + 8);
+
+  if (is_dir) {
+    data = 0x10; // directory
+  } else {
+    data = 0x20; // archive
+  }
+  write_sd(start_address + 11, data);
+
+  i = 0;
+  while (i < 14) {
+    write_sd(start_address + 12 + i, 0);
+    i += 1;
+  }
+
+  write_sd(start_address + 26, cluster_id);
+  write_sd(start_address + 27, cluster_id >> 8);
+
+  write_sd(start_address + 28, size);
+  write_sd(start_address + 29, size >> 8);
+  write_sd(start_address + 30, size >> 16);
+  write_sd(start_address + 31, size >> 24);
+}
+
+void create_empty_directory(int cluster_id, int parent_directory) {
+  int start = ((cluster_id - 2) << 14) + 0x18000;
+  int pointer = 0;
+  int i = 0;
+
+  // empty entries should be 0
+  while (i < CLUSTER_SIZE) {
+    write_sd(start + i, 0);
+    i += 1;
+  }
+
+  filename[0] = '.';
+  {
+    int i = 1;
+    while (i < 8) {
+      filename[i] = 0;
+      i += 1;
+    }
+  }
+  create_file_entry(start, 1, cluster_id, 0);
+
+  filename[1] = '.';
+  create_file_entry(start + 0x20, 1, parent_directory, 0);
+}
+
 void main() {
   int entry_count = 0;
+  int cluster_id = 0;
+  int empty_index = 0;
+
+  // create directory
+  cluster_id = create_fat_entry();
+  create_empty_directory(cluster_id, 0); // parent = RDE
+  empty_index = find_empty_directory_index(RDE);
+  filename[0] = 'N';
+  filename[1] = 'E';
+  filename[2] = 'W';
+  filename[3] = 0;
+  extname[0] = 0;
+  create_file_entry(RDE + (empty_index << 5), 1, cluster_id, 0);
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
