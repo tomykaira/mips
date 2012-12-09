@@ -346,6 +346,24 @@ void create_empty_directory(int cluster_id, int parent_directory) {
   create_file_entry(start + 0x20, 1, parent_directory, 0);
 }
 
+// read from file[0x4000]
+void write_file(int cluster_id, int length) {
+  int start = ((cluster_id - 2) << 14) + 0x18000;
+  int i = 0;
+
+  // empty entries should be 0
+  while (i < CLUSTER_SIZE) {
+    write_sd(start + i, 0);
+    i += 1;
+  }
+
+  i = 0;
+  while (i < length) {
+    write_sd(start + i, file[i]);
+    i += 1;
+  }
+}
+
 void main() {
   int entry_count = 0;
   int cluster_id = 0;
@@ -361,6 +379,23 @@ void main() {
   filename[3] = 0;
   extname[0] = 0;
   create_file_entry(RDE + (empty_index << 5), 1, cluster_id, 0);
+
+  // create file
+  cluster_id = create_fat_entry();
+  read_file(0x2d38000, 0x09);
+  write_file(cluster_id, file_length);
+  empty_index = find_empty_directory_index(RDE);
+  filename[0] = 'C';
+  filename[1] = 'O';
+  filename[2] = 'P';
+  filename[3] = 'I';
+  filename[4] = 'E';
+  filename[5] = 'D';
+  filename[6] = '0';
+  extname[0] = 'T';
+  extname[1] = 'X';
+  extname[2] = 'T';
+  create_file_entry(RDE + (empty_index << 5), 0, cluster_id, file_length);
 
   entry_count = read_directory_entry(RDE);
   list_directory(entry_count);
