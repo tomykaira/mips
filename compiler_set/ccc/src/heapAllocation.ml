@@ -228,8 +228,9 @@ let assign_global { functions = funs; initialize_code = code } t =
       heap.allocation <- M.add id top heap.allocation;
       let initialize_code =
         match initial with
-          | Some(str) -> assign_string top size str
-          | None -> push_zeros top size
+          | String(str) -> assign_string top size str
+          | Zero -> push_zeros top size
+          | Keep -> []
       in
       { functions = funs; initialize_code = code @ initialize_code }
 

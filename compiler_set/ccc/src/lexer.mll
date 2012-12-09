@@ -108,6 +108,8 @@ let ascii = [' ' - '~']              (* 0 - 127 *)
         { GOTO }
     | "if"
         { IF }
+    | "KEEP"
+        { KEEP }
     | "return"
         { RETURN }
     | "struct"
