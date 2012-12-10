@@ -13,7 +13,7 @@ void main() {
   cluster_id = create_fat_entry();
   create_empty_directory(cluster_id, 0); // parent = RDE
   empty_index = find_empty_directory_index(0);
-  copy_n_string(new, 4);
+  copy_n_string(filename, new, 4);
   filename[3] = 0;
   extname[0] = 0;
   create_file_entry(RDE + (empty_index << 5), 1, cluster_id, 0);
@@ -50,9 +50,7 @@ void main() {
   list_directory(entry_count);
   send_rs(output, output_length);
 
-  read_file(0x2d38000, 0x09);
-  copy_n_string(output, file, file_length);
-  output_length = file_length;
+  output_length = read_file(0x0b4a, 0x09, output);
   send_rs(output, output_length);
   return;
 }
