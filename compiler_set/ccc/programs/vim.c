@@ -75,6 +75,7 @@ void read() {
 
   if (entry_id == ENTRY_NOT_FOUND_ID) {
     buffer[0] = EOF;
+    file_id = 0;
   } else {
     file_id = get_cluster_id(directory_id, entry_id);
     file_size = get_file_size(directory_id, entry_id);
@@ -105,7 +106,7 @@ void read() {
 }
 
 void write() {
-  int text_pointer = 0;
+  int length = 0;
   int line = 0;
   int column = 0;
 
@@ -115,8 +116,8 @@ void write() {
     if (c == EOF) {
       break;
     } else if (c != 0) {
-      text_buffer[text_pointer] = c;
-      text_pointer += 1;
+      text_buffer[length] = c;
+      length += 1;
     }
     column += 1;
     if (column >= COLS) {
@@ -124,8 +125,19 @@ void write() {
       line += 1;
     }
   }
-  debug(text_buffer[0], text_pointer);
-  send_rs(text_buffer, text_pointer);
+
+
+  if (file_id) {
+    write_file(file_id, text_buffer, length);
+    update_file_size(directory_id, file_id, length);
+  } else {
+    int empty_index = find_empty_directory_index(directory_id);
+    file_id = create_fat_entry();
+    write_file(file_id, text_buffer, length);
+    create_file_entry(directory_id, empty_index, 0, file_id, length, filename);
+  }
+
+  send_rs(text_buffer, length);
 }
 
 void goto_last_column() {
@@ -208,8 +220,7 @@ void main(int argc)
 {
   char input = 0;
 
-  // read();
-  buffer[0] = EOF;
+  read();
 
   while (1) {
     input = read_key(); /* blocking */

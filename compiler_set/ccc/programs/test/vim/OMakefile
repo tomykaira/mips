@@ -11,8 +11,13 @@ test: $(TEST_JOBS)
 	diff $*.output $*.result
 	touch $@
 
+Simulate(target)=
+	tmp_card = $(tmpfile target, .iso)
+	cp $(SDCARD) $(tmp_card)
+	$(SIMULATOR) ../../vim.bin -a /DUMMY -s $(tmp_card) -k $< > $(target).result
+
 %.result: %.case ../../vim.bin
-	$(SIMULATOR) ../../vim.bin -a /TTT -s $(SDCARD) -k $< > $@
+	Simulate($*)
 
 clean:
 	rm -f *.result *.test

@@ -33,7 +33,6 @@ int file_length = 0;
 
 char directory_name[8];
 char output[1024];
-char file[0x4000];
 char filename[8];
 char extname[3];
 
@@ -166,7 +165,7 @@ int find_entry_by_name(int cluster_id, char * token) {
   }
 }
 
-int find_directory_entry_index(int cluster_id, int file_cluster_id) {
+int find_entry_by_cluster_id(int cluster_id, int file_cluster_id) {
   int index = 0;
   int de = B(cluster_id);
   while (index < DIRECTORY_ENTRY_SIZE) {
@@ -412,7 +411,7 @@ void create_empty_directory(int cluster_id, int parent_directory) {
 }
 
 // read from file[0x4000]
-void write_file(int cluster_id, int length) {
+void write_file(int cluster_id, char * file, int length) {
   int start = B(cluster_id);
   int i = 0;
 
@@ -425,7 +424,7 @@ void write_file(int cluster_id, int length) {
 
 void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
   int rde = B(cluster_id);
-  int index = find_directory_entry_index(cluster_id, file_cluster_id);
+  int index = find_entry_by_cluster_id(cluster_id, file_cluster_id);
   int address = D(rde, index, 0);
 
   write_sd(address + 28, new_size);
@@ -436,7 +435,7 @@ void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
 
 void delete_file(int cluster_id, int file_cluster_id) {
   int rde = B(cluster_id);
-  int index = find_directory_entry_index(cluster_id, file_cluster_id);
+  int index = find_entry_by_cluster_id(cluster_id, file_cluster_id);
   int address = D(rde, index, 0);
 
   write_sd(address, 0xe5);
