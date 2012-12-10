@@ -12,3 +12,11 @@ void print_char(char c)
 {
   write(1, &c, 1);
 }
+
+void send_rs(char * c, int length)
+{
+  int i = 0;
+  for (i = 0; i < length; i ++) {
+    print_char(c[i]);
+  }
+}

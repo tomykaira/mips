@@ -110,12 +110,18 @@ let convert_exp exp =
     | Flow.Negate(var) ->
       expand_exp var (fun n ->
         Exp(Negate(n)))
-    | Flow.ArrayGet(id, var) ->
+    | Flow.ArrayGet((Id.A(_)) as id, var) ->
       expand_exp var (fun name ->
         let temp_id = Id.unique "addr" in
         Insts([Assignment(temp_id, Const(Definition.IntVal(find_heap id)));
                Assignment(temp_id, Add(temp_id, name))],
               LoadHeap(temp_id)))
+    | Flow.ArrayGet(id, var) ->
+      expand_exp id (fun id_name ->
+        expand_exp var (fun var_name ->
+          let temp_id = Id.unique "addr" in
+          Insts([Assignment(temp_id, Add(id_name, var_name))],
+                LoadHeap(temp_id))))
 
 let generate_assignment var =
   match var with
@@ -173,13 +179,21 @@ let convert_instruction = function
         [BranchLt(name1, name2, l)]))
   | Flow.Return(var) ->
     insert_load var (fun name -> [Return(name)])
-  | Flow.ArraySet(array, index, value) ->
+  | Flow.ArraySet((Id.A(_)) as array, index, value) ->
     let temp = Id.unique "addr" in
     insert_load index (fun index_name ->
       insert_load value (fun value_name ->
         [Assignment(temp, Const(Definition.IntVal(find_heap array)));
          Assignment(temp, Add(temp, index_name));
          StoreHeap(value_name, temp)]))
+  | Flow.ArraySet(pointer, index, value) ->
+    let temp = Id.unique "addr" in
+    insert_load pointer (fun pointer_name ->
+      insert_load index (fun index_name ->
+        insert_load value (fun value_name ->
+          [Assignment(temp, Add(pointer_name, index_name));
+           StoreHeap(value_name, temp)])))
+
 
   | Flow.Label(l)      -> [Label(l)]
   | Flow.Goto(l)       -> [Goto(l)]
