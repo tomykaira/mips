@@ -35,7 +35,7 @@ command.sim: command.bin
 	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
-	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case -p $(OPTION)
+	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case $(OPTION)
 
 rukako.sim: rukako.bin
 	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp

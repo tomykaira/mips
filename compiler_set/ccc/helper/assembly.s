@@ -444,12 +444,14 @@ clear_display_start:
 send_rs:
 	addi	$r5, $r0, 0
 send_rs_start:
+	ble	$r4, $r5, send_rs_end
+	nop
+	nop
 	ldr	$r8, $r3, $r5
 	outputb	$r8
 	addi	$r5, $r5, 1
-	blt	$r5, $r4, send_rs_start
-	nop
-	nop
+	j	send_rs_start
+send_rs_end:
 	return
 
 print_int:

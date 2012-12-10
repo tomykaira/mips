@@ -124,6 +124,7 @@ void write() {
       line += 1;
     }
   }
+  debug(text_buffer[0], text_pointer);
   send_rs(text_buffer, text_pointer);
 }
 
@@ -207,7 +208,8 @@ void main(int argc)
 {
   char input = 0;
 
-  read();
+  // read();
+  buffer[0] = EOF;
 
   while (1) {
     input = read_key(); /* blocking */
