@@ -24,11 +24,8 @@ void main() {
     argument_pointer += basename(argument + argument_pointer, token);
   }
 
-  send_rs(token, 10);
-
   // create directory
   new_cluster_id = create_fat_entry();
-  debug(new_cluster_id, cluster_id);
   create_empty_directory(new_cluster_id, cluster_id);
   empty_index = find_empty_directory_index(cluster_id);
   create_file_entry(cluster_id, empty_index, 1, new_cluster_id, 0, token);

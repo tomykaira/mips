@@ -321,8 +321,6 @@ int write_name(int address, int max_length, char * name) {
     is_special_directory = 1;
   }
 
-  send_rs(name, 10);
-
   while (pointer < max_length) {
     if (name[pointer] == 0 || name[pointer] == 0x20
         || (!is_special_directory && name[pointer] == '.')) {
