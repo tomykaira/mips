@@ -60,6 +60,10 @@ let convert_instruction = function
        AssignInt(Reg.frame, ADDI(Reg.frame, offset))]
     else
       [Exec(CALL(l))]
+  | Store (reg, Heap(off)) when off > 0x7fff ->
+    [AssignInt(Reg.address, Int(off));
+     AssignInt(Reg.address, ADD(Reg.heap_pointer, Reg.address));
+     Exec(STI(reg, Reg.address, 0))]
   | Store (reg, Heap(off)) ->
     [Exec(STI(reg, Reg.heap_pointer, off))]
   | Store (reg, HeapReg(address)) ->
@@ -67,6 +71,9 @@ let convert_instruction = function
      Exec(STI(reg, Reg.address, 0))]
   | Store (reg, Stack(off)) ->
     [Exec(STI(reg, Reg.frame, -off))]
+  | Load (reg, Heap(off)) when off > 0x7fff ->
+    [AssignInt(Reg.address, Int(off));
+     AssignInt(reg, LDR(Reg.heap_pointer, Reg.address))]
   | Load (reg, Heap(off)) ->
     [AssignInt(reg, LDI(Reg.heap_pointer, off))]
   | Load (reg, HeapReg(address)) ->
