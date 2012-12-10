@@ -1,5 +1,5 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim
+.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
@@ -45,6 +45,9 @@ cat.sim: cat.bin $(SIMULATOR)
 
 ls.sim: ls.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE -p $<
+
+rm.sim: rm.bin $(SIMULATOR)
+	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $<
 
 mkdir.sim: mkdir.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/NEWDIR -p $<
