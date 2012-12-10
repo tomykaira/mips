@@ -34,7 +34,7 @@ command.sim: command.bin
 	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
-	$(SIMULATOR) $< -s /home/tomita/tmp/disk -k test/vim/$(CASE).case -h test/cat.heap -p $(OPTION)
+	$(SIMULATOR) $< -s /home/tomita/tmp/disk -k test/vim/$(CASE).case -p $(OPTION)
 
 rukako.sim: rukako.bin
 	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp
@@ -43,12 +43,12 @@ daru.sim: daru_main.bin $(SIMULATOR)
 	$(SIMULATOR) -s /home/tomita/tmp/disk $<
 
 cat.sim: cat.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -h test/cat.heap -p $<
+	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE/TEST  -p $<
 
 ls.sim: ls.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -h test/ls.heap -p $<
+	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE -p $<
 
 mkdir.sim: mkdir.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -h test/mkdir.heap -p $<
+	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE/NEWDIR -p $<
 
 .SUBDIRS: test/vim test/rukako

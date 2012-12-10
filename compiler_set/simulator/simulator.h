@@ -13,7 +13,7 @@ typedef struct _options {
 	char * input_file;
 	char * key_file;
 	char * sd_file;
-	char * heap_file;
+	char * argument;
 	char * target_binary;
 } simulation_options;
 

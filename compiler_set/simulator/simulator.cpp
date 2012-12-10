@@ -261,20 +261,14 @@ int simulate(simulation_options * opt)
 	HR = 0;
 
 	// load argument heap from file
-	if (opt->heap_file) {
-		FILE * heap_fp = fopen(opt->heap_file, "rb");
-		if (!heap_fp) {
-			perror("fopen heap_file");
-			return 1;
-		}
-		char buf[ARGUMENT_HEAP_SIZE];
-		int length = fread(buf, sizeof(char), ARGUMENT_HEAP_SIZE, heap_fp);
+	if (opt->argument) {
+		int length = strlen(opt->argument);
 		if (length == ARGUMENT_HEAP_SIZE) {
-			cerr << "Heap file can be too big for ARGUMENT_HEAP_SIZE: " << ARGUMENT_HEAP_SIZE << endl;
+			cerr << "Argument can be too big for ARGUMENT_HEAP_SIZE: " << ARGUMENT_HEAP_SIZE << endl;
 			return 1;
 		}
 		rep(i, length) {
-			RAM[i] = buf[i];
+			RAM[i] = opt->argument[i];
 		}
 	}
 
@@ -702,7 +696,7 @@ int main(int argc, char** argv)
 	opt.input_file                = NULL;
 	opt.key_file                  = NULL;
 	opt.sd_file                   = NULL;
-	opt.heap_file                 = NULL;
+	opt.argument                  = NULL;
 	opt.target_binary             = NULL;
 
 	strcpy(dirpath, argv[0]);
@@ -719,14 +713,14 @@ int main(int argc, char** argv)
 			{"input",      required_argument, 0,  'f' },
 			{"keyread",    required_argument, 0,  'k' },
 			{"sdcard",     required_argument, 0,  's' },
-			{"heap_file",  required_argument, 0,  'h' },
+			{"argument",   required_argument, 0,  'a' },
 			{"show_heap",  no_argument,       0,  'p' },
 			{"libtest",    no_argument,       0,  't' },
 			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:tk:xs:h:p", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:xs:a:p", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -777,10 +771,10 @@ int main(int argc, char** argv)
 			strcpy(opt.sd_file, optarg);
 			break;
 
-		case 'h':
+		case 'a':
 			length = strlen(optarg);
-			opt.heap_file = (char*)calloc(length + 1, sizeof(char));
-			strcpy(opt.heap_file, optarg);
+			opt.argument = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.argument, optarg);
 			break;
 
 		case 'p':
