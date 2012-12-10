@@ -135,6 +135,8 @@ float asF(uint32_t r)
 
 #define DELAY_SLOT 2 //遅延スロットの数
 
+#define ARGUMENT_HEAP_SIZE 128
+
 //-----------------------------------------------------------------------------
 //
 // エンディアンの変換
@@ -257,6 +259,25 @@ int simulate(simulation_options * opt)
 
 	FR = RAM_SIZE-1;
 	HR = 0;
+
+	// load argument heap from file
+	if (opt->heap_file) {
+		FILE * heap_fp = fopen(opt->heap_file, "rb");
+		if (!heap_fp) {
+			perror("fopen heap_file");
+			return 1;
+		}
+		char buf[ARGUMENT_HEAP_SIZE];
+		int length = fread(buf, sizeof(char), ARGUMENT_HEAP_SIZE, heap_fp);
+		if (length == ARGUMENT_HEAP_SIZE) {
+			cerr << "Heap file can be too big for ARGUMENT_HEAP_SIZE: " << ARGUMENT_HEAP_SIZE << endl;
+			return 1;
+		}
+		rep(i, length) {
+			RAM[i] = buf[i];
+		}
+	}
+
 
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
@@ -555,7 +576,7 @@ int simulate(simulation_options * opt)
 						else end_marker = 0;
 						break;
 					case 130:
-						if (end_marker == 2) { return 0; }
+						if (end_marker == 2) { goto end_simulation; }
 						else end_marker = 0;
 						break;
 					default:
@@ -646,8 +667,19 @@ int simulate(simulation_options * opt)
 	}
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
+ end_simulation:
+
 	if (!opt->lib_test_mode)
 		display.preview();
+
+	if (opt->enable_show_heap) {
+		char heap[ARGUMENT_HEAP_SIZE];
+		rep(i, ARGUMENT_HEAP_SIZE) {
+			heap[i] = RAM[i] & 0xff;
+		}
+		printf("%s\n", heap);
+	}
+
 	return 0;
 }
 
@@ -666,9 +698,11 @@ int main(int argc, char** argv)
 	opt.enable_record_io          = false;
 	opt.disable_end_marker        = false;
 	opt.lib_test_mode             = false;
+	opt.enable_show_heap          = false;
 	opt.input_file                = NULL;
 	opt.key_file                  = NULL;
 	opt.sd_file                   = NULL;
+	opt.heap_file                 = NULL;
 	opt.target_binary             = NULL;
 
 	strcpy(dirpath, argv[0]);
@@ -685,12 +719,14 @@ int main(int argc, char** argv)
 			{"input",      required_argument, 0,  'f' },
 			{"keyread",    required_argument, 0,  'k' },
 			{"sdcard",     required_argument, 0,  's' },
+			{"heap_file",  required_argument, 0,  'h' },
+			{"show_heap",  no_argument,       0,  'p' },
 			{"libtest",    no_argument,       0,  't' },
 			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:tk:xs:", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:xs:h:p", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -739,6 +775,16 @@ int main(int argc, char** argv)
 			length = strlen(optarg);
 			opt.sd_file = (char*)calloc(length + 1, sizeof(char));
 			strcpy(opt.sd_file, optarg);
+			break;
+
+		case 'h':
+			length = strlen(optarg);
+			opt.heap_file = (char*)calloc(length + 1, sizeof(char));
+			strcpy(opt.heap_file, optarg);
+			break;
+
+		case 'p':
+			opt.enable_show_heap = true;
 			break;
 
 		default:

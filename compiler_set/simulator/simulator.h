@@ -9,9 +9,11 @@ typedef struct _options {
 	bool enable_record_io;
 	bool lib_test_mode;
 	bool disable_end_marker;
+	bool enable_show_heap;
 	char * input_file;
 	char * key_file;
 	char * sd_file;
+	char * heap_file;
 	char * target_binary;
 } simulation_options;
 
