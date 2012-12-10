@@ -309,48 +309,50 @@ int create_fat_entry() {
   error(NO_EMPTY_TABLE);
 }
 
-void write_filename(int address) {
+int write_name(int address, int max_length, char * name) {
   int pointer = 0;
   int got_null = 0;
   int data = 0;
-  while (pointer < 8) {
-    if (filename[pointer] == 0) {
+  int wrote_length = max_length;
+  int is_special_directory = 0;
+
+  if ((name[0] == '.' && name[1] == 0) || (name[0] == '.' && name[1] == '.' && name[2] == 0)) {
+    is_special_directory = 1;
+  }
+
+  send_rs(name, 10);
+
+  while (pointer < max_length) {
+    if (name[pointer] == 0 || name[pointer] == 0x20
+        || (!is_special_directory && name[pointer] == '.')) {
       got_null = 1;
+      wrote_length = pointer;
     }
     if (got_null) {
       data = 0x20;
     } else {
-      data = filename[pointer];
+      data = name[pointer];
     }
     write_sd(address + pointer, data);
     pointer += 1;
   }
+
+  return wrote_length;
 }
 
-void write_extname(int address) {
-  int pointer = 0;
-  int got_null = 0;
-  int data = 0;
-  while (pointer < 3) {
-    if (extname[pointer] == 0) {
-      got_null = 1;
-    }
-    if (got_null) {
-      data = 0x20;
-    } else {
-      data = extname[pointer];
-    }
-    write_sd(address + pointer, data);
-    pointer += 1;
-  }
-}
 
-void create_file_entry(int start_address, int is_dir, int cluster_id, int size) {
+void create_file_entry(int directory_cluster_id, int index, int is_dir, int cluster_id, int size, char * name) {
   int data = 0;
   int i = 0;
+  int start_address = D(B(directory_cluster_id), index, 0);
+  int name_pointer = 0;
 
-  write_filename(start_address);
-  write_extname(start_address + 8);
+  name_pointer = write_name(start_address, 8, name);
+  if (name[name_pointer] == '.') {
+    write_name(start_address + 8, 3, name + name_pointer + 1);
+  } else {
+    write_name(start_address + 8, 3, name + name_pointer);
+  }
 
   if (is_dir) {
     data = 0x10; // directory
@@ -393,10 +395,10 @@ void create_empty_directory(int cluster_id, int parent_directory) {
       i += 1;
     }
   }
-  create_file_entry(start, 1, cluster_id, 0);
+  create_file_entry(cluster_id, 0, 1, cluster_id, 0, filename);
 
   filename[1] = '.';
-  create_file_entry(start + 0x20, 1, parent_directory, 0);
+  create_file_entry(cluster_id, 1, 1, parent_directory, 0, filename);
 }
 
 // read from file[0x4000]
@@ -428,4 +430,14 @@ void delete_file(int cluster_id, int file_cluster_id) {
   int address = D(rde, index, 0);
 
   write_sd(address, 0xe5);
+}
+
+int basename(char * from, char * to) {
+  int i = 0;
+  while (from[i] != 0 && from[i] != '/') {
+    i += 1;
+  }
+  copy_n_string(to, from, i);
+  to[i] = 0;
+  return i;
 }

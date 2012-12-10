@@ -6,16 +6,6 @@
 char token[1024];
 char file_content[0x4000];
 
-int basename(char * from, char * to) {
-  int i = 0;
-  while (from[i] != 0 && from[i] != '/') {
-    i += 1;
-  }
-  copy_n_string(to, from, i);
-  to[i] = 0;
-  return i;
-}
-
 void main() {
   int entry_count = 0;
   int cluster_id = 0;
