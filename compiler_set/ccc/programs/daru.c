@@ -11,6 +11,7 @@
 #define NO_EMPTY_TABLE 0xf02
 #define NO_EMPTY_DIRECTORY_ENTRY_POSITION 0xf03
 #define CLUSTER_NOT_FOUND 0xf04
+#define PATH_NOT_FOUND 0xf05
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
@@ -110,7 +111,7 @@ int find_entry_by_name(int cluster_id, char * token) {
     if (byte != 0 && byte != 0x05 && byte != 0xe5 && byte == token[0]) {
       int matching = 1;
 
-      token_pointer += 1;
+      token_pointer = 1;
       ptr = 1;
 
       while ( ptr < 8 && matching ) {

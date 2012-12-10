@@ -1,6 +1,6 @@
 #define COLS 80 /* replace before compile */
 #define ROWS 30
-#define EOF '!'
+#define EOF '*'
 #define EOL '\n'
 #define C(y, x) (((y) << 6) + ((y) << 4) + (x))
 
@@ -16,6 +16,8 @@ int insert_mode = 0;
 char notification[80];
 char buffer[2400];
 char text_buffer[2400];
+char file_content[0x4000];
+char token[255];
 
 void update_notification_line() {
   int i = 0;
@@ -38,6 +40,53 @@ void break_line() {
   move_and_clear_memory(buffer + C(current_line, current_column), COLS - current_column, COLS - current_column);
   current_line += 1;
   current_column = 0;
+}
+
+void read() {
+  int entry_count = 0;
+  int cluster_id = 0;
+  int directory_id = 0;
+  int empty_index = 0;
+  int argument_pointer = 0;
+  int file_size = 0;
+  int entry_id = 0;
+
+  if (argument[0] != '/') {
+    error(PATH_NOT_FOUND);
+  }
+
+  while (argument[argument_pointer] == '/') {
+    argument_pointer += 1;
+    argument_pointer += basename(argument + argument_pointer, token);
+    directory_id = cluster_id;
+    entry_id = find_entry_by_name(cluster_id, token);
+    cluster_id = get_cluster_id(cluster_id, entry_id);
+  }
+
+  file_size = get_file_size(directory_id, entry_id);
+  read_file(cluster_id, file_size, file_content);
+
+  {
+    int line = 0;
+    int column = 0;
+    int ptr = 0;
+    int got_newline = 0;
+
+    initialize_array(buffer, 2400, 0);
+
+    while (ptr < file_size) {
+      buffer[C(line, column)] = file_content[ptr];
+      if (file_content[ptr] == '\n') {
+        line += 1;
+        column = 0;
+      } else {
+        column += 1;
+      }
+      ptr += 1;
+    }
+
+    buffer[C(line, column)] = EOF;
+  }
 }
 
 void write() {
@@ -143,7 +192,7 @@ void main(int argc)
 {
   char input = 0;
 
-  buffer[0] = EOF;
+  read();
 
   while (1) {
     input = read_key(); /* blocking */

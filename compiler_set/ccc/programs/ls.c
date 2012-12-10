@@ -1,8 +1,3 @@
-// input:  /hoge/test
-// output: find me!
-
-#define PATH_NOT_FOUND 0xf08
-
 char token[1024];
 char file_content[0x4000];
 char valid_entry_ids[512];
