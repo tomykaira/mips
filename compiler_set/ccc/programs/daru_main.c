@@ -12,7 +12,7 @@ void main() {
   // create directory
   cluster_id = create_fat_entry();
   create_empty_directory(cluster_id, 0); // parent = RDE
-  empty_index = find_empty_directory_index(RDE);
+  empty_index = find_empty_directory_index(0);
   copy_n_string(new, 4);
   filename[3] = 0;
   extname[0] = 0;
@@ -23,7 +23,7 @@ void main() {
   cluster_id = create_fat_entry();
   read_file(0x2d38000, 0x09);
   write_file(cluster_id, file_length);
-  empty_index = find_empty_directory_index(RDE);
+  empty_index = find_empty_directory_index(0);
   copy_n_string(filename, copied0, 8);
   copy_n_string(extname, txt, 3);
   create_file_entry(RDE + (empty_index << 5), 0, cluster_id, file_length);
