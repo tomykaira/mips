@@ -36,119 +36,9 @@ char extname[3];
 
 int directory_entries[0x4000];
 
-void put_char(char c) {
-  output[output_length] = c;
-  output_length += 1;
-}
-
-int div_binary_search(int a, int b, int left, int right) {
-  int mid = (left + right) >> 1;
-  int x = mid*b;
-
-  if (right - left <= 1) {
-    return left;
-  } else {
-    if (x < a) {
-      return div_binary_search(a, b, mid, right);
-    } else if (x == a) {
-      return mid;
-    } else {
-      return div_binary_search(a, b, left, mid);
-    }
-  }
-}
-
-void print_int (char * output, int x) {
-  int size = 0;
-  int tx = 0;
-  int dx = 0;
-  int flg = 0;
-  if (x<0) {
-    put_char('-');
-    x = -x;
-  }
-
-  tx = div_binary_search(x, 100000000, 0, 3);
-  dx = tx*100000000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 10000000, 0, 10);
-  dx = tx*10000000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 1000000, 0, 10);
-  dx = tx*1000000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 100000, 0, 10);
-  dx = tx*100000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 10000, 0, 10);
-  dx = tx*10000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 1000, 0, 10);
-  dx = tx*1000;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 100, 0, 10);
-  dx = tx*100;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  tx = div_binary_search(x, 10, 0, 10);
-  dx = tx*10;
-  x = x - dx;
-  if (tx <= 0)
-    flg = 0;
-  else {
-    put_char('0' + tx);
-    flg = 1;
-  }
-
-  put_char('0' + x);
+// dummy, to delete
+void put_char() {
+  return;
 }
 
 int read_directory_entry(int rde) {
@@ -169,6 +59,22 @@ int read_directory_entry(int rde) {
     disk_entry_id += 1;
   }
   return logical_entry_id;
+}
+
+int get_valid_entries(int cluster_id, int entries) {
+  int address = B(cluster_id);
+  int entry_count = 0;
+  int disk_entry_id = 0;
+
+  while ( disk_entry_id < DIRECTORY_ENTRY_SIZE ) {
+    int byte = read_sd(D(address, disk_entry_id, 0));
+    if (byte != 0 && byte != 0x05 && byte != 0xe5) {
+      entries[entry_count] = disk_entry_id;
+      entry_count += 1;
+    }
+    disk_entry_id += 1;
+  }
+  return entry_count;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -279,6 +185,45 @@ int get_file_size(int directory_cluster_id, int entry_id) {
     + (read_sd(address + 30) << 16)
     + (read_sd(address + 29) << 8)
     + read_sd(address + 28);
+}
+
+int get_entry_name(int directory_cluster_id, int entry_id, char * entry_name) {
+  int address = D(B(directory_cluster_id), entry_id, 0);
+  int length = 0;
+  int ptr = 0;
+  int byte = 0;
+
+  while (ptr < 8) {
+    byte = read_sd(address + ptr);
+    if (byte == 0x20)
+      break;
+    entry_name[length] = byte;
+    length += 1;
+    ptr += 1;
+  }
+  byte = read_sd(address + 8);
+  if (byte != 0x20) {
+    entry_name[length] = '.';
+    entry_name[length + 1] = byte;
+    length += 1;
+    ptr = 9;
+    while (ptr < 11) {
+      byte = read_sd(address + ptr);
+      if (byte == 0x20)
+        break;
+      entry_name[length] = byte;
+      length += 1;
+      ptr += 1;
+    }
+  }
+  entry_name[length] = 0;
+  return length;
+}
+
+int get_is_directory(int directory_cluster_id, int entry_id) {
+  int address = D(B(directory_cluster_id), entry_id, 0);
+
+  return DIRECTORY_BIT(read_sd(address + 11));
 }
 
 int list_directory(int count) {

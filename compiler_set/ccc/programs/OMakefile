@@ -1,5 +1,5 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim cat.sim
+.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
@@ -44,5 +44,8 @@ daru.sim: daru_main.bin $(SIMULATOR)
 
 cat.sim: cat.bin $(SIMULATOR)
 	$(SIMULATOR) -s /home/tomita/tmp/disk -h test/cat.heap -p $<
+
+ls.sim: ls.bin $(SIMULATOR)
+	$(SIMULATOR) -s /home/tomita/tmp/disk -h test/ls.heap -p $<
 
 .SUBDIRS: test/vim test/rukako
