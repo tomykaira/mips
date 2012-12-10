@@ -120,7 +120,7 @@ void process_command() {
     }
 
     ptr = 0;
-    initialize_array(argument, argument + 128, 0);
+    initialize_array(argument, 128, 0);
     while (buffer[line_start] != ' '
            && buffer[line_start] != 0
            && line_start < line_end) {

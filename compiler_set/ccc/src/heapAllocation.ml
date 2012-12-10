@@ -207,12 +207,12 @@ let assign_global { functions = funs; initialize_code = code } t =
   in
   let rec push_zeros top size =
     let pointer = Id.unique "start" in
-    let end_pointer = Id.unique "end" in
+    let size_register = Id.unique "size" in
     let initial_value = Id.unique "init" in
     [Assignment(pointer, Const(IntVal(top)));
-     Assignment(end_pointer, Const(IntVal(top + size)));
+     Assignment(size_register, Const(IntVal(size)));
      Assignment(initial_value, Const(IntVal(0)));
-     Call(Id.L "initialize_array", [pointer; end_pointer; initial_value])]
+     Call(Id.L "initialize_array", [pointer; size_register; initial_value])]
   in
   let assign_string top size string =
     let chars = BatString.to_list string in

@@ -169,7 +169,7 @@ int interpret_command(char input) {
     move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
     current_line += 1;
     current_column = 0;
-    initialize_array(buffer + C(current_line, 0), buffer + C(current_line, COLS-1), 0);
+    initialize_array(buffer + C(current_line, 0), C(current_line, COLS-1) - C(current_line, 0), 0);
     buffer[C(current_line, 0)] = EOL;
     insert_mode = 1;
     break;

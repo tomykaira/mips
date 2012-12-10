@@ -1,12 +1,15 @@
 # put value into all elements from start to end
 # start end value
 initialize_array:
+	add	$r4, $r3, $r4
+initialize_array_start:
+	ble	$r4, $r3, initialize_array_end
+	nop
+	nop
 	add	$r6, $r2, $r3
 	sti	$r5, $r6, 0
 	addi	$r3, $r3, 1
-	blt	$r3, $r4, initialize_array
-	nop
-	nop
+	j	initialize_array_start
 initialize_array_end:
 	return
 
