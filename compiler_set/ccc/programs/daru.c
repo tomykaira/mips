@@ -16,7 +16,14 @@
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
 #define DIRECTORY_BIT(attribute) (((attribute) << 27) >> 26)
 #define FAT_ENTRY(address) ((read_sd(address + 1) << 8) + read_sd(address))
-#define B(cluster_id) ((((cluster_id) - 2) << 14) + 0x18000)
+
+int B(int cluster_id) {
+  if (cluster_id == 0) {
+    return RDE;
+  } else {
+    return (((cluster_id) - 2) << 14) + USER_DATA;
+  }
+}
 
 int output_length = 0;
 int file_length = 0;
@@ -164,16 +171,114 @@ int read_directory_entry(int rde) {
   return logical_entry_id;
 }
 
-int find_empty_directory_index(int rde) {
+////////////////////////////////////////////////////////////////
+// Find directory entry
+// find index in the given cluster_id
+
+int find_empty_directory_index(int cluster_id) {
   int index = 0;
+  int de = B(cluster_id);
   while (index < DIRECTORY_ENTRY_SIZE) {
-    int first = read_sd(D(rde, index, 0));
+    int first = read_sd(D(de, index, 0));
     if (first == 0) {
       return index;
     }
     index += 1;
   }
   error(NO_EMPTY_DIRECTORY_ENTRY_POSITION);
+}
+
+int find_entry_by_name(int cluster_id, char * token) {
+  int disk_entry_id = 0;
+  int logical_entry_id = 0;
+  int ptr = 0;
+
+  int i = 0;
+  int token_pointer = 0;
+  int got_null = 0;
+  int de = B(cluster_id);
+
+  while ( disk_entry_id < DIRECTORY_ENTRY_SIZE ) {
+    int address = D(de, disk_entry_id, 0);
+    int byte = read_sd(address);
+    if (byte != 0 && byte != 0x05 && byte != 0xe5 && byte == token[0]) {
+      int matching = 1;
+
+      token_pointer += 1;
+      ptr = 1;
+
+      while ( ptr < 8 && matching ) {
+        byte = read_sd(address + ptr);
+        if (byte == token[token_pointer]) {
+          token_pointer += 1;
+          ptr += 1;
+        } else if (byte == 0x20 && (token[token_pointer] == 0 || token[token_pointer] == '.')) {
+          break;
+        } else {
+          matching = 0;
+          break;
+        }
+      }
+      if (matching) {
+        if (token[token_pointer] == '.') {
+          token_pointer += 1;
+          ptr = 8;
+          while (ptr < 11) {
+            byte = read_sd(address + ptr);
+            if (byte == token[token_pointer]) {
+              token_pointer += 1;
+              ptr += 1;
+            } else if (byte == 0x20 && token[token_pointer] == 0) {
+              break;
+            } else {
+              matching = 0;
+              break;
+            }
+          }
+          if (matching) {
+            return disk_entry_id;
+          }
+        } else if (read_sd(address + 8) == 0x20) { // both has no extname
+          return disk_entry_id;
+        }
+      }
+    }
+    disk_entry_id += 1;
+  }
+  error(CLUSTER_NOT_FOUND);
+}
+
+int find_directory_entry_index(int cluster_id, int file_cluster_id) {
+  int index = 0;
+  int de = B(cluster_id);
+  while (index < DIRECTORY_ENTRY_SIZE) {
+    int address = D(de, index, 0);
+    int cluster_id = (read_sd(address + 27) << 8) + read_sd(address + 26);
+    if (read_sd(address + 0) != 0x00
+        && read_sd(address + 0) != 0x05
+        && read_sd(address + 0) != 0xe5
+        && cluster_id == file_cluster_id) {
+      return index;
+    }
+    index += 1;
+  }
+  error(CLUSTER_NOT_FOUND);
+}
+
+////////////////////////////////////////////////////////////////
+// Get entry data from directory entries
+
+int get_cluster_id(int directory_cluster_id, int entry_id) {
+  int address = D(B(directory_cluster_id), entry_id, 0);
+  return (read_sd(address + 27) << 8) + read_sd(address + 26);
+}
+
+int get_file_size(int directory_cluster_id, int entry_id) {
+  int address = D(B(directory_cluster_id), entry_id, 0);
+  return (read_sd(address + 31) << 24)
+    + (read_sd(address + 30) << 16)
+    + (read_sd(address + 29) << 8)
+    + read_sd(address + 28);
 }
 
 int list_directory(int count) {
@@ -225,16 +330,17 @@ int list_directory(int count) {
   }
 }
 
-int read_file(int address, int size) {
+
+int read_file(int cluster_id, int size, char * content) {
   int i = 0;
+  int address = B(cluster_id);
   if (size > CLUSTER_SIZE) {
     error(TOO_LARGE_FILE);
   }
   while (i < size) {
-    file[i] = read_sd(address + i);
+    content[i] = read_sd(address + i);
     i += 1;
   }
-  file_length = size;
   return size;
 }
 
@@ -358,23 +464,6 @@ void write_file(int cluster_id, int length) {
     write_sd(start + i, file[i]);
     i += 1;
   }
-}
-
-int find_directory_entry_index(int cluster_id, int file_cluster_id) {
-  int index = 0;
-  int rde = B(cluster_id);
-  while (index < DIRECTORY_ENTRY_SIZE) {
-    int address = D(rde, index, 0);
-    int cluster_id = (read_sd(address + 27) << 8) + read_sd(address + 26);
-    if (read_sd(address + 0) != 0x00
-        && read_sd(address + 0) != 0x05
-        && read_sd(address + 0) != 0xe5
-        && cluster_id == file_cluster_id) {
-      return index;
-    }
-    index += 1;
-  }
-  error(CLUSTER_NOT_FOUND);
 }
 
 void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
