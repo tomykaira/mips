@@ -12,7 +12,7 @@ test: $(TEST_JOBS)
 	touch $@
 
 %.result: %.case ../../vim.bin
-	$(SIMULATOR) ../../vim.bin -k $< > $@
+	$(SIMULATOR) ../../vim.bin -a /TTT -s $(SDCARD) -k $< > $@
 
 clean:
 	rm -f *.result *.test
