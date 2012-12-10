@@ -20,12 +20,21 @@ let before_asm =
 
 let end_label () =
   [Label(Id.L "invoke_subprocess");
+   AssignInt(`I 4, ADDI(Reg.ret, 0));
+   AssignInt(`I 3, Int(HeapAllocation.(heap.size)));
+   AssignInt(`I 5, Int(128));
+   Exec(CALL(Id.L "copy_n_string"));
    Exec(STI(Reg.heap_pointer, Reg.frame, 0));
-   AssignInt(Reg.frame, SUBI(Reg.frame, 1));
+   Exec(STI(`I 4, Reg.frame, -1));
+   AssignInt(Reg.frame, SUBI(Reg.frame, 2));
    AssignInt(Reg.heap_pointer, Int(HeapAllocation.(heap.size)));
    Exec(CALL(Id.L "program_end"));
-   AssignInt(Reg.frame, ADDI(Reg.frame, 1));
+   AssignInt(Reg.frame, ADDI(Reg.frame, 2));
    AssignInt(Reg.heap_pointer, LDI(Reg.frame, 0));
+   AssignInt(`I 3, LDI(Reg.frame, -1));
+   AssignInt(`I 4, Int(HeapAllocation.(heap.size)));
+   AssignInt(`I 5, Int(128));
+   Exec(CALL(Id.L "copy_n_string"));
    Exec(RETURN);
    Label(Id.L "program_end")]
 

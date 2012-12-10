@@ -1,5 +1,5 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
+.PHONY: clean okarin.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
@@ -31,8 +31,8 @@ clean:
 .BUILD_FAILURE:
 	true
 
-command.sim: command.bin
-	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
+okarin.sim: okarin.bin
+	$(SIMULATOR) $< -s $(SDCARD) -k test/okarin$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
 	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case $(OPTION)
