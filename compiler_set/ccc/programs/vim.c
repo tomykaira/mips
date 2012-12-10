@@ -13,6 +13,10 @@ int current_line = 0;
 int current_column = 0;
 int insert_mode = 0;
 
+int directory_id = 0;
+int file_id = 0;
+char filename[12];
+
 char notification[80];
 char buffer[2400];
 char text_buffer[2400];
@@ -45,7 +49,6 @@ void break_line() {
 void read() {
   int entry_count = 0;
   int cluster_id = 0;
-  int directory_id = 0;
   int empty_index = 0;
   int argument_pointer = 0;
   int file_size = 0;
@@ -55,37 +58,49 @@ void read() {
     error(PATH_NOT_FOUND);
   }
 
+  argument_pointer += 1;
+  argument_pointer += basename(argument + argument_pointer, token);
+
   while (argument[argument_pointer] == '/') {
-    argument_pointer += 1;
-    argument_pointer += basename(argument + argument_pointer, token);
-    directory_id = cluster_id;
     entry_id = find_entry_by_name(cluster_id, token);
     cluster_id = get_cluster_id(cluster_id, entry_id);
+
+    argument_pointer += 1;
+    argument_pointer += basename(argument + argument_pointer, token);
   }
 
-  file_size = get_file_size(directory_id, entry_id);
-  read_file(cluster_id, file_size, file_content);
+  directory_id = cluster_id;
+  entry_id = try_find_entry_by_name(cluster_id, token);
+  copy_string(filename, token);
 
-  {
-    int line = 0;
-    int column = 0;
-    int ptr = 0;
-    int got_newline = 0;
+  if (entry_id == ENTRY_NOT_FOUND_ID) {
+    buffer[0] = EOF;
+  } else {
+    file_id = get_cluster_id(directory_id, entry_id);
+    file_size = get_file_size(directory_id, entry_id);
+    read_file(file_id, file_size, file_content);
 
-    initialize_array(buffer, 2400, 0);
+    {
+      int line = 0;
+      int column = 0;
+      int ptr = 0;
+      int got_newline = 0;
 
-    while (ptr < file_size) {
-      buffer[C(line, column)] = file_content[ptr];
-      if (file_content[ptr] == '\n') {
-        line += 1;
-        column = 0;
-      } else {
-        column += 1;
+      initialize_array(buffer, 2400, 0);
+
+      while (ptr < file_size) {
+        buffer[C(line, column)] = file_content[ptr];
+        if (file_content[ptr] == '\n') {
+          line += 1;
+          column = 0;
+        } else {
+          column += 1;
+        }
+        ptr += 1;
       }
-      ptr += 1;
-    }
 
-    buffer[C(line, column)] = EOF;
+      buffer[C(line, column)] = EOF;
+    }
   }
 }
 

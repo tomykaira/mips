@@ -7,6 +7,8 @@
 #define USER_DATA 0x18000
 #define CLUSTER_SIZE 0x4000
 
+#define ENTRY_NOT_FOUND_ID 0xfff
+
 #define TOO_LARGE_FILE 0xf01
 #define NO_EMPTY_TABLE 0xf02
 #define NO_EMPTY_DIRECTORY_ENTRY_POSITION 0xf03
@@ -95,7 +97,7 @@ int find_empty_directory_index(int cluster_id) {
   error(NO_EMPTY_DIRECTORY_ENTRY_POSITION);
 }
 
-int find_entry_by_name(int cluster_id, char * token) {
+int try_find_entry_by_name(int cluster_id, char * token) {
   int disk_entry_id = 0;
   int logical_entry_id = 0;
   int ptr = 0;
@@ -152,7 +154,16 @@ int find_entry_by_name(int cluster_id, char * token) {
     }
     disk_entry_id += 1;
   }
-  error(CLUSTER_NOT_FOUND);
+  return ENTRY_NOT_FOUND_ID;
+}
+
+int find_entry_by_name(int cluster_id, char * token) {
+  int entry_id = try_find_entry_by_name(cluster_id, token);
+  if (entry_id == ENTRY_NOT_FOUND_ID) {
+    error(CLUSTER_NOT_FOUND);
+  } else {
+    return entry_id;
+  }
 }
 
 int find_directory_entry_index(int cluster_id, int file_cluster_id) {
