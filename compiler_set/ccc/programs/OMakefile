@@ -8,6 +8,7 @@ LINKER = ../helper/linker.sh
 LIBRARIES[]=
 	base.c
 	daru.c
+SDCARD = /home/tomita/tmp/disk
 
 %.bin: %.s
 	$(ASSEMBLER) $< $@
@@ -34,21 +35,22 @@ command.sim: command.bin
 	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
-	$(SIMULATOR) $< -s /home/tomita/tmp/disk -k test/vim/$(CASE).case -p $(OPTION)
+	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case -p $(OPTION)
 
 rukako.sim: rukako.bin
 	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp
 
-daru.sim: daru_main.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk $<
-
 cat.sim: cat.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE/TEST  -p $<
+	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
 
 ls.sim: ls.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE -p $<
+	$(SIMULATOR) -s $(SDCARD) -a /HOGE -p $<
 
 mkdir.sim: mkdir.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk -a /HOGE/NEWDIR -p $<
+	$(SIMULATOR) -s $(SDCARD) -a /HOGE/NEWDIR -p $<
+	sudo mount -t msdos -o loop,offset=49664 $(SDCARD) sdcard_mount
+	ls -la sdcard_mount/hoge
+	ls -la sdcard_mount/hoge/newdir
+	sudo umount sdcard_mount
 
 .SUBDIRS: test/vim test/rukako
