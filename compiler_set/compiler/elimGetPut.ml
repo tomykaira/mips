@@ -16,6 +16,9 @@ module M' =
 type state =
   | A of Id.t M'.t * Id.t      (* 全ての状態が分かっている *)
   | B of Id.t M.t * Id.t M'.t  (* 一部の状態が分かっている *)
+let show = function
+  | A (a,b) -> "A " ^ M'.fold (fun x y st-> st ^ Printf.sprintf "(%d %s)" x y) a "" ^ b
+  | B (a,b) -> "B " ^ M.fold (fun x y st -> st ^ Printf.sprintf "(%s %s)" x y) a "" ^ M'.fold (fun x y st -> st ^ Printf.sprintf "(%d %s)" x y) b "" 
 
 let unknown = B (M.empty, M'.empty)
 
@@ -75,11 +78,12 @@ let filter env mem =
    返り値の2番目は必ず決まった位置にある変数の集合 *)
 let rec g dest env mem const funs = function
   | Let((x,t), exp, e) ->
-      let (exp', mem') = g' x env mem const funs exp in
+      let env' = S.add x env in
+      let (exp', mem') = g' x env' mem const funs exp in
       let const' = match exp with
       | Int(i) -> M.add x i const
       | _ -> const in
-      let (e', mem'') = g dest (S.add x env) (filter env mem') const' funs e in
+      let (e', mem'') = g dest env' (filter env' mem') const' funs e in
       (Let((x,t), exp', e'), mem'')
   | LetRec({ name = (x,t); args = yts; body = e1 }, e2) ->
       let ret = Id.genid "dest" in
@@ -91,15 +95,16 @@ let rec g dest env mem const funs = function
       let allknown_mem =
 	(fun a -> if retarray then M.add ret (S.empty,unknown) a else a)
 	  (M.map (fun (x,_) -> (x,A(M'.empty,data))) mem) in
+      let env'' = S.add_list ys (S.add data env') in
       let rec f af =
-        let (e1', af') = g ret (S.add_list ys env') allknown_mem const (M.add x (data,ret,ys,af) funs) e1 in
+        let (_, af') = g ret env'' allknown_mem const (M.add x (data,ret,ys,af) funs) e1 in
 	if af = af' then af else f af' in
       let after = f allknown_mem in
       let funs' = M.add x (data,ret,ys,after) funs in
       let empty_mem =
 	M.map (fun (x,_) -> (x,unknown))
 	  (if retarray then M.add ret (S.empty,unknown) mem else mem) in
-      let (e1', _) =  g ret (S.add_list ys env') empty_mem const funs' e1 in
+      let (e1', m) =  g ret (S.add_list ys env') empty_mem const funs' e1 in
       let (e2', mem') =  g dest env' mem const funs' e2 in
       (LetRec({ name = (x,t); args = yts; body = e1' }, e2'), mem')
   | LetTuple(xts,y,e) ->
