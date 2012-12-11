@@ -369,6 +369,7 @@ read_key:
 
 # void move_memory(char * array, int offset, int size)
 move_memory:
+	add	$r3, $r2, $r3	# add heap pointer
 	blt	$r4, $r0, move_memory_minus
 	nop
 	nop
@@ -396,7 +397,9 @@ move_memory_minus_loop:
 	nop
 	return
 
+# void move_and_clear_memory(char * array, int offset, int size)
 move_and_clear_memory:
+	add	$r3, $r2, $r3	# add heap pointer
 	blt	$r4, $r0, move_and_clear_minus
 	nop
 	nop
@@ -431,21 +434,25 @@ display:
 	display	$r3, $r4
 	return
 
+# void send_display(char * array)
 send_display:
 	addi	$r5, $r0, 0
 	addi	$r4, $r0, 2400
-clear_display_start:
+	add	$r3, $r2, $r3
+send_display_start:
 	ldr	$r8, $r3, $r5
 	display	$r5, $r8
 	addi	$r5, $r5, 1
-	blt	$r5, $r4, clear_display_start
+	blt	$r5, $r4, send_display_start
 	nop
 	nop
 	debug	8
 	return
 
+# void send_rs(char * c, int length)
 send_rs:
 	addi	$r5, $r0, 0
+	add	$r3, $r2, $r3
 send_rs_start:
 	ble	$r4, $r5, send_rs_end
 	nop
@@ -538,8 +545,11 @@ inputb:
 	inputb	$r3
 	return
 
+# int str_equal(char * str1, char * str2, int length)
 str_equal:
 	addi	$r6, $r0, 0
+	add	$r3, $r2, $r3
+	add	$r4, $r2, $r4
 str_equal_loop:
 	ldr	$r7, $r3, $r6
 	ldr	$r8, $r4, $r6
@@ -559,8 +569,11 @@ str_equal_false:
 	addi	$r3, $r0, 0
 	return
 
+# int copy_string(char *dest, char * src)
 # return string length
 copy_string:
+	add	$r3, $r2, $r3
+	add	$r4, $r2, $r4
 	addi	$r6, $r3, 0
 	addi	$r3, $r0, 0
 copy_string_loop:
@@ -571,12 +584,13 @@ copy_string_loop:
 	sti	$r7, $r8, 0
 	addi	$r3, $r3, 1
 	j	copy_string_loop
-	nop
-	nop
 copy_string_end:
 	return
 
+# int copy_n_string(char *dest, char * src, int length)
 copy_n_string:
+	add	$r3, $r2, $r3
+	add	$r4, $r2, $r4
 	addi	$r6, $r3, 0
 	addi	$r3, $r0, 0
 copy_n_string_loop:
@@ -615,6 +629,7 @@ write_sd:
 	writesd	$r3, $r4
 	return
 
+# void execute(char * file_content, int program_size, char * argument);
 # r3: file content address
 # r4: program size
 # r5: argument pointer
@@ -629,6 +644,8 @@ write_sd:
 
 # r16: opcode
 execute:
+	add	$r3, $r2, $r3
+
 	setl	$r9, program_end	# offset
 	setl	$r10, program_end	# instruction pointer
 	addi	$r11, $r0, 224	# jump

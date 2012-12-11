@@ -23,11 +23,14 @@ let end_label () =
    AssignInt(`I 4, ADDI(Reg.ret, 0));
    AssignInt(`I 3, Int(HeapAllocation.(heap.size)));
    AssignInt(`I 5, Int(128));
-   Exec(CALL(Id.L "copy_n_string"));
-   Exec(STI(Reg.heap_pointer, Reg.frame, 0));
    Exec(STI(`I 4, Reg.frame, -1));
    AssignInt(Reg.frame, SUBI(Reg.frame, 2));
-   AssignInt(Reg.heap_pointer, Int(HeapAllocation.(heap.size)));
+   Exec(CALL(Id.L "copy_n_string"));
+   AssignInt(Reg.frame, ADDI(Reg.frame, 2));
+   Exec(STI(Reg.heap_pointer, Reg.frame, 0));
+   AssignInt(Reg.frame, SUBI(Reg.frame, 2));
+   AssignInt(Reg.ret, Int(HeapAllocation.(heap.size)));
+   AssignInt(Reg.heap_pointer, ADD(Reg.heap_pointer, Reg.ret));
    Exec(CALL(Id.L "program_end"));
    AssignInt(Reg.frame, ADDI(Reg.frame, 2));
    AssignInt(Reg.heap_pointer, LDI(Reg.frame, 0));

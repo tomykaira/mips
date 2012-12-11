@@ -5,6 +5,7 @@ COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
 SIMULATOR = ../../simulator/simulator
 LINKER = ../helper/linker.sh
+BYTE_FILE_GENERATOR = ../../../core_runner/byte_file_generator.rb
 LIBRARIES[]=
 	base.c
 	daru.c
@@ -12,6 +13,9 @@ SDCARD = /home/tomita/tmp/disk
 
 %.bin: %.s
 	$(ASSEMBLER) $< $@
+
+%.byte.bin: %.bin $(BYTE_FILE_GENERATOR)
+	$(BYTE_FILE_GENERATOR) $<
 
 Compile(file)=
 	tmp = $(tmpfile file)
@@ -44,7 +48,7 @@ cat.sim: cat.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
 
 ls.sim: ls.bin $(SIMULATOR)
-	$(SIMULATOR) -s $(SDCARD) -a /HOGE -p $<
+	$(SIMULATOR) -s $(SDCARD) -a /BIN -p $<
 
 rm.sim: rm.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $<

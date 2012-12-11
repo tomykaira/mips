@@ -82,6 +82,8 @@ void backup_registers() {
 // リンクレジスタ
 #define LR lreg
 
+#define DEFAULT_HR 32  // to debug subprocess $r2 related problem
+
 //------------------------------------------------------------------
 
 // アドレスをバイト/ワードアドレッシングに応じて変換
@@ -258,7 +260,7 @@ int simulate(simulation_options * opt)
 	int end_marker = 0;
 
 	FR = RAM_SIZE-1;
-	HR = 0;
+	HR = DEFAULT_HR;
 
 	// load argument heap from file
 	if (opt->argument) {
@@ -268,7 +270,7 @@ int simulate(simulation_options * opt)
 			return 1;
 		}
 		rep(i, length) {
-			RAM[i] = opt->argument[i];
+			RAM[DEFAULT_HR + i] = opt->argument[i];
 		}
 	}
 
@@ -643,8 +645,31 @@ int simulate(simulation_options * opt)
 					rep(j, 8) {
 						printf("%d: %08x\n", j, ireg[j]);
 					}
+
+					rep(j, 8) {
+						printf("%02x ", RAM[ireg[2] + j]);
+					}
+					printf("\n");
+					rep(j, 8) {
+						printf("%02x ", RAM[ireg[3] + j]);
+					}
+					printf("\n");
 					break;
 				case 8:
+					printf("hp: %d\n", ireg[2]);
+					printf("stack_top: %d\n", internal_stack[stack_pointer]);
+					printf("%d: ", ireg[3]);
+					rep(j, 20) {
+						printf("%02x ", RAM[ireg[3] + j]);
+					}
+					printf("\n");
+
+					printf("%d: ", ireg[4]);
+					rep(j, 20) {
+						printf("%02x ", RAM[ireg[4] + j]);
+					}
+					printf("\n");
+
 					break;
 				default:
 					break;
@@ -669,7 +694,7 @@ int simulate(simulation_options * opt)
 	if (opt->enable_show_heap) {
 		char heap[ARGUMENT_HEAP_SIZE];
 		rep(i, ARGUMENT_HEAP_SIZE) {
-			heap[i] = RAM[i] & 0xff;
+			heap[i] = RAM[DEFAULT_HR + i] & 0xff;
 		}
 		printf("%s\n", heap);
 	}

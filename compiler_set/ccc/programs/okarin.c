@@ -129,7 +129,6 @@ void process_command() {
       ptr += 1;
     }
     argument[ptr] = 0;
-    send_rs(argument, 10);
 
     execute_bin(program_name, argument);
 
