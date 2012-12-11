@@ -37,8 +37,8 @@ clean-coverage:
 # ↓もし実装を改造したら、それに合わせて変える
 SOURCES = global.ml type.ml id.ml syntax.ml m.ml s.ml \
  parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
-aNormal.ml alpha.ml beta.ml inline.ml ifThenElse.ml aliasAnalysis.ml \
-constFold.ml elim.ml cse.ml \
+aNormal.ml alpha.ml beta.ml inline.ml ifThenElse.ml elimGetPut.ml \
+aliasAnalysis.ml constFold.ml elim.ml cse.ml \
 lambdaLift.ml closure.ml\
 flattenTuple.ml unfoldTuple.ml embedTuple.ml elimTuple.ml\
 asm.ml collectDanger.ml virtual.mli virtual.ml together.ml\
