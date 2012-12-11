@@ -3,7 +3,7 @@
 LORELEY_DIR=test/Loreley
 
 BINARY = -b
-INLINE= -inline 50
+INLINE= -inline 50 
 
 # min-camlのライブラリファイル
 LIB_ML = lib_ml.ml
