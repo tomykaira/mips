@@ -1,2 +1,4 @@
 ls /HOGE
+ls /
+ls /BIN
 exit

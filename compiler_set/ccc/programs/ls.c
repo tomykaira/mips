@@ -15,11 +15,15 @@ void main() {
     error(PATH_NOT_FOUND);
   }
 
-  while (argument[argument_pointer] == '/') {
-    argument_pointer += 1;
-    argument_pointer += basename(argument + argument_pointer, token);
-    entry_id = find_entry_by_name(cluster_id, token);
-    cluster_id = get_cluster_id(cluster_id, entry_id);
+  if (argument[0] == '/' && argument[1] == 0) {
+    cluster_id = 0;
+  } else {
+    while (argument[argument_pointer] == '/') {
+      argument_pointer += 1;
+      argument_pointer += basename(argument + argument_pointer, token);
+      entry_id = find_entry_by_name(cluster_id, token);
+      cluster_id = get_cluster_id(cluster_id, entry_id);
+    }
   }
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
