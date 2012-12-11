@@ -81,13 +81,20 @@ let add_child x i y =
 
 
 (* 型の合うものの間すべてにエイリアス関係及び親子関係を構築 *)
-let add_all l =
-  let l' = List.map (fun x -> (x, M.find x !graph)) (List.filter (fun x -> M.mem x !graph) l) in
+let add_all dest ys =
+  let ys' = List.map (fun x -> (x, M.find x !graph)) (List.filter (fun x -> M.mem x !graph) ys) in
+  let l' =
+    if M.mem dest !graph then
+      let (t,p,q) = M.find dest !graph in
+      List.iter
+	(fun (x1,(t1,p1,q1)) ->
+	if t = t1 then graph := M.add dest (t,S.add x1 p,q) (M.add x1 (t1,S.add dest p1,q1) !graph))
+	ys'; (dest,(t,p,q))::ys'
+    else ys' in
   List.iter
-    (fun (x1,(t1,p1,q1)) ->
+    (fun (x1,(t1,_,_)) ->
       List.iter (fun (x2,(t2,_,_)) ->
-	(if x1 = x2 then () else
-	if t1 = t2 then graph := M.add x1 (t1,S.add x2 p1,q1) !graph);
+	if x1 = x2 then () else
 	match t1, t2 with
 	| Type.Tuple(ts), _ when List.mem t2 ts ->
 	    let (i,_) = List.fold_left (fun (i,n) t -> ((if t = t2 then n::i else i), n+1)) ([],0) ts in
@@ -95,7 +102,8 @@ let add_all l =
 	| Type.Array(t), _ when t = t2 -> add_child x1 None x2
 	| Type.List(t), Type.List(t') when !t = !t' -> add_child x1 (Some [1]) x2
 	| Type.List(t), _ when !t = Some(t2) -> add_child x1 (Some [0]) x2
-	| _ -> ()) l')
+	| _ -> ())
+	l')
     l'
 
 
@@ -134,23 +142,18 @@ let rec analyse dest funs const = function
       | _ -> assert false in
       if not (List.exists earray t1 || earray t2) then
 	(analyse dest funs const e1; analyse dest funs const e2) else
-      let graph_backup = !graph in
       let ret = Id.genid "ret" in
       let ys = List.map fst yts in
-      let add_nodes l gr =
-	List.fold_left
-	  (fun gr (x,t) -> if earray t then M.add x (t,S.empty,M.empty) gr else gr)
-	  gr
-	  l in
-      let graph' = add_nodes ((ret,t2)::yts) !graph in
+      List.iter (fun (x,t) -> add_node x t) ((ret,t2)::yts);
+      let graph_backup = !graph in
       let vars = S.add ret (S.union (S.of_list (List.map fst (List.filter (fun (_,t) -> earray t) yts))) (S.filter (fun x -> M.mem x !graph) (fv e1))) in
       let rec f gr =
-        graph := graph';
+        graph := graph_backup;
 	analyse ret (M.add x (ret,ys,gr) funs) const e1;
 	let gr' = part vars !graph in
 	if gr = gr' then gr else
 	f gr' in
-      let gr = f (add_nodes ((ret,t2)::yts) M.empty) in
+      let gr = f (part vars !graph) in
       graph := graph_backup;
       let funs' = M.add x (ret,ys,gr) funs in
       analyse dest funs' const e1;
@@ -199,7 +202,7 @@ and analyse' dest funs const = function
   | Put(x,y,z) ->
       (try add_child x (Some [M.find y const]) z
       with Not_found -> add_child x None z)
-  | ExtFunApp(_,ys) -> add_all (dest::ys)
+  | ExtFunApp(_,ys) -> add_all dest ys
   | Cons(x,y) -> add_child dest (Some [0]) x; add_child dest (Some [1]) y
   | _ -> ()
 
@@ -207,5 +210,8 @@ and analyse' dest funs const = function
 let f e =
   Format.eprintf "Alias Analysis...@.";
   let x = Id.genid "ans" in
+  graph := M.empty;
   analyse x M.empty M.empty e;
+  let gr = M.fold (fun x (t,p,_) gr -> match t with Type.Array _ -> M.add x p gr | _ -> gr) !graph M.empty in
+  let e = ElimGetPut.f gr e in
   e
