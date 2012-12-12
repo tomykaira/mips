@@ -52,7 +52,7 @@ let off2 flag f x = if flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f (off offbe Beta.f (off offcs Cse.f e)))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off2 (!offaa || (n mod 3 <> 1)) AliasAnalysis.f (off offbe Beta.f (off offcs Cse.f e)))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'
@@ -119,6 +119,7 @@ let () =
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
 
    ("-b", Arg.Set Global.bin, "use binary file as input");
+   ("-x", Arg.Set Global.emit_halt, "emit halt instead of the last return");
 
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
    ("-dbTyping", Arg.Set dbty, "debug: print Syntax.t after typing");

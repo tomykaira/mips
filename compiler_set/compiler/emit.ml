@@ -331,5 +331,5 @@ let f (Prog(fundefs, e)) =
   Out.print buf (Out.Outputb("$r3"));
   Out.print buf (Out.AddI("$r3", reg_0, 130));
   Out.print buf (Out.Outputb("$r3"));
-  Out.print buf Out.Return;
+  (if !Global.emit_halt then Out.print buf Out.Halt else Out.print buf Out.Return);
   List.rev !buf
