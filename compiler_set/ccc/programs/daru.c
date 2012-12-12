@@ -437,8 +437,14 @@ void delete_file(int cluster_id, int file_cluster_id) {
   int rde = B(cluster_id);
   int index = find_entry_by_cluster_id(cluster_id, file_cluster_id);
   int address = D(rde, index, 0);
+  int fat_address = file_cluster_id << 1;
 
   write_sd(address, 0xe5);
+
+  write_sd(FAT_TABLE1 + fat_address, 0);
+  write_sd(FAT_TABLE1 + fat_address + 1, 0);
+  write_sd(FAT_TABLE2 + fat_address, 0);
+  write_sd(FAT_TABLE2 + fat_address + 1, 0);
 }
 
 int basename(char * from, char * to) {

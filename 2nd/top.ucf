@@ -275,3 +275,11 @@ NET "HS_DATA" LOC = "G28" | IOSTANDARD = LVTTL; # P<28>
 
 NET "KEY_CLK"  LOC = "H24" | IOSTANDARD = LVTTL; # P<63> = C23
 NET "KEY_DATA" LOC = "R11" | IOSTANDARD = LVTTL; # P<60> = C22
+
+################################################################
+# sd card
+
+NET "CS"       LOC=T29; # P<105> = C16
+NET "DI"       LOC=T28; # P<108> = C17
+NET "SD_SCLK"  LOC=T24; # P<111> = C18
+NET "SD_DO"	   LOC=U33; # P<114> = C19
