@@ -116,3 +116,6 @@ and f' = function
   | KNormal.Nil -> Nil
   | KNormal.Cons(x,y) -> Cons(x,y)
   | _ -> assert false
+
+
+let er find x env = try find x env with Not_found -> Format.eprintf "%s : Not_found@." x; failwith "Not_found"

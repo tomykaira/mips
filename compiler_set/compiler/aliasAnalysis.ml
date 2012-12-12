@@ -37,22 +37,24 @@ let add_arrow x y i =
 
 (* エイリアス関係の追加 *)
 let add_alias' x (t1,p1,q1) y (t2,p2,q2) =
+  if t1 <> t2 then () else
   (* xとyの間に無向辺をひく *)
-  graph := M.add y (t2, S.add x p2, q2) (M.add x (t1, S.add y p1, q1) !graph);
+  let p1' = S.add y p1 in
+  let p2' = S.add x p2 in
+  (* xの子はyの子でもある。逆も. *)
+  let q = M.fold (fun y i q -> add_arrow'' y i q) q1 q2 in
+  graph := M.add y (t2, p2', q) (M.add x (t1, p1', q) !graph);
   (* xの親にyを子として追加.逆も *)
   graph :=
     M.map
       (fun (t,p,q) ->
 	if not (M.mem x q || M.mem y q) then (t,p,q) else
 	let i = if not (M.mem x q && M.mem y q) then None else
-	match M.find x q, M.find x q with
+	match M.find x q, M.find y q with
 	| Some(a), Some(b) -> Some(nub (a@b))
 	| _, _ -> None in
 	(t,p,M.add y i (M.add x i q)))
-      !graph;
-  (* xの子はyの子でもある。逆も. *)
-  let q = M.fold (fun y i q -> add_arrow'' y i q) q1 q2 in
-  graph := M.add y (t2, p2, q) (M.add x (t1, p1, q) !graph)
+      !graph
 let add_alias x y =
   if not (M.mem x !graph && M.mem y !graph) then () else
   add_alias' x (M.find x !graph) y (M.find y !graph) 
@@ -201,16 +203,26 @@ and analyse' dest funs const = function
   | Put(x,y,z) ->
       (try add_child x (Some [M.find y const]) z
       with Not_found -> add_child x None z)
-    | App(_,ys) | ExtFunApp(_,ys) -> add_all dest ys
+  | App(_,ys) | ExtFunApp(_,ys) -> add_all dest ys
   | Cons(x,y) -> add_child dest (Some [0]) x; add_child dest (Some [1]) y
   | _ -> ()
 
 
 let f e =
   Format.eprintf "Alias Analysis...@.";
-  let x = Id.genid "ans" in
+  let x = ".ans" in
   graph := M.empty;
   analyse x M.empty M.empty e;
-  let gr = M.fold (fun x (t,p,_) gr -> match t with Type.Array _ -> M.add x p gr | _ -> gr) !graph M.empty in
+  let gr =
+    M.fold
+      (fun x (t,p,q) gr -> match t with
+      | Type.Array _ ->
+	  let q' = M.fold (fun x _ s -> S.add x s) q S.empty in
+	  M.add x (t,p,q') gr
+      | _ -> gr)
+      !graph
+      M.empty in
+  let fil p = S.filter (fun x -> M.mem x gr) p in
+  let gr = M.map (fun (t,p,q) -> (t,fil p,fil q)) gr in
   let e = ElimGetPut.f gr e in
   e

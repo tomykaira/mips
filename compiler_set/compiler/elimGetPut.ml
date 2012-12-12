@@ -52,9 +52,11 @@ let munion m n =
   | _ , _-> None in
   M.merge f m n
 
-let er find x env = try find x env with Not_found -> Format.eprintf "%s : Not_found@." x; failwith "Not_found"
+
 (*  メモリを操作する関数群 *)
-let findg x mem = fst (M.find x mem)
+let findt x mem = let (t,_,_) = fst (M.find x mem) in t
+let finda x mem = let (_,y,_) = fst (M.find x mem) in y
+let findc x mem = let (_,_,z) = fst (M.find x mem) in z
 let finds x mem = snd (M.find x mem)
 let ovwr x y mem = let (p,_) = M.find x mem in M.add x (p,y) mem
 let addmemi x i y mem =
@@ -89,21 +91,23 @@ let rec g dest env mem const funs = function
       let ret = Id.genid "dest" in
       let env' = S.add x env in
       let ys = List.map fst yts in
-      let retarray =
-	match t with Type.Fun(_,Type.Array _) -> true | _ -> false in
+      let zs = S.elements (S.filter (fun x -> M.mem x mem) (fv e1)) in
+      let (retarray, t2) =
+	match t with Type.Fun(_,(Type.Array _ as t)) -> (true,t) | _ -> (false,Type.Unit) in
       let data = Id.genid "data" in
+      let new_node = ((t2,S.empty,S.empty),unknown) in
       let allknown_mem =
-	(fun a -> if retarray then M.add ret (S.empty,unknown) a else a)
+	(fun a -> if retarray then M.add ret new_node a else a)
 	  (M.map (fun (x,_) -> (x,A(M'.empty,data))) mem) in
       let env'' = S.add_list ys (S.add data env') in
       let rec f af =
-        let (_, af') = g ret env'' allknown_mem const (M.add x (data,ret,ys,af) funs) e1 in
+        let (_, af') = g ret env'' allknown_mem const (M.add x (data,ret,ys,zs,af) funs) e1 in
 	if af = af' then af else f af' in
       let after = f allknown_mem in
-      let funs' = M.add x (data,ret,ys,after) funs in
+      let funs' = M.add x (data,ret,ys,zs,after) funs in
       let empty_mem =
 	M.map (fun (x,_) -> (x,unknown))
-	  (if retarray then M.add ret (S.empty,unknown) mem else mem) in
+	  (if retarray then M.add ret new_node mem else mem) in
       let (e1', m) =  g ret (S.add_list ys env') empty_mem const funs' e1 in
       let (e2', mem') =  g dest env' mem const funs' e2 in
       (LetRec({ name = (x,t); args = yts; body = e1' }, e2'), mem')
@@ -134,7 +138,7 @@ and g' dest env mem const funs = function
       let (e2', mem2) = g dest env mem const funs e2 in
       (IfNil(x,e1',e2'), munion mem1 mem2)
   | App(x,ys) as exp when M.mem x funs ->
-      let (data,ret,zs,after) = M.find x funs in
+      let (data,ret,zs,ws,after) = M.find x funs in
       let (ys', zs') =
 	if M.mem dest mem && M.mem ret after then (dest::ys,ret::zs)
 	else (ys,zs) in
@@ -170,21 +174,35 @@ and g' dest env mem const funs = function
 	          B (p,q) in
 	    (y,z'))
 	  mem in
-      (* 状態の変わったメモリのエイリアス仲間の状態はunknown *)
-      let mem'' =
+      (* 状態の変わったメモリとエイリアス関係にあるメモリの状態はunknown *)
+      let un =
 	M.fold
-	  (fun x (y,_) mem ->
-	    let f w =
-	      match finds x memchange with
-	      | A(a,b) when M'.is_empty a && b = data -> w
-	      | _ -> unknown in
-	    S.fold
-	      (fun p mem -> ovwr p (f (finds p memchange)) mem)
-	      y
-	      mem)
+	  (fun x ((_,y,_),_) un ->
+	    match finds x memchange with
+	    | A(a,b) when M'.is_empty a && b = data -> un
+	    | _ ->
+		S.fold
+		  (fun p un -> S.add p un)
+	          y
+	          un)
 	  memchange
-	  mem' in
-      (exp, mem'')
+	  S.empty in
+      (* 引数,自由変数となったメモリの子孫の状態はunknownにしてしまう *)
+      let un' =
+	(* unknownにする配列を集める *)
+	let rec f x ret =
+	  if not (M.mem x mem') || S.mem x ret then ret else
+	  let ret = S.add x ret in
+	  let z = findc x mem in
+	  S.fold (fun y ret -> f y ret) z ret in
+        List.fold_left
+	  (fun c y ->
+	    try S.fold (fun y c -> f y c) (findc y mem') c with Not_found -> c)
+	    un
+	    (ys@ws) in
+      let mem'' =
+	S.fold (fun x mem -> ovwr x unknown mem) un' mem' in
+      (exp, (*mem''*) M.map (fun (y,_) -> (y,unknown)) mem)
   | Get(x,y) as exp->
       let st = finds x mem in
       (match st with
@@ -213,23 +231,23 @@ and g' dest env mem const funs = function
 	    let z' = if M'.mem yi a then M'.find yi a else b in
 	    if z = z' then (Unit, mem)
 	    else
-	      let mem' = S.fold (fun t mem -> addmemi t yi z mem) (findg x mem) (ovwr x (A(M'.add yi z a,b)) mem) in
+	      let mem' = S.fold (fun t mem -> ovwr t unknown mem) (finda x mem) (ovwr x (A(M'.add yi z a,b)) mem) in
 	      (exp, mem')
 	  else
 	    if M'.is_empty a && b = z then (Unit, mem)
 	    else
-	      let mem' = S.fold (fun t mem -> addmemv t y z mem) (findg x mem) (ovwr x (B(M.singleton y z, M'.empty)) mem) in
+	      let mem' = S.fold (fun t mem -> ovwr t unknown mem) (finda x mem) (ovwr x (B(M.singleton y z, M'.empty)) mem) in
 	      (exp, mem')
       | B (a,b) ->
 	  if M.mem y const then
 	    let yi = M.find y const in
 	    if M'.mem yi b && M'.find yi b = z then (Unit, mem)
 	    else
-	      let mem' = S.fold (fun t mem -> addmemi t yi z mem) (findg x mem) (ovwr x (B(a,M'.add yi z b)) mem) in
+	      let mem' = S.fold (fun t mem -> ovwr t unknown mem) (finda x mem) (ovwr x (B(a,M'.add yi z b)) mem) in
 	      (exp, mem')
 	  else if M.mem y a && M.find y a = z then (Unit, mem)
 	  else
-	    let mem' = S.fold (fun t mem -> addmemv t y z mem) (findg x mem) (ovwr x (B(M.singleton y z, M'.empty)) mem) in
+	    let mem' = S.fold (fun t mem -> ovwr t unknown mem) (finda x mem) (ovwr x (B(M.singleton y z, M'.empty)) mem) in
 	    (exp,mem'))
   | ExtFunApp(("create_array"|"create_float_array"|"create_tuple_array"),_::x::_) as exp ->
       (exp, ovwr dest (A(M'.empty, x)) mem)
@@ -240,7 +258,7 @@ and g' dest env mem const funs = function
 	    if M.mem y mem then
 	      S.fold
 		(fun t mem -> ovwr t unknown mem)
-		(findg y mem)
+		(finda y mem)
 		(ovwr y unknown mem)
 	    else mem)
 	  mem
@@ -251,9 +269,7 @@ and g' dest env mem const funs = function
 
 
 let f gr e =
-(*  M.iter (fun x l -> Format.eprintf "%s : " x; S.iter (Format.eprintf "%s ") l; Format.eprintf "@.") gr; *)
-  let dest = Id.genid "dest" in
-  let gr = M.add dest S.empty gr in
+(*   M.iter (fun x (t,k,l) -> Format.eprintf "%s : " x; Format.eprintf "%s/" (Type.show t);S.iter (Format.eprintf "%s ") k; Format.eprintf "/"; S.iter (Format.eprintf "%s ") l; Format.eprintf "@.") gr; *)
   let mem = M.map (fun x -> (x, unknown)) gr in
   Format.eprintf "eliminating loads...@.";
   fst (g (Id.genid "dest") S.empty mem M.empty M.empty e)
