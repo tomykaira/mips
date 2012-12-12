@@ -133,7 +133,7 @@ and g' dest env mem const funs = function
       let (e1', mem1) = g dest env mem const funs e1 in
       let (e2', mem2) = g dest env mem const funs e2 in
       (IfNil(x,e1',e2'), munion mem1 mem2)
-  | App(x,ys) as exp ->
+  | App(x,ys) as exp when M.mem x funs ->
       let (data,ret,zs,after) = M.find x funs in
       let (ys', zs') =
 	if M.mem dest mem && M.mem ret after then (dest::ys,ret::zs)
@@ -233,7 +233,7 @@ and g' dest env mem const funs = function
 	    (exp,mem'))
   | ExtFunApp(("create_array"|"create_float_array"|"create_tuple_array"),_::x::_) as exp ->
       (exp, ovwr dest (A(M'.empty, x)) mem)
-  | ExtFunApp(_,ys) as exp ->
+  | ExtFunApp(_,ys) | App(_,ys) as exp ->
       let mem' =
 	List.fold_left
 	  (fun mem y ->
