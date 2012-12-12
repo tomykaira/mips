@@ -16,7 +16,7 @@ entity sd_cont is
 		sd_addr	: in  std_logic_vector(22 downto 0);
 		sd_index: in  std_logic_vector(8 downto 0);
 		sd_go	: in  std_logic;
-		sd_flag	: out std_logic_vector(3 downto 0) := "0001"
+		sd_busy	: out STD_LOGIC := '1'
 	);
 end sd_cont;
 
@@ -65,9 +65,10 @@ architecture Behavioral of sd_cont is
 	signal data_b	: std_logic_vector(7 downto 0);
 begin
 
+	sd_data <= data_b;
+
 	process(clk)begin
 		if rising_edge(clk)then
-			sd_data <= data_b;
 
 			if state(1 downto 0) = "01" then
 				spi_go <= '1';
@@ -85,7 +86,7 @@ begin
 				sd_ce <= '1';
 				spi_delay <= "11111111";
 				state <= state + '1';
-				sd_flag <= "0001";
+				sd_flag <= '1';
 			--------------------------------------------------------------------------
 			elsif state(5 downto 2) = "0001" then		-- Command Index
 				spi_sdata <= "01" & index;
@@ -191,14 +192,14 @@ begin
 					index <= conv_std_logic_vector(17, 6);
 					argument <= sd_addr & "000000000";
 					state <= state + "100";
-					sd_flag <= "0001";	-- C: Set <- Busy
+					sd_flag <= '1';	-- C: Set <- Busy
 				else
-					sd_flag <= "0000";
+					sd_flag <= '0';
 				end if;
 			elsif state(8 downto 6) = "111" then
 				sd_ce <= '1';
 				state <= state - "1000000";
-				sd_flag <= "0000";		-- C: Clear
+				sd_flag <= '0';		-- C: Clear
 			end if;
 		end if;
 	end process;

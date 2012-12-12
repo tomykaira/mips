@@ -242,6 +242,17 @@ begin  -- test
 		 key_status => key_status,
 		 keycode    => keycode);
 
+	sd_inst : sd_cache port map
+		(clk      => iclk,
+		 sd_clk   => sd_clk,
+		 sd_out   => sd_out,
+		 sd_in    => sd_in,
+
+		 sd_data  => sd_data,
+		 sd_addr  => sd_addr,
+		 sd_go    => sd_go,
+		 sd_ready => sd_ready);
+
 
   XZBE<= "0000";
   XE1 <= '0';
