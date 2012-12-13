@@ -2,7 +2,7 @@
 // output: find me!
 
 char token[1024];
-char file_content[0x4000];
+char file_content[0x1000];
 
 void main() {
   int entry_count = 0;

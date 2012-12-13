@@ -15,7 +15,7 @@ int current_column = 0;
 char buffer[2400];
 char program_name[80];
 char argument[128];
-char file_content[0x4000];
+char file_content[0x1000];
 
 void put_char(char i) {
   if (i == '\n') {

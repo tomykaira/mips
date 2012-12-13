@@ -20,7 +20,7 @@ char filename[12];
 char notification[80];
 char buffer[2400];
 char text_buffer[2400];
-char file_content[0x4000];
+char file_content[0x1000];
 char token[255];
 
 void update_notification_line() {

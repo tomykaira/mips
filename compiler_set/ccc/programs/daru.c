@@ -1,11 +1,11 @@
-#define FAT_TABLE1 0x0c400
-#define FAT_TABLE2 0x10200
-#define TABLE_SIZE 0x3e00
-#define RDE 0x14000
+#define FAT_TABLE1 0x00101000
+#define FAT_TABLE2 0x00120000
+#define TABLE_SIZE 0x0001f000
+#define RDE 0x0013f000
 #define DIRECTORY_ENTRY_SIZE 0x200 // 512
 #define DIRECTORY_ENTRY_LINE 0x20 // 32
-#define USER_DATA 0x18000
-#define CLUSTER_SIZE 0x4000
+#define USER_DATA 0x143000
+#define CLUSTER_SIZE 0x1000
 
 #define ENTRY_NOT_FOUND_ID 0xfff
 
@@ -24,7 +24,7 @@ int B(int cluster_id) {
   if (cluster_id == 0) {
     return RDE;
   } else {
-    return (((cluster_id) - 2) << 14) + USER_DATA;
+    return (((cluster_id) - 2) << 12) + USER_DATA;
   }
 }
 
@@ -36,7 +36,7 @@ char output[1024];
 char filename[8];
 char extname[3];
 
-int directory_entries[0x4000];
+int directory_entries[0x1000];
 
 // dummy, to delete
 void put_char() {
@@ -410,7 +410,7 @@ void create_empty_directory(int cluster_id, int parent_directory) {
   create_file_entry(cluster_id, 1, 1, parent_directory, 0, filename);
 }
 
-// read from file[0x4000]
+// read from file[0x1000]
 void write_file(int cluster_id, char * file, int length) {
   int start = B(cluster_id);
   int i = 0;
