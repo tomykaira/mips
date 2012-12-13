@@ -61,10 +61,7 @@ architecture Behavioral of sd_cont is
 	signal addr_a	: std_logic_vector(8 downto 0) := (others => '0');
 	signal data_a	: std_logic_vector(7 downto 0);
 	signal we_a	: STD_LOGIC;
-	signal data_b	: std_logic_vector(7 downto 0);
 begin
-
-	sd_data <= data_b;
 
 	process(clk)begin
 		if rising_edge(clk)then
@@ -211,7 +208,7 @@ begin
 			wea	=> we_a,
 
 			addrb	=> sd_index,
-			doutb	=> data_b
+			doutb	=> sd_data
 		);
 
 	spic: spi_cont

@@ -149,7 +149,7 @@ architecture top of top is
 			keycode    : out std_logic_vector(7 downto 0));
 	end component;
 
-	component sd_cache is
+	component sdcard is
 		port (
 			clk : in STD_LOGIC;
 			sd_clk : out STD_LOGIC;
@@ -276,7 +276,7 @@ begin  -- test
 		 key_status => key_status,
 		 keycode    => keycode);
 
-	sd_inst : sd_cache port map
+	sd_inst : sdcard port map
 		(clk      => iclk,
 
 		 sd_clk   => SD_SCLK,

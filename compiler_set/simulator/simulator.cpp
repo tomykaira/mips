@@ -605,7 +605,7 @@ int simulate(simulation_options * opt)
 					ROM[IRS] = b;
 					break;
 				}
-			case READSD:
+		case READSD:
 				IRT = sd_card.read_at(IRS);
 				logger.reg("READSD", get_rt(inst), IRT);
 				break;
