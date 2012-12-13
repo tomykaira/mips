@@ -22,6 +22,12 @@ module testbench_endtoend();
    reg key_clk, key_data;
    wire key_clk_io, key_data_io;
 
+   wire SD_CS, SD_SCLK, SD_DO;
+   reg SD_DI;
+
+   initial
+     SD_DI <= 1'b1;
+
    assign key_clk_io = key_clk;
    assign key_data_io = key_data;
 
@@ -35,7 +41,9 @@ module testbench_endtoend();
 
             .CLK(clk), .XRST(xreset), .RS_RX(rs_rx), .RS_TX(rs_tx),
 
-            .KEY_CLK(key_clk_io), .KEY_DATA(key_data_io));
+            .KEY_CLK(key_clk_io), .KEY_DATA(key_data_io),
+
+            .SD_CS(SD_CS), .SD_DI(SD_DI), .SD_SCLK(SD_SCLK), .SD_DO(SD_DO));
 
    // in post-map simulation, other modules are not available.
    i232c #(.wtime(16'h0006)) decoder(.clk(clk), .rx(rs_tx), .data(check_data), .changed(check_changed));
