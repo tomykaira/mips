@@ -36,7 +36,12 @@ entity top is
 		hs_data: out std_logic;
 
 		KEY_CLK : inout STD_LOGIC;
-		KEY_DATA : inout STD_LOGIC);
+		KEY_DATA : inout STD_LOGIC;
+
+		SD_CS   : out STD_LOGIC;
+		SD_DI   : in STD_LOGIC;
+		SD_SCLK : out STD_LOGIC;
+		SD_DO   : out STD_LOGIC);
 
 end top;
 
@@ -63,7 +68,12 @@ architecture top of top is
       display_char_code : out std_logic_vector(6 downto 0);
 
 			key_status : in std_logic_vector(7 downto 0);
-			keycode    : in std_logic_vector(7 downto 0));
+			keycode    : in std_logic_vector(7 downto 0);
+
+			sd_data  : in std_logic_vector(7 downto 0);
+			sd_addr  : out std_logic_vector(31 downto 0);
+			sd_go    : out STD_LOGIC;
+			sd_ready : in STD_LOGIC);
   end component;
 
   component sramc is
@@ -139,6 +149,20 @@ architecture top of top is
 			keycode    : out std_logic_vector(7 downto 0));
 	end component;
 
+	component sd_cache is
+		port (
+			clk : in STD_LOGIC;
+			sd_clk : out STD_LOGIC;
+			sd_ce : out STD_LOGIC;
+			sd_out : out STD_LOGIC;
+			sd_in : in STD_LOGIC;
+
+			sd_data : out std_logic_vector(7 downto 0);
+			sd_addr : in std_logic_vector(31 downto 0);
+			sd_go : in STD_LOGIC;
+			sd_ready : out STD_LOGIC);
+	end component;
+
   signal iclk, clk100, clk_default : std_logic;
 
   signal memory_write : STD_LOGIC;
@@ -158,6 +182,11 @@ architecture top of top is
 	-- keyboard
 	signal key_status : std_logic_vector(7 downto 0);
 	signal keycode    : std_logic_vector(7 downto 0);
+
+	-- sd
+	signal sd_data : std_logic_vector(7 downto 0);
+	signal sd_addr : std_logic_vector(31 downto 0);
+	signal sd_go, sd_ready : STD_LOGIC;
 
 begin  -- test
 
@@ -193,7 +222,12 @@ begin  -- test
     display_char_code           => display_char_code,
 
 		key_status => key_status,
-		keycode    => keycode);
+		keycode    => keycode,
+
+		sd_data  => sd_data,
+		sd_addr  => sd_addr,
+		sd_go    => sd_go,
+		sd_ready => sd_ready);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -244,9 +278,11 @@ begin  -- test
 
 	sd_inst : sd_cache port map
 		(clk      => iclk,
-		 sd_clk   => sd_clk,
-		 sd_out   => sd_out,
-		 sd_in    => sd_in,
+
+		 sd_clk   => SD_SCLK,
+		 sd_ce    => SD_CS,
+		 sd_out   => SD_DO,
+		 sd_in    => SD_DI,
 
 		 sd_data  => sd_data,
 		 sd_addr  => sd_addr,

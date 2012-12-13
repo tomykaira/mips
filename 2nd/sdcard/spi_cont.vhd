@@ -23,7 +23,7 @@ architecture Behavioral of spi_cont is
 	signal delay	: std_logic_vector(7 downto 0);
 	signal rbuf	: std_logic_vector(7 downto 0);
 	signal sbuf	: std_logic_vector(7 downto 0);
-	signal state	: std_logic_vector(4 downto 0);
+	signal state	: std_logic_vector(4 downto 0) := (others => '0');
 begin
 
 	process(clk)begin

@@ -36,13 +36,12 @@ architecture Behavioral of sd_cont is
 			spi_delay	: in  std_logic_vector(7 downto 0)
 		);
 	end component;
-	component SDMemory
+	component sd_memory
 		port(
-			clka	: in  std_logic;
+			clk 	: in  std_logic;
 			addra	: in  std_logic_vector(8 downto 0);
 			dina	: in  std_logic_vector(7 downto 0);
-			wea	: in  std_logic_vector(0 downto 0);
-			clkb	: in  std_logic;
+			wea	: in  std_logic;
 			addrb	: in  std_logic_vector(8 downto 0);
 			doutb	: out std_logic_vector(7 downto 0)
 		);
@@ -59,9 +58,9 @@ architecture Behavioral of sd_cont is
 	signal argument	: std_logic_vector(31 downto 0);
 	signal resp	: std_logic_vector(7 downto 0);
 
-	signal addr_a	: std_logic_vector(8 downto 0);
+	signal addr_a	: std_logic_vector(8 downto 0) := (others => '0');
 	signal data_a	: std_logic_vector(7 downto 0);
-	signal we_a	: std_logic_vector(0 downto 0);
+	signal we_a	: STD_LOGIC;
 	signal data_b	: std_logic_vector(7 downto 0);
 begin
 
@@ -86,7 +85,7 @@ begin
 				sd_ce <= '1';
 				spi_delay <= "11111111";
 				state <= state + '1';
-				sd_flag <= '1';
+				sd_busy <= '1';
 			--------------------------------------------------------------------------
 			elsif state(5 downto 2) = "0001" then		-- Command Index
 				spi_sdata <= "01" & index;
@@ -137,11 +136,11 @@ begin
 				addr_a <= "111111111";
 			elsif state(5 downto 2) = "1100" then		-- Receive Data
 				spi_sdata <= "11111111";
-				we_a(0)   <= '0';
+				we_a      <= '0';
 				state <= state + '1';
 			elsif state(5 downto 2) = "1101" then		-- Loop
 				addr_a  <= addr_a + '1';
-				we_a(0) <= '1';
+				we_a    <= '1';
 				data_a  <= spi_rdata;
 				if addr_a = "111111110" then
 					state <= state + "100";
@@ -150,7 +149,7 @@ begin
 				end if;
 			elsif state(5 downto 2) = "1110" then		-- CRC1
 				spi_sdata <= "11111111";
-				we_a(0)   <= '0';
+				we_a      <= '0';
 				state <= state + '1';
 			elsif state(5 downto 2) = "1111" then		-- CRC2 and Finish
 				spi_sdata <= "11111111";
@@ -192,26 +191,25 @@ begin
 					index <= conv_std_logic_vector(17, 6);
 					argument <= sd_addr & "000000000";
 					state <= state + "100";
-					sd_flag <= '1';	-- C: Set <- Busy
+					sd_busy <= '1';	-- C: Set <- Busy
 				else
-					sd_flag <= '0';
+					sd_busy <= '0';
 				end if;
 			elsif state(8 downto 6) = "111" then
 				sd_ce <= '1';
 				state <= state - "1000000";
-				sd_flag <= '0';		-- C: Clear
+				sd_busy <= '0';		-- C: Clear
 			end if;
 		end if;
 	end process;
 
-	sdmem: SDMemory
+	sdmem: sd_memory
 		port map(
-			clka	=> clk,
+			clk 	=> clk,
 			addra	=> addr_a,
 			dina	=> data_a,
 			wea	=> we_a,
 
-			clkb	=> clk,
 			addrb	=> sd_index,
 			doutb	=> data_b
 		);
