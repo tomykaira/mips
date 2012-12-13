@@ -83,4 +83,5 @@ lor-clean:
 	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 
-
+min-rt-test:
+	cd test/min-rt; make BIN=-x min-rt-new-bin.test; cd ../..

@@ -5,8 +5,6 @@ targets:
 
 %.test: %.ans %.sim
 	diff $*.ans $*.sim
-%.bintest:
-	make BIN=-x $*.test
 
 %.test_core: %.ans %.core
 	diff $*.ans $*.core

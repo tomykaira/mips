@@ -120,15 +120,17 @@ and g' env envle envne envif = function
   | FAdd(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
   | FSub(x, y) when memf x env && memf y env -> Ans(Float(findf x env -. findf y env))
   | FSub(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
-  | FMul(x, y) when memf x env && memf y env -> Ans(Float(findf x env *. findf y env))
+
+(* シミュレータと結果が異なってしまうので中止 *)
+(*  | FMul(x, y) when memf x env && memf y env -> Ans(Float(findf x env *. findf y env)) *)
   | FMul(x, y) when memf x env && findf x env = 1.0 -> Ans(Var(y))
   | FMul(x, y) when memf y env && findf y env = 1.0 -> Ans(Var(x))
   | FMul(x, y) when memf x env && findf x env = -1.0 -> Ans(FNeg(y))
-  | FMul(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x))
-  | FMul(x, _) | FMul(_, x) when memf x env && findf x env = 0.0 -> Ans(Float(0.0))
-  | FDiv(x, y) when memf x env && memf y env -> Ans(Float(findf x env /. findf y env))
+  | FMul(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x)) 
+  | FMul(x, _) | FMul(_, x) when memf x env && findf x env = 0.0 -> Ans(Float(0.0)) 
+  | FDiv(x, y) when memf x env && memf y env -> Ans(Float(findf x env /. findf y env)) 
   | FDiv(x, y) when memf y env && findf y env = 1.0 -> Ans(Var(x))
-  | FDiv(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x))
+  | FDiv(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x)) 
 
   | IfEq(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
       let eq x y = match (x, y) with

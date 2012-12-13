@@ -28,6 +28,7 @@ type exp = (* 一つ一つの命令に対応する式 *)
   | FAdd  of Id.t * Id.t * Id.t
   | FSub  of Id.t * Id.t * Id.t
   | FMul  of Id.t * Id.t * Id.t
+  | FMulN of Id.t * Id.t * Id.t
   | FInv  of Id.t * Id.t
   | FSqrt of Id.t * Id.t
 
@@ -97,6 +98,7 @@ and o oc = function
   | FAdd (x, y, z) -> Printf.fprintf oc "\tfadd\t%s, %s, %s\n" x y z
   | FSub (x, y, z) -> Printf.fprintf oc "\tfsub\t%s, %s, %s\n" x y z
   | FMul (x, y, z) -> Printf.fprintf oc "\tfmul\t%s, %s, %s\n" x y z
+  | FMulN (x, y, z) -> Printf.fprintf oc "\tfmuln\t%s, %s, %s\n" x y z
   | FInv  (x, y) -> Printf.fprintf oc "\tfinv\t%s, %s\n" x y
   | FSqrt (x, y) -> Printf.fprintf oc "\tfsqrt\t%s, %s\n" x y
 

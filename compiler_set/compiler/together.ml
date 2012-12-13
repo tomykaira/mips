@@ -21,10 +21,14 @@ and g' env = function
   | FMul(x, y) as exp ->
       (match (find x env, find y env) with
       | (FNeg(z), FNeg(w)) -> FMul(z, w)
+      | (FNeg(z), _) -> FMulN(z, y)
+      | (_, FNeg(w)) -> FMulN(x, w)
       | _ -> exp)
   | FDiv(x, y) as exp ->
       (match (find x env, find y env) with
       | (FNeg(z), FNeg(w)) -> FDiv(z, w)
+      | (FNeg(z), _) -> FDivN(z, y)
+      | (_, FNeg(w)) -> FDivN(x, w)
       | _ -> exp)
   | FNeg(x) as exp ->
       (match find x env with

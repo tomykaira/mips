@@ -28,7 +28,9 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | FAdd  of Id.t * Id.t
   | FSub  of Id.t * Id.t
   | FMul  of Id.t * Id.t
+  | FMulN of Id.t * Id.t
   | FDiv  of Id.t * Id.t (* virtual instruction *)
+  | FDivN of Id.t * Id.t
   | FInv  of Id.t
   | FSqrt of Id.t
 
@@ -109,7 +111,7 @@ let rec fv_exp = function
   | IMovF(x) | FMovI(x) | LdI(x,_) | FLdI(x,_) | Restore(x) | Outputb(x)-> [x]
 
   | Add(x,y) | Sub(x,y) | Xor(x,y)
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FDiv(x,y)
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) -> [x;y]
 
   | IfEq(x,y,e1,e2) | IfLT(x,y,e1,e2) | IfLE(x,y,e1,e2) | IfFEq(x,y,e1,e2)
@@ -134,7 +136,7 @@ let rec fv_var_exp = function
       if is_var x then [] else [x]
 
   | Add(x,y) | Sub(x,y) | Xor(x,y)
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FDiv(x,y)
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y)
   | LdR(x,y) | StI(x,y,_) | FLdR(x,y) | FStI(x,y,_) | Save(x,y) ->
       List.filter is_var [x;y]
 
@@ -167,7 +169,7 @@ let fv e = remove_and_uniq S.empty (fv e)
 let rec fv_int_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
-  | FMul(_,_) | FDiv(_,_)  | Save(_,_) | SAlloc(_) | Inputb
+  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) | SAlloc(_) | Inputb
     -> []
   | AddI(x,_) | SubI(x,_) | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)
   | LdI(x,_) | FLdI(x,_) | FStI(_,x,_) | Outputb(x) -> [x]
@@ -192,7 +194,7 @@ let rec fv_float_exp = function
   | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
   | StI(_,_,_) | FLdR(_,_)| Save(_,_) | SAlloc(_) | Inputb -> []
   | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) | Outputb(x)-> [x]
-  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FDiv(x,y) ->
+  | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y) ->
       [x;y]
   | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2)
     -> remove_and_uniq S.empty (fv_float e1 @ fv_float e2)
