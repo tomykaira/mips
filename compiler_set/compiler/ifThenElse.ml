@@ -6,14 +6,14 @@ open ANormal
 (* 以降の自由変数にxやfvsに含まれない変数が含まれないような地点を探す関数 *)
 let rec h x fvs n = function
   | Let(xt, exp, e) ->
-      let n' = n - Inline.size' exp in
+      let n' = n - size' exp in
       if n' < 0 then raise Not_found else
       let fvs' = fv e in
       if not (S.mem x fvs') && S.for_all (fun x -> S.mem x fvs) fvs' then
 	(Ans(exp), xt, e)
       else let (m, yt, e') = h x fvs n' e in (Let(xt,exp,m), yt, e')
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
-      let n' = n - Inline.size e1 in
+      let n' = n - size e1 in
       if n' < 0 then raise Not_found else
       let (m, yt, e2') = h x fvs n' e2 in
       (LetRec({ name = xt; args = yts; body = e1 }, m), yt, e2')
@@ -41,35 +41,35 @@ and immans' = function
 let rec g = function
   | Let((x,t) as xt, exp, e) ->
       let len =
-	if Inline.size e < 10 then 100
+	if size e < 10 then 100
 	else if immans' exp then 3
 	else 0 in
       (match exp with
       | IfEq(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
-	  let exp' = IfEq(p,q,concat e1 xt m, concat e2 (z,t) (Inline.ag (M.singleton x z) m)) in
+	  let exp' = IfEq(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
 	  if e' = Ans(Unit) then Ans(g' exp') else
 	  g (Let(yt, exp', e'))
 	  with Not_found -> Let(xt, g' exp, g e))
       | IfLE(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
-	  let exp' = IfLE(p,q,concat e1 xt m, concat e2 (z,t) (Inline.ag (M.singleton x z) m)) in
+	  let exp' = IfLE(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
 	  if e' = Ans(Unit) then Ans(g' exp') else
 	  g (Let(yt, exp', e'))
 	  with Not_found -> Let(xt, g' exp, g e))
       | IfLT(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
-	  let exp' = IfLT(p,q,concat e1 xt m, concat e2 (z,t) (Inline.ag (M.singleton x z) m)) in
+	  let exp' = IfLT(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
 	  if e' = Ans(Unit) then Ans(g' exp') else
 	  g (Let(yt, exp', e'))
 	  with Not_found -> Let(xt, g' exp, g e))
       | IfNil(p,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
-	  let exp' = IfNil(p,concat e1 xt m, concat e2 (z,t) (Inline.ag (M.singleton x z) m)) in
+	  let exp' = IfNil(p,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
 	  if e' = Ans(Unit) then Ans(g' exp') else
 	  g (Let(yt, exp', e'))
 	  with Not_found -> Let(xt, g' exp, g e))

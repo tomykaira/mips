@@ -35,7 +35,7 @@ let offin = ref false
 let offcf = ref false
 let offte = ref false
 let offel = ref false
-let offaa = ref true
+let offaa = ref true  (* バグがある様で、trueにするとバグる *)
 let offll = ref false
 let offut = ref false
 let offet = Global.offet := false; Global.offet

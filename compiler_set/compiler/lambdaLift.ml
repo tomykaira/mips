@@ -22,7 +22,7 @@ let globals = ref []
 (* 変数にスコアづけする関数。後に出てくるほど高得点 *)
 let rec score en n fvs = function
   | Let((_, _), exp, e) ->
-      S'.union (score' en (n+1) fvs exp) (score en (n+1+Inline.size e) fvs e) 
+      S'.union (score' en (n+1) fvs exp) (score en (n+1+size e) fvs e) 
   | LetRec({ name = (x, _); args = _; body = e1 }, e2) ->
       score (M.add x (S.inter (fv e1) fvs) en) (n+1) fvs e2 
   | LetTuple(_, x, e) | LetList(_, x, e) ->
