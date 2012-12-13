@@ -1,14 +1,16 @@
 module sdcard(input clk,
 
-                output       sd_clk,
-                output       sd_ce,
-                output       sd_out,
-                input        sd_in,
+              output       sd_clk,
+              output       sd_ce,
+              output       sd_out,
+              input        sd_in,
 
-                output [7:0] sd_data,
-                input [31:0] sd_addr,
-                input        sd_go,
-                output       sd_ready);
+              output [7:0] sd_data,
+              input [31:0] sd_addr,
+              input        sd_go,
+              output       sd_ready,
+
+              output [7:0] debug);
 
    wire sd_busy;
    wire sd_controller_go;
@@ -16,6 +18,8 @@ module sdcard(input clk,
    wire [8:0] sd_index;
 
    assign sd_index = sd_addr[8:0];
+
+   assign debug = {4'b0, sd_go, sd_busy, sd_controller_go, sd_ready};
 
    sd_cont sd_cont_inst
       (.clk(clk),

@@ -160,7 +160,9 @@ architecture top of top is
 			sd_data : out std_logic_vector(7 downto 0);
 			sd_addr : in std_logic_vector(31 downto 0);
 			sd_go : in STD_LOGIC;
-			sd_ready : out STD_LOGIC);
+			sd_ready : out STD_LOGIC;
+
+			debug : out std_logic_vector(7 downto 0));
 	end component;
 
   signal iclk, clk100, clk_default : std_logic;
@@ -187,6 +189,8 @@ architecture top of top is
 	signal sd_data : std_logic_vector(7 downto 0);
 	signal sd_addr : std_logic_vector(31 downto 0);
 	signal sd_go, sd_ready : STD_LOGIC;
+
+	signal debug : std_logic_vector(7 downto 0);
 
 begin  -- test
 
@@ -246,7 +250,7 @@ begin  -- test
 
 	-- workaround for not-stable VGA signal
 	tx_send_enable <= core_tx_send_enable;
-	tx_send_data   <= core_tx_send_data;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else debug;
 
 	Inst_dcm: my_dcm PORT MAP(
 		CLKIN_IN        => CLK,
@@ -287,7 +291,9 @@ begin  -- test
 		 sd_data  => sd_data,
 		 sd_addr  => sd_addr,
 		 sd_go    => sd_go,
-		 sd_ready => sd_ready);
+		 sd_ready => sd_ready,
+
+		 debug => debug);
 
 
   XZBE<= "0000";
