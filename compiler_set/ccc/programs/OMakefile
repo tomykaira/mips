@@ -52,11 +52,11 @@ ls.sim: ls.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a $(DIR) $(OPTION) -p $<
 
 rm.sim: rm.bin $(SIMULATOR)
-	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $<
+	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $(OPTION) $<
 
 mkdir.sim: mkdir.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/NEWDIR -p $<
-	sudo mount -t msdos -o loop,offset=49664 $(SDCARD) sdcard_mount
+	sudo mount -t msdos -o loop,offset=1048576 $(SDCARD) sdcard_mount
 	ls -la sdcard_mount/hoge
 	ls -la sdcard_mount/hoge/newdir
 	sudo umount sdcard_mount
