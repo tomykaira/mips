@@ -105,6 +105,11 @@ int try_find_entry_by_name(int cluster_id, char * token) {
   int token_pointer = 0;
   int got_null = 0;
   int de = B(cluster_id);
+  int is_special_directory = 0;
+
+  if ((token[0] == '.' && token[1] == 0) || (token[0] == '.' && token[1] == '.' && token[2] == 0)) {
+    is_special_directory = 1;
+  }
 
   while ( disk_entry_id < DIRECTORY_ENTRY_SIZE ) {
     int address = D(de, disk_entry_id, 0);
@@ -120,7 +125,9 @@ int try_find_entry_by_name(int cluster_id, char * token) {
         if (byte == token[token_pointer]) {
           token_pointer += 1;
           ptr += 1;
-        } else if (byte == 0x20 && (token[token_pointer] == 0 || token[token_pointer] == '.')) {
+        } else if (byte == 0x20
+                   && (token[token_pointer] == 0 ||
+                       (token[token_pointer] == '.' && !is_special_directory))) {
           break;
         } else {
           matching = 0;
