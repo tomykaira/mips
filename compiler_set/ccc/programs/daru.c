@@ -297,9 +297,8 @@ int list_directory(int count) {
 int read_file(int cluster_id, int size, char * content) {
   int i = 0;
   int address = B(cluster_id);
-  if (size > CLUSTER_SIZE) {
-    error(TOO_LARGE_FILE);
-  }
+  // loading a multi-cluster file is not dangerous
+  // the only problem is in the buffer size
   while (i < size) {
     content[i] = read_sd(address + i);
     i += 1;

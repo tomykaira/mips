@@ -17,7 +17,7 @@ int current_column = 0;
 char buffer[2400];
 char program_name[80];
 char argument[128];
-char file_content[0x1000];
+char file_content[0x10000];
 
 void put_char(char i) {
   if (i == '\n') {
@@ -72,30 +72,10 @@ void print_return_argument(char * result) {
 }
 
 // update current_directory_id environment variable
-char token[11];
+int resolve_result[3];
 void change_directory(char * path, int length) {
-  int pointer = 0;
-  int entry_id = 0;
-  int cluster_id = 0;
-
-  if (path[0] == '/') {
-    current_directory_id = 0;
-    pointer = 1;
-  }
-
-  while (1) {
-    pointer += basename(path + pointer, token);
-    pointer += 1;
-
-    entry_id     = find_entry_by_name(cluster_id, token);
-    cluster_id   = get_cluster_id(cluster_id, entry_id);
-
-    if (path[pointer] != '/') {
-      break;
-    }
-  }
-
-  current_directory_id = cluster_id;
+  resolve_argument_path(current_directory_id, path, resolve_result);
+  current_directory_id = resolve_result[2];
 }
 
 void process_command() {
@@ -105,6 +85,8 @@ void process_command() {
   line_start = C(current_line, 2);
   line_end = C(current_line, current_column);
   next_line();
+
+  initialize_array(argument, ARGUMENT_HEAP_SIZE, 0);
 
   if (buffer[line_start] == 'e'
       && buffer[line_start + 1] == 'x'
@@ -125,9 +107,7 @@ void process_command() {
       line_start += 1;
       ptr += 1;
     }
-    debug(current_directory_id);
     change_directory(argument, ptr);
-    debug(current_directory_id);
 
   } else if (buffer[line_start] == 0) {
     return;

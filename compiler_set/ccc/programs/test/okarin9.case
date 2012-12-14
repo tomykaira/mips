@@ -2,5 +2,5 @@ cd /HOGE
 ls
 ls .
 cat TEST
-cd HOGE
+cd INNER
 ls
