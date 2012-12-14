@@ -37,7 +37,7 @@ void clear_line(int line) {
   int i = 0;
   int end = 0;
   i = C(line, 0);
-  end = C(line, ROWS);
+  end = C(line, COLS);
   while (i < end) {
     buffer[i] = 0;
     i += 1;
