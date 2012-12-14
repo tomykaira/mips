@@ -223,7 +223,7 @@ int get_entry_name(int directory_cluster_id, int entry_id, char * entry_name) {
   if (byte != 0x20) {
     entry_name[length] = '.';
     entry_name[length + 1] = byte;
-    length += 1;
+    length += 2;
     ptr = 9;
     while (ptr < 11) {
       byte = read_sd(address + ptr);
