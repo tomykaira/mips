@@ -466,14 +466,14 @@ int basename(char * from, char * to) {
 
 // Resolve argument as path, put parent_directory_id, entry_id, cluster_id to result
 char __token[1024];
-int resolve_argument_path(char * argument, int * result) {
+int resolve_argument_path(int current_directory_id, char * argument, int * result) {
   int directory_id     = 0;
   int cluster_id       = 0;
   int argument_pointer = 0;
   int entry_id         = 0;
 
   if (argument[0] != '/') { // relative path
-    cluster_id = argument[ARGUMENT_HEAP_SIZE-1];
+    cluster_id = current_directory_id;
   } else {
     argument_pointer += 1;
     cluster_id = 0;

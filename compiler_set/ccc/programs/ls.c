@@ -13,7 +13,7 @@ void main() {
   int entry_count = 0;
   int i = 0;
 
-  resolve_argument_path(argument, resolve_result);
+  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
   cluster_id = resolve_result[2];
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
