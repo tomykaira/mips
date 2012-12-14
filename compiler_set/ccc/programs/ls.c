@@ -1,6 +1,6 @@
 char token[1024];
 char file_content[0x1000];
-char valid_entry_ids[512];
+char valid_entry_ids[0x80];
 char entry_line[32];
 
 
