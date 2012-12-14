@@ -12,9 +12,9 @@ int bin_cluster_id = 0;
 
 int current_directory_id = 0;
 
-int current_line = 0;
+int current_line = 1;
 int current_column = 0;
-char buffer[2400];
+char buffer[2400] = "Welcome to FutureGadgetLab! by. Kyoma Hououin";
 char program_name[80];
 char argument[128];
 char file_content[0x10000];
