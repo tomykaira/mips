@@ -3,6 +3,8 @@ char file_content[0x1000];
 char valid_entry_ids[0x80];
 char entry_line[32];
 
+// parent_directory_id, entry_id, cluster_id
+int resolve_result[3];
 
 void main() {
   int cluster_id = 0;
@@ -11,19 +13,8 @@ void main() {
   int entry_count = 0;
   int i = 0;
 
-  if (argument[0] != '/') { // relative path
-    cluster_id = argument[ARGUMENT_HEAP_SIZE-1];
-  } else {
-    argument_pointer += 1;
-    cluster_id = 0;
-  }
-
-  while (argument[argument_pointer] != 0) {
-    argument_pointer += basename(argument + argument_pointer, token);
-    argument_pointer += 1;
-    entry_id = find_entry_by_name(cluster_id, token);
-    cluster_id = get_cluster_id(cluster_id, entry_id);
-  }
+  resolve_argument_path(argument, resolve_result);
+  cluster_id = resolve_result[2];
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
   argument_pointer = 0;

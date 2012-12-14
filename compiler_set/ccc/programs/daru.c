@@ -456,3 +456,21 @@ int basename(char * from, char * to) {
   to[i] = 0;
   return i;
 }
+
+// Resolve argument as path, put parent_directory_id, entry_id, cluster_id to result
+int resolve_argument_path(char * argument, int * result) {
+  if (argument[0] != '/') { // relative path
+    cluster_id = argument[ARGUMENT_HEAP_SIZE-1];
+  } else {
+    argument_pointer += 1;
+    cluster_id = 0;
+  }
+
+  while (argument[argument_pointer] != 0) {
+    argument_pointer += basename(argument + argument_pointer, token);
+    argument_pointer += 1;
+    entry_id = find_entry_by_name(cluster_id, token);
+    cluster_id = get_cluster_id(cluster_id, entry_id);
+  }
+
+}
