@@ -160,7 +160,7 @@ void process_command() {
       ptr += 1;
     }
     argument[ptr] = 0;
-
+    argument[ARGUMENT_HEAP_SIZE-1] = current_directory_id;
     execute_bin(program_name, argument);
 
     send_rs(argument, 10);

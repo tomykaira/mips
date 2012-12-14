@@ -11,19 +11,18 @@ void main() {
   int entry_count = 0;
   int i = 0;
 
-  if (argument[0] != '/') {
-    error(PATH_NOT_FOUND);
+  if (argument[0] != '/') { // relative path
+    cluster_id = argument[ARGUMENT_HEAP_SIZE-1];
+  } else {
+    argument_pointer += 1;
+    cluster_id = 0;
   }
 
-  if (argument[0] == '/' && argument[1] == 0) {
-    cluster_id = 0;
-  } else {
-    while (argument[argument_pointer] == '/') {
-      argument_pointer += 1;
-      argument_pointer += basename(argument + argument_pointer, token);
-      entry_id = find_entry_by_name(cluster_id, token);
-      cluster_id = get_cluster_id(cluster_id, entry_id);
-    }
+  while (argument[argument_pointer] != 0) {
+    argument_pointer += basename(argument + argument_pointer, token);
+    argument_pointer += 1;
+    entry_id = find_entry_by_name(cluster_id, token);
+    cluster_id = get_cluster_id(cluster_id, entry_id);
   }
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
@@ -45,5 +44,6 @@ void main() {
     argument_pointer += 1;
     i += 1;
   }
+  argument[argument_pointer] = 0;
   return;
 }

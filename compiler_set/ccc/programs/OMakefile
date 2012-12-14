@@ -49,7 +49,7 @@ cat.sim: cat.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
 
 ls.sim: ls.bin $(SIMULATOR)
-	$(SIMULATOR) -s $(SDCARD) -a /BIN -p $<
+	$(SIMULATOR) -s $(SDCARD) -a $(DIR) $(OPTION) -p $<
 
 rm.sim: rm.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $<
