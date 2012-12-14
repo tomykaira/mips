@@ -10,6 +10,8 @@ void load_program();
 char bin_token[8] = "BIN";
 int bin_cluster_id = 0;
 
+int current_directory_id = 0;
+
 int current_line = 0;
 int current_column = 0;
 char buffer[2400];
@@ -69,6 +71,33 @@ void print_return_argument(char * result) {
   }
 }
 
+// update current_directory_id environment variable
+char token[11];
+void change_directory(char * path, int length) {
+  int pointer = 0;
+  int entry_id = 0;
+  int cluster_id = 0;
+
+  if (path[0] == '/') {
+    current_directory_id = 0;
+    pointer = 1;
+  }
+
+  while (1) {
+    pointer += basename(path + pointer, token);
+    pointer += 1;
+
+    entry_id     = find_entry_by_name(cluster_id, token);
+    cluster_id   = get_cluster_id(cluster_id, entry_id);
+
+    if (path[pointer] != '/') {
+      break;
+    }
+  }
+
+  current_directory_id = cluster_id;
+}
+
 void process_command() {
   int line_start = 0;
   int line_end = 0;
@@ -96,7 +125,9 @@ void process_command() {
       line_start += 1;
       ptr += 1;
     }
-    error(9999);
+    debug(current_directory_id);
+    change_directory(argument, ptr);
+    debug(current_directory_id);
 
   } else if (buffer[line_start] == 0) {
     return;
