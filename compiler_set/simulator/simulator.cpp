@@ -679,10 +679,10 @@ int simulate(simulation_options * opt)
 
 				break;
 			case HALT:
-				break;
+				goto end_simulation;
 			default:
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
-				break;
+				goto end_simulation;
 		}
 		fflush(stdout);
 	}
