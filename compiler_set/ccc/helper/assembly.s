@@ -607,6 +607,10 @@ copy_n_string_end:
 	return
 
 error:
+	addi	$r4, $r0, 69
+	outputb	$r4
+	addi	$r3, $r3, 48
+	outputb	$r3
 	debug	6
 	halt
 
