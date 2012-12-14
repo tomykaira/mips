@@ -34,27 +34,34 @@ module top(
    IBUFG ig (.I(CLK), .O(MCLK));
    BUFG bg (.I(MCLK), .O(iclk));
 
+   parameter WAIT_INITIALIZATION = 4'b0000;
+   parameter SEND_READ_DATA      = 4'b0001;
+   parameter WAIT_RS232C         = 4'b0010;
+   parameter READ_NEXT_BYTE      = 4'b0011;
+   parameter WRITE_TEST_BYTE     = 4'b0100;
+   parameter WRITE_BACK_SD       = 4'b0101;
+   parameter WAIT_WRITE_SD       = 4'b0110;
+   parameter RELOAD_SD           = 4'b0111;
+   parameter WAIT_READ_SD        = 4'b1000;
+   parameter STOP                = 4'b1001;
+
+
    wire rs_busy, sd_busy;
    reg rs_go, sd_read, sd_write;
    wire [7:0] data;
    wire [22:0] sd_addr;
    reg [8:0] sd_index;
 
-   reg [2:0] state;
-   reg [31:0] address;
+   reg [3:0] state, state_after_output;
 
    reg [7:0] write_data;
    reg write_enable;
 
    initial begin
-      state <= 3'b0;
-      address <= 32'h0;
+      state <= 4'b0;
    end
 
    assign sd_addr = 23'b0;
-   // assign sd_index = 10'h1fe;
-
-   // assign data = address[7:0];
 
    u232c #(.len(1)) u232c_inst
       (.clk(iclk),
@@ -63,7 +70,11 @@ module top(
        .busy(rs_busy),
        .tx(RS_TX));
 
-   wire [7:0] dummy_data;
+   wire [7:0] read_data;
+
+   wire [9:0] debug;
+
+   assign data = read_data;
 
    sd_cont sd_cont_inst
       (.clk(iclk),
@@ -73,13 +84,15 @@ module top(
        .sd_in(SD_DI),
 
        .sd_addr(sd_addr),
-       .sd_read_data(data),
+       .sd_read_data(read_data),
        .sd_write_data(write_data),
        .sd_write_enable(write_enable),
        .sd_index(sd_index),
        .sd_read(sd_read),
        .sd_write(sd_write),
-       .sd_busy(sd_busy));
+       .sd_busy(sd_busy),
+
+       .debug(debug));
 
    always @ (posedge(iclk)) begin
       sd_read <= 0;
@@ -88,70 +101,76 @@ module top(
       rs_go <= 0;
 
       case (state)
-        3'b000: begin
+        WAIT_INITIALIZATION: begin
            sd_read <= 1;
-           sd_index <= 9'b111111110;
-           if (data == 8'h55) begin
+           sd_index <= 9'b0;
+           if (read_data != 0) begin
               sd_index <= 9'b0;
-              state <= 3'b001;
+              state <= SEND_READ_DATA;
+              state_after_output <= WRITE_TEST_BYTE;
            end
         end
 
-        3'b001: begin
+        SEND_READ_DATA: begin
            rs_go <= 1;
-           state <= 3'b010;
+           state <= WAIT_RS232C;
         end
 
-        3'b010: begin
-           if (rs_go == 0 && rs_busy == 0) begin
-              state <= 3'b011;
+        WAIT_RS232C: begin
+           if (rs_busy == 0) begin
+              state <= READ_NEXT_BYTE;
            end
         end
 
-        3'b011: begin
+        READ_NEXT_BYTE: begin
            if (sd_index == 9'h1ff) begin
-              state <= 3'b100;
+              state <= state_after_output;
            end else begin
-              state <= 3'b001;
+              state <= SEND_READ_DATA;
               sd_index <= sd_index + 9'b1;
            end
         end
 
         // Write to BRAM
-        3'b100: begin
+        WRITE_TEST_BYTE: begin
            write_enable <= 1;
            write_data <= 8'hff;
            sd_index <= 9'h0ff;
-           state <= state + 1;
+           state <= WRITE_BACK_SD;
         end
 
         // Write back BRAM to SD
-        3'b101: begin
+        WRITE_BACK_SD: begin
            sd_write <= 1;
-           state <= state + 1;
+           state <= WAIT_WRITE_SD;
         end
 
         // Wait until write back ends
-        3'b101: begin
+        WAIT_WRITE_SD: begin
            if (sd_write == 0 && sd_busy == 0)
-             state <= state + 1;
+             state <= RELOAD_SD;
         end
 
         // Reload BRAM
-        3'b110: begin
+        RELOAD_SD: begin
            sd_read <= 1;
-           state <= state + 1;
+           state <= WAIT_READ_SD;
         end
 
-        3'b111: begin
+        WAIT_READ_SD: begin
            if (sd_read == 0 && sd_busy == 0) begin
               sd_index <= 9'b0;
-              state <= 3'b001;
+              state <= SEND_READ_DATA;
+              state_after_output <= STOP;
            end
         end
 
+        STOP:
+           state <= STOP;
+
         default:
-          state <= 3'b0;
+          state <= STOP;
+
       endcase
    end
 

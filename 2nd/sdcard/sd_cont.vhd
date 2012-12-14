@@ -20,7 +20,9 @@ entity sd_cont is
 		sd_addr  : in  std_logic_vector(22 downto 0);
 		sd_read  : in  std_logic;
 		sd_write : in	STD_LOGIC;
-		sd_busy  : out STD_LOGIC := '1'
+		sd_busy  : out STD_LOGIC := '1';
+
+		debug : out std_logic_vector(9 downto 0)
 	);
 end sd_cont;
 
@@ -55,7 +57,7 @@ architecture Behavioral of sd_cont is
 	signal spi_sdata	: std_logic_vector(7 downto 0);
 	signal spi_busy		: std_logic;
 	signal spi_go		: std_logic;
-	signal spi_delay	: std_logic_vector(7 downto 0);
+	signal spi_delay	: std_logic_vector(7 downto 0) := (others => '1');
 
 	signal state	: std_logic_vector(9 downto 0) := (others => '0');
 	signal index	: std_logic_vector(5 downto 0);
@@ -63,15 +65,16 @@ architecture Behavioral of sd_cont is
 	signal resp	: std_logic_vector(7 downto 0);
 
 	-- block RAM
-	signal addr_a	: std_logic_vector(8 downto 0) := (others => '0');
-	signal data_a	: std_logic_vector(7 downto 0);
-	signal we_a	: STD_LOGIC;
+	signal write_addr, ram_write_addr	: std_logic_vector(8 downto 0) := (others => '0');
+	signal write_data, ram_write_data	: std_logic_vector(7 downto 0);
+	signal we_a, ram_write_enable	: STD_LOGIC;
 	signal sd_write_mode : STD_LOGIC;
-	signal read_addr, ram_addr : std_logic_vector(8 downto 0);
+	signal read_addr, ram_read_addr : std_logic_vector(8 downto 0);
 	signal ram_data : std_logic_vector(7 downto 0);
 begin
 
 	sd_read_data <= ram_data;
+	debug <= state;
 
 	process(clk)begin
 		if rising_edge(clk)then
@@ -144,16 +147,16 @@ begin
 				else
 					state <= state - "100";
 				end if;
-				addr_a <= "111111111";
+				write_addr <= "111111111";
 			elsif state(6 downto 2) = "01100" then		-- Receive Data
 				spi_sdata <= "11111111";
 				we_a      <= '0';
 				state <= state + '1';
 			elsif state(6 downto 2) = "01101" then		-- Loop
-				addr_a  <= addr_a + '1';
+				write_addr  <= write_addr + '1';
 				we_a    <= '1';
-				data_a  <= spi_rdata;
-				if addr_a = "111111110" then
+				write_data  <= spi_rdata;
+				if write_addr = "111111110" then
 					state <= state + "100";
 				else
 					state <= state - "100";
@@ -170,44 +173,41 @@ begin
 				state(9 downto 7) <= state(9 downto 7) + '1';
 
 			----------------
-			elsif state(6 downto 2) = "10001" then		-- Wait 1 byte
-				spi_sdata <= x"11";
-				state <= state + '1';
+			-- usually you should wait 1 byte here, but my card should not
+			elsif state(6 downto 2) = "10001" then
+				state <= state + "100";
 			elsif state(6 downto 2) = "10010" then		-- Send token and setup to read from BRAM
 				spi_sdata <= x"fe";
 				state <= state + '1';
 				sd_write_mode <= '1';
 				read_addr <= (others => '0');
-			elsif state(6 downto 2) = "10011" then		-- Send data
+			elsif state(6 downto 2) = "10011" then		-- Wait BRAM
+				state <= state + "100";
+			elsif state(6 downto 2) = "10100" then		-- Send data
 				spi_sdata <= ram_data;
 				state <= state + '1';
-			elsif state(6 downto 2) = "10100" then		-- Loop
+			elsif state(6 downto 2) = "10101" then		-- Loop
 				read_addr <= read_addr + 1;
 				if read_addr = "111111111" then
 					state(6 downto 2) <= state(6 downto 2) + 1;
 				else
-					state(6 downto 2) <= state(6 downto 2) - 1;
+					state(6 downto 2) <= state(6 downto 2) - 2;
 				end if;
-			elsif state(6 downto 2) = "10101" then		-- CRC1 (dummy)
+			elsif state(6 downto 2) = "10110" then		-- CRC1 (dummy)
 				spi_sdata <= "11111111";
 				sd_write_mode <= '0';
 				state <= state + '1';
-			elsif state(6 downto 2) = "10110" then		-- CRC2
+			elsif state(6 downto 2) = "10111" then		-- CRC2
 				spi_sdata <= "11111111";
 				state <= state + '1';
-			elsif state(6 downto 2) = "10111" then		-- Read data response
+			elsif state(6 downto 2) = "11000" then		-- Read data response
 				spi_sdata <= "11111111";
 				state <= state + '1';
-			elsif state(6 downto 2) = "11000" then		-- Check response and retry
-				if spi_rdata(5 downto 0) = "00101" then
-					spi_sdata <= "11111111";
-					state(6 downto 2) <= state(6 downto 2) + '1';
-				else
-					state(6 downto 2) <= "00001";
-				end if;
-			elsif state(6 downto 2) = "11001" then		-- Wait while busy, then Finish
+			elsif state(6 downto 2) = "11001" then		-- polling
+				state <= state + '1';
+			elsif state(6 downto 2) = "11010" then		-- Wait while busy, then Finish
 				if sd_in = '0' then
-					state <= state;
+					state <= state - "100";
 				else
 					state(6 downto 2) <= "00000";
 					state(9 downto 7) <= state(9 downto 7) + '1';
@@ -266,16 +266,21 @@ begin
 		end if;
 	end process;
 
-	ram_addr <= read_addr when sd_write_mode = '1' else sd_index;
+
+	ram_write_addr <= write_addr when we_a = '1' else sd_index;
+	ram_write_data <= write_data when we_a = '1' else sd_write_data;
+	ram_read_addr <= read_addr when sd_write_mode = '1' else sd_index;
+
+	ram_write_enable <= we_a or sd_write_enable;
 
 	sdmem: sd_memory
 		port map(
 			clk 	=> clk,
-			addra	=> addr_a,
-			dina	=> data_a,
-			wea	=> we_a,
+			addra	=> ram_write_addr,
+			dina	=> ram_write_data,
+			wea	=> ram_write_enable,
 
-			addrb	=> ram_addr,
+			addrb	=> ram_read_addr,
 			doutb	=> ram_data
 		);
 
