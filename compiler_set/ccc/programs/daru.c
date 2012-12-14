@@ -458,7 +458,13 @@ int basename(char * from, char * to) {
 }
 
 // Resolve argument as path, put parent_directory_id, entry_id, cluster_id to result
+char __token[1024];
 int resolve_argument_path(char * argument, int * result) {
+  int directory_id     = 0;
+  int cluster_id       = 0;
+  int argument_pointer = 0;
+  int entry_id         = 0;
+
   if (argument[0] != '/') { // relative path
     cluster_id = argument[ARGUMENT_HEAP_SIZE-1];
   } else {
@@ -467,10 +473,15 @@ int resolve_argument_path(char * argument, int * result) {
   }
 
   while (argument[argument_pointer] != 0) {
-    argument_pointer += basename(argument + argument_pointer, token);
+    argument_pointer += basename(argument + argument_pointer, __token);
     argument_pointer += 1;
-    entry_id = find_entry_by_name(cluster_id, token);
+    directory_id = cluster_id;
+    entry_id   = find_entry_by_name(cluster_id, __token);
     cluster_id = get_cluster_id(cluster_id, entry_id);
   }
+
+  result[0] = directory_id;
+  result[1] = entry_id;
+  result[2] = cluster_id;
 
 }
