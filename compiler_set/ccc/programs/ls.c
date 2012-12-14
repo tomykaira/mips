@@ -7,14 +7,20 @@ char entry_line[32];
 int resolve_result[3];
 
 void main() {
+  int current_directory_id = argument[ARGUMENT_HEAP_SIZE-1];
   int cluster_id = 0;
   int argument_pointer = 0;
   int entry_id = 0;
   int entry_count = 0;
   int i = 0;
 
-  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
-  cluster_id = resolve_result[2];
+  if (current_directory_id == 0 &&
+      (argument[0] == '.' && argument[1] == 0 || argument[0] == 0)) {
+    cluster_id = 0;
+  } else {
+    resolve_argument_path(current_directory_id, argument, resolve_result);
+    cluster_id = resolve_result[2];
+  }
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
   argument_pointer = 0;
