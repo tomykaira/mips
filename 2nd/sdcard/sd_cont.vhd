@@ -5,18 +5,22 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity sd_cont is
 	port(
-		clk	: in  std_logic;
+		clk    : in  std_logic;
 
-		sd_clk	: out std_logic;
-		sd_ce	: out std_logic;
-		sd_out	: out std_logic;
-		sd_in	: in  std_logic;
+		sd_clk : out std_logic;
+		sd_ce  : out std_logic;
+		sd_out : out std_logic;
+		sd_in  : in  std_logic;
 
-		sd_data	: out std_logic_vector(7 downto 0);
-		sd_addr	: in  std_logic_vector(22 downto 0);
-		sd_index: in  std_logic_vector(8 downto 0);
-		sd_go	: in  std_logic;
-		sd_busy	: out STD_LOGIC := '1'
+		sd_index        : in  std_logic_vector(8 downto 0);
+		sd_read_data    : out std_logic_vector(7 downto 0);
+		sd_write_data   : in std_logic_vector(7 downto 0);
+		sd_write_enable : in STD_LOGIC;
+
+		sd_addr  : in  std_logic_vector(22 downto 0);
+		sd_read  : in  std_logic;
+		sd_write : in	STD_LOGIC;
+		sd_busy  : out STD_LOGIC := '1'
 	);
 end sd_cont;
 
@@ -53,15 +57,21 @@ architecture Behavioral of sd_cont is
 	signal spi_go		: std_logic;
 	signal spi_delay	: std_logic_vector(7 downto 0);
 
-	signal state	: std_logic_vector(8 downto 0) := "000000000";
+	signal state	: std_logic_vector(9 downto 0) := (others => '0');
 	signal index	: std_logic_vector(5 downto 0);
 	signal argument	: std_logic_vector(31 downto 0);
 	signal resp	: std_logic_vector(7 downto 0);
 
+	-- block RAM
 	signal addr_a	: std_logic_vector(8 downto 0) := (others => '0');
 	signal data_a	: std_logic_vector(7 downto 0);
 	signal we_a	: STD_LOGIC;
+	signal sd_write_mode : STD_LOGIC;
+	signal read_addr, ram_addr : std_logic_vector(8 downto 0);
+	signal ram_data : std_logic_vector(7 downto 0);
 begin
+
+	sd_read_data <= ram_data;
 
 	process(clk)begin
 		if rising_edge(clk)then
@@ -77,65 +87,69 @@ begin
 					state <= state + '1';
 				end if;
 			--------------------------------------------------------------------------
-			elsif state(8 downto 6) = "000" then		-- CLK 8 * 16
+			elsif state(9 downto 7) = "000" then		-- CLK 8 * 16
 				spi_sdata <= "11111111";
 				sd_ce <= '1';
 				spi_delay <= "11111111";
 				state <= state + '1';
 				sd_busy <= '1';
 			--------------------------------------------------------------------------
-			elsif state(5 downto 2) = "0001" then		-- Command Index
+			elsif state(6 downto 2) = "00001" then		-- Command Index
 				spi_sdata <= "01" & index;
 				sd_ce     <= '0';
 				state <= state + '1';
-			elsif state(5 downto 2) = "0010" then		-- Argument 1
+			elsif state(6 downto 2) = "00010" then		-- Argument 1
 				spi_sdata <= argument(31 downto 24);
 				state <= state + '1';
-			elsif state(5 downto 2) = "0011" then		-- Argument 2
+			elsif state(6 downto 2) = "00011" then		-- Argument 2
 				spi_sdata <= argument(23 downto 16);
 				state <= state + '1';
-			elsif state(5 downto 2) = "0100" then		-- Argument 3
+			elsif state(6 downto 2) = "00100" then		-- Argument 3
 				spi_sdata <= argument(15 downto 8);
 				state <= state + '1';
-			elsif state(5 downto 2) = "0101" then		-- Argument 4
+			elsif state(6 downto 2) = "00101" then		-- Argument 4
 				spi_sdata <= argument(7  downto 0);
 				state <= state + '1';
-			elsif state(5 downto 2) = "0110" then		-- CRC
+			elsif state(6 downto 2) = "00110" then		-- CRC
 				spi_sdata <= "10010101";
 				state <= state + '1';
-			elsif state(5 downto 2) = "0111" then		-- Response
+			elsif state(6 downto 2) = "00111" then		-- Response
 				spi_sdata <= "11111111";
 				state <= state + '1';
-			elsif state(5 downto 2) = "1000" then		-- Response Check
+			elsif state(6 downto 2) = "01000" then		-- Response Check
 				if spi_rdata = "11111111" then	-- Not received
 					state <= state - "100";
 				else				-- Received
 					state <= state + "100";
 					resp  <= spi_rdata;
 				end if;
-			elsif state(5 downto 2) = "1001" then		-- Finish or Continue(Cmd17)
+			elsif state(6 downto 2) = "01001" then		-- Finish or Continue(Cmd17,  Cmd24)
 				if index = 17 then	-- CMD17
 					state <= state + "100";
+				elsif index = 24 then	-- CMD24
+					state(6 downto 2) <= "10001";
 				else			-- Finish
-					state(5 downto 2) <= "0000";
-					state(8 downto 6) <= state(8 downto 6) + '1';
+					state(6 downto 2) <= "00000";
+					state(9 downto 7) <= state(9 downto 7) + '1';
 					sd_ce <= '1';
 				end if;
-			elsif state(5 downto 2) = "1010" then		-- Wait Data Token
+
+			----------------
+			elsif state(6 downto 2) = "01010" then		-- Wait Data Token
 				spi_sdata <= "11111111";
 				state <= state + '1';
-			elsif state(5 downto 2) = "1011" then		-- Check if rdata is Data Token
+			elsif state(6 downto 2) = "01011" then		-- Check if rdata is Data Token
 				if spi_rdata = "11111110" then
 					state <= state + "100";
 				else
 					state <= state - "100";
 				end if;
 				addr_a <= "111111111";
-			elsif state(5 downto 2) = "1100" then		-- Receive Data
+			elsif state(6 downto 2) = "01100" then		-- Receive Data
 				spi_sdata <= "11111111";
 				we_a      <= '0';
 				state <= state + '1';
-			elsif state(5 downto 2) = "1101" then		-- Loop
+			elsif state(6 downto 2) = "01101" then		-- Loop
 				addr_a  <= addr_a + '1';
 				we_a    <= '1';
 				data_a  <= spi_rdata;
@@ -144,37 +158,85 @@ begin
 				else
 					state <= state - "100";
 				end if;
-			elsif state(5 downto 2) = "1110" then		-- CRC1
+			elsif state(6 downto 2) = "01110" then		-- CRC1
 				spi_sdata <= "11111111";
 				we_a      <= '0';
 				state <= state + '1';
-			elsif state(5 downto 2) = "1111" then		-- CRC2 and Finish
+			elsif state(6 downto 2) = "01111" then		-- CRC2
 				spi_sdata <= "11111111";
 				state <= state + '1';
+			elsif state(6 downto 2) = "10000" then		-- Finish read
+				state(6 downto 2) <= "00000";
+				state(9 downto 7) <= state(9 downto 7) + '1';
+
+			----------------
+			elsif state(6 downto 2) = "10001" then		-- Wait 1 byte
+				spi_sdata <= x"11";
+				state <= state + '1';
+			elsif state(6 downto 2) = "10010" then		-- Send token and setup to read from BRAM
+				spi_sdata <= x"fe";
+				state <= state + '1';
+				sd_write_mode <= '1';
+				read_addr <= (others => '0');
+			elsif state(6 downto 2) = "10011" then		-- Send data
+				spi_sdata <= ram_data;
+				state <= state + '1';
+			elsif state(6 downto 2) = "10100" then		-- Loop
+				read_addr <= read_addr + 1;
+				if read_addr = "111111111" then
+					state(6 downto 2) <= state(6 downto 2) + 1;
+				else
+					state(6 downto 2) <= state(6 downto 2) - 1;
+				end if;
+			elsif state(6 downto 2) = "10101" then		-- CRC1 (dummy)
+				spi_sdata <= "11111111";
+				sd_write_mode <= '0';
+				state <= state + '1';
+			elsif state(6 downto 2) = "10110" then		-- CRC2
+				spi_sdata <= "11111111";
+				state <= state + '1';
+			elsif state(6 downto 2) = "10111" then		-- Read data response
+				spi_sdata <= "11111111";
+				state <= state + '1';
+			elsif state(6 downto 2) = "11000" then		-- Check response and retry
+				if spi_rdata(5 downto 0) = "00101" then
+					spi_sdata <= "11111111";
+					state(6 downto 2) <= state(6 downto 2) + '1';
+				else
+					state(6 downto 2) <= "00001";
+				end if;
+			elsif state(6 downto 2) = "11001" then		-- Wait while busy, then Finish
+				if sd_in = '0' then
+					state <= state;
+				else
+					state(6 downto 2) <= "00000";
+					state(9 downto 7) <= state(9 downto 7) + '1';
+				end if;
+
 			--------------------------------------------------------------------------------------
 			---- Initialization Sequence ----
-			elsif state(8 downto 6) = "001" then		-- CMD 0
+			elsif state(9 downto 7) = "001" then		-- CMD 0
 				index <= "000000";
 				argument <= (others => '0');
 				state <= state + "100";
 				sd_ce <= '1';
-			elsif state(8 downto 6) = "010" then		-- CMD 55
+			elsif state(9 downto 7) = "010" then		-- CMD 55
 				index <= conv_std_logic_vector(55, 6);
 				argument <= (others => '0');
 				state <= state + "100";
 				sd_ce <= '1';
-			elsif state(8 downto 6) = "011" then		-- CMD 41
+			elsif state(9 downto 7) = "011" then		-- CMD 41
 				index <= conv_std_logic_vector(41, 6);
 				argument <= (others => '0');
 				state <= state + "100";
 				sd_ce <= '1';
-			elsif state(8 downto 6) = "100" then		-- Response Check
+			elsif state(9 downto 7) = "100" then		-- Response Check
 				if resp = "00000000" then
-					state <= state + "1000000";
+					state(9 downto 7) <= state(9 downto 7) + "1";
 				else
-					state <= state - "10000000";
+					state(9 downto 7) <= state(9 downto 7) - "10";
 				end if;
-			elsif state(8 downto 6) = "101" then		-- CMD 16
+			elsif state(9 downto 7) = "101" then		-- CMD 16
 				spi_delay <= "00000101";
 				index    <= conv_std_logic_vector(16, 6);
 				argument <= conv_std_logic_vector(512, 32);
@@ -182,23 +244,29 @@ begin
 				sd_ce <= '1';
 			-----------------------------------------------------------------------------------------
 			---- Loop ----
-			elsif state(8 downto 6) = "110" then
+			elsif state(9 downto 7) = "110" then
 				sd_ce <= '1';
-				if sd_go = '1' then
-					index <= conv_std_logic_vector(17, 6);
+				if sd_read = '1' or sd_write = '1' then
+					if sd_read = '1' then
+						index <= conv_std_logic_vector(17, 6);
+					elsif sd_write = '1' then
+						index <= conv_std_logic_vector(24, 6);
+					end if;
 					argument <= sd_addr & "000000000";
 					state <= state + "100";
 					sd_busy <= '1';	-- C: Set <- Busy
 				else
 					sd_busy <= '0';
 				end if;
-			elsif state(8 downto 6) = "111" then
+			elsif state(9 downto 7) = "111" then
 				sd_ce <= '1';
-				state <= state - "1000000";
+				state(9 downto 7) <= state(9 downto 7) - "1";
 				sd_busy <= '0';		-- C: Clear
 			end if;
 		end if;
 	end process;
+
+	ram_addr <= read_addr when sd_write_mode = '1' else sd_index;
 
 	sdmem: sd_memory
 		port map(
@@ -207,8 +275,8 @@ begin
 			dina	=> data_a,
 			wea	=> we_a,
 
-			addrb	=> sd_index,
-			doutb	=> sd_data
+			addrb	=> ram_addr,
+			doutb	=> ram_data
 		);
 
 	spic: spi_cont
