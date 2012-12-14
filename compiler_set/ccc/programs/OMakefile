@@ -50,7 +50,7 @@ vim.sim: vim.bin
 	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case $(OPTION)
 
 rukako.sim: rukako.bin
-	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp
+	$(SIMULATOR) -s $(SDCARD) -a /LISP/$(CASE).LSP -p $(OPTION) $<
 
 cat.sim: cat.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
