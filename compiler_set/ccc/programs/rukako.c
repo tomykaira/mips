@@ -417,7 +417,12 @@ int evaluate_cond(int exp_id) {
 }
 
 void skip_space() {
-  while (input[input_pointer] == ' ') {
+  int c = 0;
+  while (1) {
+    c = input[input_pointer];
+    if (c != ' ' && c != '\n' && c != 0x09) {
+      break;
+    }
     input_pointer += 1;
   }
 }
