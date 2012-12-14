@@ -15,7 +15,7 @@ int div_binary_search(int a, int b, int left, int right) {
   }
 }
 
-int print_int (int x, char * output) {
+int int_to_string (int x, char * output) {
   int size = 0;
   int tx = 0;
   int dx = 0;

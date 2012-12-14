@@ -39,7 +39,7 @@ void main() {
       argument[argument_pointer] = ' ';
       argument_pointer += 1;
       file_size = get_file_size(cluster_id, valid_entry_ids[i]);
-      argument_pointer += print_int(file_size, argument);
+      argument_pointer += int_to_string(file_size, argument + argument_pointer);
     }
     argument[argument_pointer] = '\n';
     argument_pointer += 1;

@@ -9,6 +9,7 @@ BYTE_FILE_GENERATOR = ../../../core_runner/byte_file_generator.rb
 LIBRARIES[]=
 	base.c
 	daru.c
+	int_to_string.c
 SDCARD = /home/tomita/tmp/disk
 
 %.bin: %.s
