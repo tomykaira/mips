@@ -128,6 +128,8 @@ module testbench_endtoend();
       xreset <= 1;
       #100;
 
+      SD_DI <= 0;
+
       #300;
 
       send_word(32'hffffffff); // end marker
