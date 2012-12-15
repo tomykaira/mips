@@ -1,0 +1,10 @@
+ls LISP
+ls BIN
+vim /LISP/PRINT.LSP
+lq
+rukako /LISP/PRINT.LSP
+cd LISP
+vim EQUAL.LSP
+lq
+rukako EQUAL.LSP
+exit

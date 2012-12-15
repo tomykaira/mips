@@ -1,0 +1,6 @@
+cd /HOGE
+ls
+ls .
+cat TEST
+cd INNER
+ls

@@ -15,6 +15,7 @@ typedef struct _options {
 	char * sd_file;
 	char * argument;
 	char * target_binary;
+	int current_directory_id;
 } simulation_options;
 
 

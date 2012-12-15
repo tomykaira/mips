@@ -446,7 +446,6 @@ send_display_start:
 	blt	$r5, $r4, send_display_start
 	nop
 	nop
-	debug	8
 	return
 
 # void send_rs(char * c, int length)

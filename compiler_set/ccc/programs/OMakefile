@@ -1,5 +1,5 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean okarin.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
+.PHONY: clean build_binary okarin.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
@@ -30,11 +30,18 @@ Compile(file)=
 clean:
 	rm -f *.s *.sim *.bin
 
-.BUILD_SUCCESS:
-	true
+PROGRAMS[]=
+	vim
+	rukako
+	cat
+	ls
+	rm
+	mkdir
+	echo
 
-.BUILD_FAILURE:
-	true
+BYTE_PROGRAMS = $(addsuffix .byte.bin, $(PROGRAMS))
+
+build_binary: $(BYTE_PROGRAMS)
 
 okarin.sim: okarin.bin
 	$(SIMULATOR) $< -s $(SDCARD) -k test/okarin$(CASE).case -x $(OPTION)
@@ -43,20 +50,20 @@ vim.sim: vim.bin
 	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case $(OPTION)
 
 rukako.sim: rukako.bin
-	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp
+	$(SIMULATOR) -s $(SDCARD) -a /LISP/$(CASE).LSP -p $(OPTION) $<
 
 cat.sim: cat.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
 
 ls.sim: ls.bin $(SIMULATOR)
-	$(SIMULATOR) -s $(SDCARD) -a /BIN -p $<
+	$(SIMULATOR) -s $(SDCARD) -a $(DIR) $(OPTION) -p $<
 
 rm.sim: rm.bin $(SIMULATOR)
-	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $<
+	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $(OPTION) $<
 
 mkdir.sim: mkdir.bin $(SIMULATOR)
 	$(SIMULATOR) -s $(SDCARD) -a /HOGE/NEWDIR -p $<
-	sudo mount -t msdos -o loop,offset=49664 $(SDCARD) sdcard_mount
+	sudo mount -t msdos -o loop,offset=1048577 $(SDCARD) sdcard_mount
 	ls -la sdcard_mount/hoge
 	ls -la sdcard_mount/hoge/newdir
 	sudo umount sdcard_mount

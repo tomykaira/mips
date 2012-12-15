@@ -46,32 +46,34 @@ void break_line() {
   current_column = 0;
 }
 
+// parent_directory_id, entry_id, cluster_id
+int resolve_result[3];
+
 void read() {
-  int entry_count = 0;
   int cluster_id = 0;
-  int empty_index = 0;
+  int new_cluster_id = 0;
   int argument_pointer = 0;
-  int file_size = 0;
+  int prev_pointer = 0;
+  int empty_index = 0;
   int entry_id = 0;
+  int file_size = 0;
 
-  if (argument[0] != '/') {
-    error(PATH_NOT_FOUND);
+  while (argument[argument_pointer] != 0) {
+    prev_pointer = argument_pointer;
+    argument_pointer += basename(argument + argument_pointer, filename);
+    argument_pointer += 1;  // skip "/"
   }
 
-  argument_pointer += 1;
-  argument_pointer += basename(argument + argument_pointer, token);
-
-  while (argument[argument_pointer] == '/') {
-    entry_id = find_entry_by_name(cluster_id, token);
-    cluster_id = get_cluster_id(cluster_id, entry_id);
-
-    argument_pointer += 1;
-    argument_pointer += basename(argument + argument_pointer, token);
+  prev_pointer -= 1;
+  while (prev_pointer < argument_pointer) {
+    argument[prev_pointer] = 0;
+    prev_pointer += 1;
   }
 
-  directory_id = cluster_id;
-  entry_id = try_find_entry_by_name(cluster_id, token);
-  copy_string(filename, token);
+  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  directory_id = resolve_result[2];
+
+  entry_id = try_find_entry_by_name(directory_id, filename);
 
   if (entry_id == ENTRY_NOT_FOUND_ID) {
     buffer[0] = EOF;

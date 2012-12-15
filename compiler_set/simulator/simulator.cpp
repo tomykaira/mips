@@ -274,6 +274,8 @@ int simulate(simulation_options * opt)
 		}
 	}
 
+	RAM[DEFAULT_HR + ARGUMENT_HEAP_SIZE - 1] = opt->current_directory_id;
+
 
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
@@ -677,10 +679,10 @@ int simulate(simulation_options * opt)
 
 				break;
 			case HALT:
-				break;
+				goto end_simulation;
 			default:
 				cerr << "invalid opcode. (opcode = " << (int)opcode << ", funct = " << (int)funct <<  ", pc = " << pc << ")" << endl;
-				break;
+				goto end_simulation;
 		}
 		fflush(stdout);
 	}
@@ -723,6 +725,7 @@ int main(int argc, char** argv)
 	opt.sd_file                   = NULL;
 	opt.argument                  = NULL;
 	opt.target_binary             = NULL;
+	opt.current_directory_id      = 0;
 
 	strcpy(dirpath, argv[0]);
 	dirname(dirpath);
@@ -739,13 +742,14 @@ int main(int argc, char** argv)
 			{"keyread",    required_argument, 0,  'k' },
 			{"sdcard",     required_argument, 0,  's' },
 			{"argument",   required_argument, 0,  'a' },
+			{"cd",         required_argument, 0,  'c' },
 			{"show_heap",  no_argument,       0,  'p' },
 			{"libtest",    no_argument,       0,  't' },
 			{"no_end",     no_argument,       0,  'x' },
 			{0,            0,                 0,  0   }
 		};
 
-		c = getopt_long(argc, argv, "rimoSf:tk:xs:a:p", long_options, &option_index);
+		c = getopt_long(argc, argv, "rimoSf:tk:xs:a:pc:", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -804,6 +808,10 @@ int main(int argc, char** argv)
 
 		case 'p':
 			opt.enable_show_heap = true;
+			break;
+
+		case 'c':
+			sscanf(optarg, "%d", &opt.current_directory_id);
 			break;
 
 		default:

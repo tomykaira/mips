@@ -1,0 +1,14 @@
+ls BIN
+cd /HOGE
+ls
+mkdir NEWNEW
+ls
+cd NEWNEW
+vim TEST
+iinpuuuuuuuut
+wq
+ls
+cat TEST
+cd ..
+cat TEST
+exit

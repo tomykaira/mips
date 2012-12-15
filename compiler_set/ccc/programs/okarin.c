@@ -10,12 +10,14 @@ void load_program();
 char bin_token[8] = "BIN";
 int bin_cluster_id = 0;
 
-int current_line = 0;
+int current_directory_id = 0;
+
+int current_line = 1;
 int current_column = 0;
-char buffer[2400];
+char buffer[2400] = "Welcome to FutureGadgetLab! by. Kyoma Hououin";
 char program_name[80];
 char argument[128];
-char file_content[0x1000];
+char file_content[0x10000];
 
 void put_char(char i) {
   if (i == '\n') {
@@ -35,7 +37,7 @@ void clear_line(int line) {
   int i = 0;
   int end = 0;
   i = C(line, 0);
-  end = C(line, ROWS);
+  end = C(line, COLS);
   while (i < end) {
     buffer[i] = 0;
     i += 1;
@@ -69,67 +71,69 @@ void print_return_argument(char * result) {
   }
 }
 
+// update current_directory_id environment variable
+int resolve_result[3];
+void change_directory(char * path, int length) {
+  resolve_argument_path(current_directory_id, path, resolve_result);
+  current_directory_id = resolve_result[2];
+}
+
+char command[80];
+char c_exit[80] = "exit";
+char c_cd[80] = "cd ";
 void process_command() {
-  int line_start = 0;
-  int line_end = 0;
-  int ptr = 0;
-  line_start = C(current_line, 2);
-  line_end = C(current_line, current_column);
+  int command_ptr  = 0;
+
+  initialize_array(command, 80, 0);
+  copy_string(command, buffer + C(current_line, 2));
+  initialize_array(argument, ARGUMENT_HEAP_SIZE, 0);
+
+  send_rs(command, 10);
   next_line();
 
-  if (buffer[line_start] == 'e'
-      && buffer[line_start + 1] == 'x'
-      && buffer[line_start + 2] == 'i'
-      && buffer[line_start + 3] == 't') {
+  if (str_equal(c_exit, command, 4)) {
     put_char('b');
     put_char('y');
     put_char('e');
     send_display(buffer);
     halt();
 
-  } else if (buffer[line_start] == 'c'
-             && buffer[line_start + 1] == 'd'
-             && buffer[line_start + 2] == ' ') {
-    line_start += 3;
-    while (buffer[line_start] != 0 && line_start < line_end) {
-      argument[ptr] = buffer[line_start];
-      line_start += 1;
-      ptr += 1;
-    }
-    error(9999);
+  } else if (str_equal(c_cd, command, 3)) {
+    int length = copy_string(argument, command + 3);
+    change_directory(argument, length);
 
-  } else if (buffer[line_start] == 0) {
+  } else if (command[0] == 0) {
     return;
+
   } else {
-    ptr = 0;
-    while (buffer[line_start] != ' '
-           && buffer[line_start] != 0
-           && line_start < line_end) {
-      int byte = buffer[line_start];
+    int ptr = 0;
+    while (command[command_ptr] != ' '
+           && command[command_ptr] != 0
+           && command_ptr < COLS) {
+      int byte = command[command_ptr];
       if (byte >= 'a' && byte <= 'z') {
         byte -= 0x20;
       }
       program_name[ptr] = byte;
-      line_start += 1;
+      command_ptr += 1;
       ptr += 1;
     }
     program_name[ptr] = 0;
 
-    while (buffer[line_start] == ' ' && line_start < line_end) {
-      line_start += 1;
+    while (command[command_ptr] == ' ' && command_ptr < COLS) {
+      command_ptr += 1;
     }
 
     ptr = 0;
-    initialize_array(argument, 128, 0);
-    while (buffer[line_start] != ' '
-           && buffer[line_start] != 0
-           && line_start < line_end) {
-      argument[ptr] = buffer[line_start];
-      line_start += 1;
+    while (command[command_ptr] != ' '
+           && command[command_ptr] != 0
+           && command_ptr < COLS) {
+      argument[ptr] = command[command_ptr];
+      command_ptr += 1;
       ptr += 1;
     }
     argument[ptr] = 0;
-
+    argument[ARGUMENT_HEAP_SIZE-1] = current_directory_id;
     execute_bin(program_name, argument);
 
     send_rs(argument, 10);

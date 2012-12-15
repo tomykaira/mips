@@ -2,7 +2,7 @@
 #define FAT_TABLE2 0x00120000
 #define TABLE_SIZE 0x0001f000
 #define RDE 0x0013f000
-#define DIRECTORY_ENTRY_SIZE 0x200 // 512
+#define DIRECTORY_ENTRY_SIZE 0x80 // 512
 #define DIRECTORY_ENTRY_LINE 0x20 // 32
 #define USER_DATA 0x143000
 #define CLUSTER_SIZE 0x1000
@@ -105,6 +105,11 @@ int try_find_entry_by_name(int cluster_id, char * token) {
   int token_pointer = 0;
   int got_null = 0;
   int de = B(cluster_id);
+  int is_special_directory = 0;
+
+  if ((token[0] == '.' && token[1] == 0) || (token[0] == '.' && token[1] == '.' && token[2] == 0)) {
+    is_special_directory = 1;
+  }
 
   while ( disk_entry_id < DIRECTORY_ENTRY_SIZE ) {
     int address = D(de, disk_entry_id, 0);
@@ -120,7 +125,9 @@ int try_find_entry_by_name(int cluster_id, char * token) {
         if (byte == token[token_pointer]) {
           token_pointer += 1;
           ptr += 1;
-        } else if (byte == 0x20 && (token[token_pointer] == 0 || token[token_pointer] == '.')) {
+        } else if (byte == 0x20
+                   && (token[token_pointer] == 0 ||
+                       (token[token_pointer] == '.' && !is_special_directory))) {
           break;
         } else {
           matching = 0;
@@ -216,7 +223,7 @@ int get_entry_name(int directory_cluster_id, int entry_id, char * entry_name) {
   if (byte != 0x20) {
     entry_name[length] = '.';
     entry_name[length + 1] = byte;
-    length += 1;
+    length += 2;
     ptr = 9;
     while (ptr < 11) {
       byte = read_sd(address + ptr);
@@ -290,9 +297,8 @@ int list_directory(int count) {
 int read_file(int cluster_id, int size, char * content) {
   int i = 0;
   int address = B(cluster_id);
-  if (size > CLUSTER_SIZE) {
-    error(TOO_LARGE_FILE);
-  }
+  // loading a multi-cluster file is not dangerous
+  // the only problem is in the buffer size
   while (i < size) {
     content[i] = read_sd(address + i);
     i += 1;
@@ -455,4 +461,33 @@ int basename(char * from, char * to) {
   copy_n_string(to, from, i);
   to[i] = 0;
   return i;
+}
+
+// Resolve argument as path, put parent_directory_id, entry_id, cluster_id to result
+char __token[1024];
+int resolve_argument_path(int current_directory_id, char * argument, int * result) {
+  int directory_id     = 0;
+  int cluster_id       = 0;
+  int argument_pointer = 0;
+  int entry_id         = 0;
+
+  if (argument[0] != '/') { // relative path
+    cluster_id = current_directory_id;
+  } else {
+    argument_pointer += 1;
+    cluster_id = 0;
+  }
+
+  while (argument[argument_pointer] != 0) {
+    argument_pointer += basename(argument + argument_pointer, __token);
+    argument_pointer += 1;
+    directory_id = cluster_id;
+    entry_id   = find_entry_by_name(cluster_id, __token);
+    cluster_id = get_cluster_id(cluster_id, entry_id);
+  }
+
+  result[0] = directory_id;
+  result[1] = entry_id;
+  result[2] = cluster_id;
+
 }

@@ -1,29 +1,22 @@
-char token[1024];
-char file_content[0x1000];
-char valid_entry_ids[512];
-char entry_line[32];
+char valid_entry_ids[0x80];
 
+// parent_directory_id, entry_id, cluster_id
+int resolve_result[3];
 
 void main() {
+  int current_directory_id = argument[ARGUMENT_HEAP_SIZE-1];
   int cluster_id = 0;
   int argument_pointer = 0;
   int entry_id = 0;
   int entry_count = 0;
   int i = 0;
 
-  if (argument[0] != '/') {
-    error(PATH_NOT_FOUND);
-  }
-
-  if (argument[0] == '/' && argument[1] == 0) {
+  if (current_directory_id == 0 &&
+      (argument[0] == '.' && argument[1] == 0 || argument[0] == 0)) {
     cluster_id = 0;
   } else {
-    while (argument[argument_pointer] == '/') {
-      argument_pointer += 1;
-      argument_pointer += basename(argument + argument_pointer, token);
-      entry_id = find_entry_by_name(cluster_id, token);
-      cluster_id = get_cluster_id(cluster_id, entry_id);
-    }
+    resolve_argument_path(current_directory_id, argument, resolve_result);
+    cluster_id = resolve_result[2];
   }
 
   entry_count = get_valid_entries(cluster_id, valid_entry_ids);
@@ -45,5 +38,6 @@ void main() {
     argument_pointer += 1;
     i += 1;
   }
+  argument[argument_pointer] = 0;
   return;
 }
