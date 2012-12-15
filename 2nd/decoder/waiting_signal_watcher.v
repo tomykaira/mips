@@ -13,6 +13,7 @@ module waiting_signal_watcher (input [31:0] inst,
 
    assign freeze = (op == INPUTB && rx_wait == 1'b1
                     || op == READKEY && key_status[1] == 1'b0
-                    || op == READSD && sd_ready == 1'b0) ? 1'b1 : 1'b0;
+                    || op == READSD  && sd_ready == 1'b0
+                    || op == WRITESD && sd_ready == 1'b0) ? 1'b1 : 1'b0;
 
 endmodule
