@@ -15,7 +15,6 @@ module sdcard(input clk,
               output [7:0] debug);
 
    wire sd_busy;
-   wire sd_controller_go;
 
    wire write_ram;
    wire [22:0] sd_block;
@@ -37,7 +36,7 @@ module sdcard(input clk,
        .sd_write_data(sd_write_data),
        .sd_write_enable(write_ram),
 
-       .sd_addr(sd_block),
+       .sd_block(sd_block),
        .sd_read(sd_read_spi),
        .sd_write(sd_write_spi),
        .sd_busy(sd_busy),
@@ -55,7 +54,7 @@ module sdcard(input clk,
        .write_spi(sd_write_spi),
        .write_ram(write_ram),
 
-       .addr(sd_block),
+       .addr(sd_addr),
        .block(sd_block),
 
        .ready(sd_ready));

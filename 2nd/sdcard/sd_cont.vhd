@@ -17,7 +17,7 @@ entity sd_cont is
 		sd_write_data   : in std_logic_vector(7 downto 0);
 		sd_write_enable : in STD_LOGIC;
 
-		sd_addr  : in  std_logic_vector(22 downto 0);
+		sd_block  : in  std_logic_vector(22 downto 0);
 		sd_read  : in  std_logic;
 		sd_write : in	STD_LOGIC;
 		sd_busy  : out STD_LOGIC := '1';
@@ -252,7 +252,7 @@ begin
 					elsif sd_write = '1' then
 						index <= conv_std_logic_vector(24, 6);
 					end if;
-					argument <= sd_addr & "000000000";
+					argument <= sd_block & "000000000";
 					state <= state + "100";
 					sd_busy <= '1';	-- C: Set <- Busy
 				else

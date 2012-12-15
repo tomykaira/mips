@@ -15,7 +15,6 @@ module sd_cache(input clk,
 
    reg [22:0] current_block, reading_block;
    wire [22:0] required_block;
-   reg prev_busy;
    reg [3:0] state;
    reg dirty;
 
@@ -31,14 +30,12 @@ module sd_cache(input clk,
    initial begin
       current_block <= 22'b1111111111111111111111;
       reading_block <= 22'b1111111111111111111111;
-      prev_busy     <= 1'b0;
       ready         <= 1'b0;
       dirty         <= 1'b0;
       state         <= WAIT;
    end
 
    always @ (posedge(clk)) begin
-      prev_busy <= busy;
       read_spi  <= 1'b0;
       write_spi <= 1'b0;
       write_ram <= 1'b0;

@@ -26,7 +26,7 @@ module sd_manager(input clk,
    assign sd_read  = op == READSD  && sd_ready == 1'b0 ? 1'b1 : 1'b0;
    assign sd_write = op == WRITESD && sd_ready == 1'b0 ? 1'b1 : 1'b0;
 
-   assign sd_write_data = rs[7:0];
+   assign sd_write_data = rt[7:0];
    assign sd_addr = rs;
 
    assign data    = {24'b0,sd_read_data};

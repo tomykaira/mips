@@ -169,7 +169,7 @@ architecture top of top is
 			debug : out std_logic_vector(7 downto 0));
 	end component;
 
-  signal iclk, clk100, clk_default : std_logic;
+  signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
