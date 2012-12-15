@@ -1,6 +1,6 @@
 #define COLS 80 /* replace before compile */
 #define ROWS 30
-#define EOF '!'
+#define EOF '*'
 #define EOL '\n'
 #define C(y, x) (((y) << 6) + ((y) << 4) + (x))
 
@@ -13,9 +13,15 @@ int current_line = 0;
 int current_column = 0;
 int insert_mode = 0;
 
+int directory_id = 0;
+int file_id = 0;
+char filename[12];
+
 char notification[80];
 char buffer[2400];
 char text_buffer[2400];
+char file_content[0x1000];
+char token[255];
 
 void update_notification_line() {
   int i = 0;
@@ -40,8 +46,69 @@ void break_line() {
   current_column = 0;
 }
 
+// parent_directory_id, entry_id, cluster_id
+int resolve_result[3];
+
+void read() {
+  int cluster_id = 0;
+  int new_cluster_id = 0;
+  int argument_pointer = 0;
+  int prev_pointer = 0;
+  int empty_index = 0;
+  int entry_id = 0;
+  int file_size = 0;
+
+  while (argument[argument_pointer] != 0) {
+    prev_pointer = argument_pointer;
+    argument_pointer += basename(argument + argument_pointer, filename);
+    argument_pointer += 1;  // skip "/"
+  }
+
+  prev_pointer -= 1;
+  while (prev_pointer < argument_pointer) {
+    argument[prev_pointer] = 0;
+    prev_pointer += 1;
+  }
+
+  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  directory_id = resolve_result[2];
+
+  entry_id = try_find_entry_by_name(directory_id, filename);
+
+  if (entry_id == ENTRY_NOT_FOUND_ID) {
+    buffer[0] = EOF;
+    file_id = 0;
+  } else {
+    file_id = get_cluster_id(directory_id, entry_id);
+    file_size = get_file_size(directory_id, entry_id);
+    read_file(file_id, file_size, file_content);
+
+    {
+      int line = 0;
+      int column = 0;
+      int ptr = 0;
+      int got_newline = 0;
+
+      initialize_array(buffer, 2400, 0);
+
+      while (ptr < file_size) {
+        buffer[C(line, column)] = file_content[ptr];
+        if (file_content[ptr] == '\n') {
+          line += 1;
+          column = 0;
+        } else {
+          column += 1;
+        }
+        ptr += 1;
+      }
+
+      buffer[C(line, column)] = EOF;
+    }
+  }
+}
+
 void write() {
-  int text_pointer = 0;
+  int length = 0;
   int line = 0;
   int column = 0;
 
@@ -51,8 +118,8 @@ void write() {
     if (c == EOF) {
       break;
     } else if (c != 0) {
-      text_buffer[text_pointer] = c;
-      text_pointer += 1;
+      text_buffer[length] = c;
+      length += 1;
     }
     column += 1;
     if (column >= COLS) {
@@ -60,7 +127,19 @@ void write() {
       line += 1;
     }
   }
-  send_rs(text_buffer, text_pointer);
+
+
+  if (file_id) {
+    write_file(file_id, text_buffer, length);
+    update_file_size(directory_id, file_id, length);
+  } else {
+    int empty_index = find_empty_directory_index(directory_id);
+    file_id = create_fat_entry();
+    write_file(file_id, text_buffer, length);
+    create_file_entry(directory_id, empty_index, 0, file_id, length, filename);
+  }
+
+  send_rs(text_buffer, length);
 }
 
 void goto_last_column() {
@@ -92,7 +171,7 @@ int interpret_command(char input) {
     move_memory(buffer + C(current_line + 1, 0), 80, C(ROWS - current_line, 0));
     current_line += 1;
     current_column = 0;
-    initialize_array(buffer + C(current_line, 0), buffer + C(current_line, COLS-1), 0);
+    initialize_array(buffer + C(current_line, 0), C(current_line, COLS-1) - C(current_line, 0), 0);
     buffer[C(current_line, 0)] = EOL;
     insert_mode = 1;
     break;
@@ -143,7 +222,7 @@ void main(int argc)
 {
   char input = 0;
 
-  buffer[0] = EOF;
+  read();
 
   while (1) {
     input = read_key(); /* blocking */

@@ -30,12 +30,12 @@ test: $(TEST_JOBS)
 %.gcc.a: %.gcc_c
 	gcc -Wall -x c -o $@ $<
 
-%.gcc_c: %.c
+%.gcc_c: %.c $(C_HEADER)
 	cat $(C_HEADER) $< > $@
 
 %.s: %.c $(COMPILER) $(LINKER)
 	$(COMPILER) $< > /dev/null
-	$(LINKER) $@
+	$(LINKER) $@ -i
 
 clean:
 	rm -f *.s *.gcc *.sim *.gcc_c *.bin *.test *.gcc.a

@@ -20,7 +20,14 @@ module mimic(input clk,
              output [6:0]  display_char_code,
 
              input [7:0]   key_status,
-             input [7:0]   keycode);
+             input [7:0]   keycode,
+
+             input [7:0]   sd_read_data,
+             output [7:0]  sd_write_data,
+             output [31:0] sd_addr,
+             output        sd_read,
+             output        sd_write,
+             input         sd_ready);
 
    wire [15:0] inst_address, inst_write_address;
    wire [31:0] inst_write_data, inst_fetch;
@@ -63,6 +70,7 @@ module mimic(input clk,
      (.inst(inst_fetch),
       .rx_wait(rx_waiting),
       .key_status(key_status),
+      .sd_ready(sd_ready),
       .freeze(freeze));
 
    wire [31:0] rs_data, rt_data;
@@ -147,11 +155,6 @@ module mimic(input clk,
       .key_status(key_status), .keycode(keycode),
       .enable(write_enable_keyboard), .addr(write_addr_keyboard), .data(write_data_keyboard), .float(write_float_keyboard));
 
-   assign write_enable_misc = write_enable_rs == 1'b1 ? write_enable_rs : write_enable_keyboard;
-   assign write_addr_misc   = write_enable_rs == 1'b1 ? write_addr_rs   : write_addr_keyboard;
-   assign write_data_misc   = write_enable_rs == 1'b1 ? write_data_rs   : write_data_keyboard;
-   assign write_float_misc  = write_enable_rs == 1'b1 ? write_float_rs  : write_float_keyboard;
-
    display_instruction_dispatcher display_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
       .buffer_write_enable(display_buffer_write_enable), .position(display_position), .char_code(display_char_code));
@@ -159,6 +162,41 @@ module mimic(input clk,
    instruction_writer inst_writer_inst
      (.clk(clk), .inst(inst_reg_read), .rs(rs_data), .rt(rt_data),
       .write_enable(inst_write_enable), .address(inst_write_address), .write_data(inst_write_data));
+
+   wire write_enable_sd, write_float_sd;
+   wire [4:0] write_addr_sd;
+   wire [31:0] write_data_sd;
+   sd_manager sd_inst
+      (.clk(clk),
+
+       .inst(inst_reg_read),
+       .rs(rs_data),
+       .rt(rt_data),
+       .enable(write_enable_sd),
+       .addr(write_addr_sd),
+       .data(write_data_sd),
+       .float(write_float_sd),
+
+       .sd_read_data(sd_read_data),
+       .sd_write_data(sd_write_data),
+       .sd_addr(sd_addr),
+       .sd_read(sd_read),
+       .sd_write(sd_write),
+       .sd_ready(sd_ready));
+
+   assign write_enable_misc = write_enable_rs == 1'b1       ? write_enable_rs :
+                              write_enable_keyboard == 1'b1 ? write_enable_keyboard :
+                              write_enable_sd;
+   assign write_addr_misc   = write_enable_rs == 1'b1       ? write_addr_rs   :
+                              write_enable_keyboard == 1'b1 ? write_addr_keyboard :
+                              write_addr_sd;
+   assign write_data_misc   = write_enable_rs == 1'b1       ? write_data_rs   :
+                              write_enable_keyboard == 1'b1 ? write_data_keyboard :
+                              write_data_sd;
+   assign write_float_misc  = write_enable_rs == 1'b1       ? write_float_rs  :
+                              write_enable_keyboard == 1'b1 ? write_float_keyboard :
+                              write_float_sd;
+
 
    branch_condition_checker branch_condition_checker_inst
       (.op(inst_reg_read[31:26]), .rs(rs_data), .rt(rt_data), .go_branch(branch_taken));

@@ -106,7 +106,8 @@ module decoder(input clk,
           || op == INPUTB
           || op == HALT
 
-          || op == READKEY)
+          || op == READKEY
+          || op == READSD)
         use_rt <= 1'b0;
       else
         use_rt <= 1'b1;

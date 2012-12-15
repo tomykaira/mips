@@ -1,0 +1,10 @@
+ls /HOGE
+ls /
+ls /BIN
+ls /HOGE/INNER
+ls /HOGE/INNER/INNNNER
+ls /BIN/
+ls /HOGE/INNER/
+ls HOGE
+ls .
+exit

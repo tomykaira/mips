@@ -36,7 +36,12 @@ entity top is
 		hs_data: out std_logic;
 
 		KEY_CLK : inout STD_LOGIC;
-		KEY_DATA : inout STD_LOGIC);
+		KEY_DATA : inout STD_LOGIC;
+
+		SD_CS   : out STD_LOGIC;
+		SD_DI   : in STD_LOGIC;
+		SD_SCLK : out STD_LOGIC;
+		SD_DO   : out STD_LOGIC);
 
 end top;
 
@@ -63,7 +68,14 @@ architecture top of top is
       display_char_code : out std_logic_vector(6 downto 0);
 
 			key_status : in std_logic_vector(7 downto 0);
-			keycode    : in std_logic_vector(7 downto 0));
+			keycode    : in std_logic_vector(7 downto 0);
+
+			sd_read_data  : in std_logic_vector(7 downto 0);
+			sd_write_data : out std_logic_vector(7 downto 0);
+			sd_addr       : out std_logic_vector(31 downto 0);
+			sd_read       : out STD_LOGIC;
+			sd_write      : out STD_LOGIC;
+			sd_ready      : in STD_LOGIC);
   end component;
 
   component sramc is
@@ -139,7 +151,25 @@ architecture top of top is
 			keycode    : out std_logic_vector(7 downto 0));
 	end component;
 
-  signal iclk, clk100, clk_default : std_logic;
+	component sdcard is
+		port (
+			clk    : in STD_LOGIC;
+			sd_clk : out STD_LOGIC;
+			sd_ce  : out STD_LOGIC;
+			sd_out : out STD_LOGIC;
+			sd_in  : in STD_LOGIC;
+
+			sd_read_data  : out std_logic_vector(7 downto 0);
+			sd_write_data : in std_logic_vector(7 downto 0);
+			sd_addr       : in std_logic_vector(31 downto 0);
+			sd_read       : in STD_LOGIC;
+			sd_write      : in STD_LOGIC;
+			sd_ready      : out STD_LOGIC;
+
+			debug : out std_logic_vector(7 downto 0));
+	end component;
+
+  signal iclk, clk100 : std_logic;
 
   signal memory_write : STD_LOGIC;
   signal memory_data_addr, memory_write_data, memory_data : std_logic_vector(31 downto 0);
@@ -158,6 +188,13 @@ architecture top of top is
 	-- keyboard
 	signal key_status : std_logic_vector(7 downto 0);
 	signal keycode    : std_logic_vector(7 downto 0);
+
+	-- sd
+	signal sd_read_data, sd_write_data : std_logic_vector(7 downto 0);
+	signal sd_addr : std_logic_vector(31 downto 0);
+	signal sd_read, sd_write, sd_ready : STD_LOGIC;
+
+	signal debug : std_logic_vector(7 downto 0);
 
 begin  -- test
 
@@ -193,7 +230,14 @@ begin  -- test
     display_char_code           => display_char_code,
 
 		key_status => key_status,
-		keycode    => keycode);
+		keycode    => keycode,
+
+		sd_read_data  => sd_read_data,
+		sd_write_data => sd_write_data,
+		sd_addr       => sd_addr,
+		sd_read       => sd_read,
+		sd_write      => sd_write,
+		sd_ready      => sd_ready);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -212,7 +256,7 @@ begin  -- test
 
 	-- workaround for not-stable VGA signal
 	tx_send_enable <= core_tx_send_enable;
-	tx_send_data   <= core_tx_send_data;
+	tx_send_data   <= core_tx_send_data when core_tx_send_enable = '1' else debug;
 
 	Inst_dcm: my_dcm PORT MAP(
 		CLKIN_IN        => CLK,
@@ -241,6 +285,23 @@ begin  -- test
 		 key_data   => KEY_DATA,
 		 key_status => key_status,
 		 keycode    => keycode);
+
+	sd_inst : sdcard port map
+		(clk      => iclk,
+
+		 sd_clk   => SD_SCLK,
+		 sd_ce    => SD_CS,
+		 sd_out   => SD_DO,
+		 sd_in    => SD_DI,
+
+		 sd_read_data  => sd_read_data,
+		 sd_write_data => sd_write_data,
+		 sd_addr       => sd_addr,
+		 sd_read       => sd_read,
+		 sd_write      => sd_write,
+		 sd_ready      => sd_ready,
+
+		 debug => debug);
 
 
   XZBE<= "0000";

@@ -1,37 +1,71 @@
 # this is duplicate with ../test/cases/OMakefile
-.PHONY: clean command.sim vim.sim vim.test rukako.sim daru.sim
+.PHONY: clean build_binary okarin.sim vim.sim vim.test rukako.sim daru.sim cat.sim ls.sim mkdir.sim rm.sim
 
 COMPILER = ../src/main
 ASSEMBLER = ../../assembler/assembler
 SIMULATOR = ../../simulator/simulator
 LINKER = ../helper/linker.sh
+BYTE_FILE_GENERATOR = ../../../core_runner/byte_file_generator.rb
+LIBRARIES[]=
+	base.c
+	daru.c
+	int_to_string.c
+SDCARD = /home/tomita/tmp/disk
 
 %.bin: %.s
 	$(ASSEMBLER) $< $@
 
-%.s: %.c ../helper/assembly.s
-	$(COMPILER) $< > /dev/null
-	$(LINKER) $@
+%.byte.bin: %.bin $(BYTE_FILE_GENERATOR)
+	$(BYTE_FILE_GENERATOR) $<
+
+Compile(file)=
+	tmp = $(tmpfile file)
+	cat $(LIBRARIES) $(file).c > $(tmp).c
+	$(COMPILER) $(tmp).c > /dev/null
+	$(LINKER) $(tmp).s > $(file).s
+
+%.s: %.c $(LIBRARIES) ../helper/assembly.s
+	Compile($*)
 
 clean:
 	rm -f *.s *.sim *.bin
 
-.BUILD_SUCCESS:
-	true
+PROGRAMS[]=
+	vim
+	rukako
+	cat
+	ls
+	rm
+	mkdir
+	echo
 
-.BUILD_FAILURE:
-	true
+BYTE_PROGRAMS = $(addsuffix .byte.bin, $(PROGRAMS))
 
-command.sim: command.bin
-	$(SIMULATOR) $< -k test/command$(CASE).case -x $(OPTION)
+build_binary: $(BYTE_PROGRAMS)
+
+okarin.sim: okarin.bin
+	$(SIMULATOR) $< -s $(SDCARD) -k test/okarin$(CASE).case -x $(OPTION)
 
 vim.sim: vim.bin
-	$(SIMULATOR) $< -k test/vim/$(CASE).case $(OPTION)
+	$(SIMULATOR) $< -s $(SDCARD) -k test/vim/$(CASE).case $(OPTION)
 
 rukako.sim: rukako.bin
-	$(SIMULATOR) $< -f test/rukako/$(CASE).lisp
+	$(SIMULATOR) -s $(SDCARD) -a /LISP/$(CASE).LSP -p $(OPTION) $<
 
-daru.sim: daru.bin $(SIMULATOR)
-	$(SIMULATOR) -s /home/tomita/tmp/disk $<
+cat.sim: cat.bin $(SIMULATOR)
+	$(SIMULATOR) -s $(SDCARD) -a /HOGE/TEST  -p $<
+
+ls.sim: ls.bin $(SIMULATOR)
+	$(SIMULATOR) -s $(SDCARD) -a $(DIR) $(OPTION) -p $<
+
+rm.sim: rm.bin $(SIMULATOR)
+	$(SIMULATOR) -s $(SDCARD) -a $(TARGET) $(OPTION) $<
+
+mkdir.sim: mkdir.bin $(SIMULATOR)
+	$(SIMULATOR) -s $(SDCARD) -a /HOGE/NEWDIR -p $<
+	sudo mount -t msdos -o loop,offset=1048577 $(SDCARD) sdcard_mount
+	ls -la sdcard_mount/hoge
+	ls -la sdcard_mount/hoge/newdir
+	sudo umount sdcard_mount
 
 .SUBDIRS: test/vim test/rukako

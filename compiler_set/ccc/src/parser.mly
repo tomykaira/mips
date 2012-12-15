@@ -50,6 +50,7 @@ open Syntax
 %token ELSE
 %token GOTO
 %token IF
+%token KEEP
 %token RETURN
 %token SHARP_DEFINE
 %token SIZEOF
@@ -117,9 +118,11 @@ type_class:
 
 array_definition:
 | type_class ID L_BRACKET INT_VAL R_BRACKET SEMICOLON
-    { Array({id = $2; content_type = $1; size = $4; initial = None}) }
+    { Array({id = $2; content_type = $1; size = $4; initial = Zero}) }
 | type_class ID L_BRACKET INT_VAL R_BRACKET EQUAL STRING SEMICOLON
-    { Array({id = $2; content_type = $1; size = $4; initial = Some($7)}) }
+    { Array({id = $2; content_type = $1; size = $4; initial = String($7)}) }
+| type_class ID L_BRACKET INT_VAL R_BRACKET EQUAL KEEP SEMICOLON
+    { Array({id = $2; content_type = $1; size = $4; initial = Keep}) }
 
 macro_definition:
 | SHARP_DEFINE ID const

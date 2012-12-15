@@ -12,7 +12,7 @@ test: $(TEST_JOBS)
 	touch $@
 
 %.result: %.lisp ../../rukako.bin $(SIMULATOR)
-	$(SIMULATOR) ../../rukako.bin -f $< > $@
+	$(SIMULATOR) -t ../../rukako.bin -p -f $< > $@
 
 %.output: %.lisp
 	ruby -e 'STDIN.readlines.each {|x| if m = /;;OUTPUT:(.*)/.match(x); puts m[1]; end }' < $< > $@

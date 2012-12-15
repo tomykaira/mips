@@ -9,6 +9,8 @@ let header =
 
 let before_asm =
   [Exec(CALL (Id.L "main"));
+   AssignInt(Reg.ret, Int(0));
+   AssignInt(Reg.ret, READSD(Reg.ret));
    AssignInt(Reg.ret, Int(231));
    Exec(OUTPUTB Reg.ret);
    AssignInt(Reg.ret, Int(181));
@@ -20,12 +22,24 @@ let before_asm =
 
 let end_label () =
   [Label(Id.L "invoke_subprocess");
+   AssignInt(`I 4, ADDI(Reg.ret, 0));
+   AssignInt(`I 3, Int(HeapAllocation.(heap.size)));
+   AssignInt(`I 5, Int(128));
+   Exec(STI(`I 4, Reg.frame, -1));
+   AssignInt(Reg.frame, SUBI(Reg.frame, 2));
+   Exec(CALL(Id.L "copy_n_string"));
+   AssignInt(Reg.frame, ADDI(Reg.frame, 2));
    Exec(STI(Reg.heap_pointer, Reg.frame, 0));
-   AssignInt(Reg.frame, SUBI(Reg.frame, 1));
-   AssignInt(Reg.heap_pointer, Int(HeapAllocation.(heap.size)));
+   AssignInt(Reg.frame, SUBI(Reg.frame, 2));
+   AssignInt(Reg.ret, Int(HeapAllocation.(heap.size)));
+   AssignInt(Reg.heap_pointer, ADD(Reg.heap_pointer, Reg.ret));
    Exec(CALL(Id.L "program_end"));
-   AssignInt(Reg.frame, ADDI(Reg.frame, 1));
+   AssignInt(Reg.frame, ADDI(Reg.frame, 2));
    AssignInt(Reg.heap_pointer, LDI(Reg.frame, 0));
+   AssignInt(`I 3, LDI(Reg.frame, -1));
+   AssignInt(`I 4, Int(HeapAllocation.(heap.size)));
+   AssignInt(`I 5, Int(128));
+   Exec(CALL(Id.L "copy_n_string"));
    Exec(RETURN);
    Label(Id.L "program_end")]
 
@@ -60,6 +74,10 @@ let convert_instruction = function
        AssignInt(Reg.frame, ADDI(Reg.frame, offset))]
     else
       [Exec(CALL(l))]
+  | Store (reg, Heap(off)) when off > 0x7fff ->
+    [AssignInt(Reg.address, Int(off));
+     AssignInt(Reg.address, ADD(Reg.heap_pointer, Reg.address));
+     Exec(STI(reg, Reg.address, 0))]
   | Store (reg, Heap(off)) ->
     [Exec(STI(reg, Reg.heap_pointer, off))]
   | Store (reg, HeapReg(address)) ->
@@ -67,6 +85,9 @@ let convert_instruction = function
      Exec(STI(reg, Reg.address, 0))]
   | Store (reg, Stack(off)) ->
     [Exec(STI(reg, Reg.frame, -off))]
+  | Load (reg, Heap(off)) when off > 0x7fff ->
+    [AssignInt(Reg.address, Int(off));
+     AssignInt(reg, LDR(Reg.heap_pointer, Reg.address))]
   | Load (reg, Heap(off)) ->
     [AssignInt(reg, LDI(Reg.heap_pointer, off))]
   | Load (reg, HeapReg(address)) ->

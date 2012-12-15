@@ -43,5 +43,11 @@ type 'a global_variable = ('a, const_value) variable
 type 'a function_signature = { name: Id.l; return_type: type_class; parameters: 'a parameter list }
     deriving (Show)
 
-type 'a array_signature = { id: 'a; content_type: type_class; size: int; initial: string option }
+type array_initial =
+  | Zero
+  | String of string
+  | Keep
+    deriving (Show)
+
+type 'a array_signature = { id: 'a; content_type: type_class; size: int; initial: array_initial }
     deriving (Show)

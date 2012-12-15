@@ -98,7 +98,7 @@ int atom_id() {
   return atom_counter;
 }
 
-void read_input() {
+void read_input_rs() {
   int i = 0;
   int byte = 0;
   while (i < 1024) {
@@ -112,6 +112,26 @@ void read_input() {
   if (i >= 1024) {
     error(TOO_MANY_INPUT);
   }
+}
+
+// parent_directory_id, entry_id, cluster_id
+int resolve_result[3];
+void read_input_file() {
+  int directory_id = 0;
+  int entry_id = 0;
+  int cluster_id = 0;
+  int file_size = 0;
+
+  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  directory_id = resolve_result[0];
+  entry_id     = resolve_result[1];
+  cluster_id   = resolve_result[2];
+
+  file_size = get_file_size(directory_id, entry_id);
+  if (file_size >= 1024) {
+    error(TOO_MANY_INPUT);
+  }
+  read_file(cluster_id, file_size, input);
 }
 
 void reconstruct_list(int exp_id) {
@@ -166,7 +186,9 @@ void print(int top_id) {
   }
   reconstruct(top_id);
   output[output_pointer] = '\n';
-  send_rs(output, output_pointer + 1);
+
+  initialize_array(argument, ARGUMENT_HEAP_SIZE, 0);
+  copy_n_string(argument, output, output_pointer);
 }
 
 int eval_args(int args) {
@@ -395,7 +417,12 @@ int evaluate_cond(int exp_id) {
 }
 
 void skip_space() {
-  while (input[input_pointer] == ' ') {
+  int c = 0;
+  while (1) {
+    c = input[input_pointer];
+    if (c != ' ' && c != '\n' && c != 0x09) {
+      break;
+    }
     input_pointer += 1;
   }
 }
@@ -486,7 +513,11 @@ int main() {
 
   atom_counter = L_APPLY;
 
-  read_input();
+  if (argument[0] == 0) {
+    read_input_rs();
+  } else {
+    read_input_file();
+  }
 
   input_pointer = 0;
   parse_input(0);
