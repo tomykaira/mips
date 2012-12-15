@@ -9,6 +9,8 @@ let header =
 
 let before_asm =
   [Exec(CALL (Id.L "main"));
+   AssignInt(Reg.ret, Int(0));
+   AssignInt(Reg.ret, READSD(Reg.ret));
    AssignInt(Reg.ret, Int(231));
    Exec(OUTPUTB Reg.ret);
    AssignInt(Reg.ret, Int(181));

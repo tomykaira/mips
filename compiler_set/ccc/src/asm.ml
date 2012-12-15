@@ -26,6 +26,7 @@ and int_exp =
 
   | LDI of Reg.i * int
   | LDR of Reg.i * Reg.i
+  | READSD of Reg.i
 
 and float_exp =
   | Float of float
@@ -165,6 +166,9 @@ let rec print_int_exp out_channel destination exp =
     print2 "ldi" (Reg.show reg) (string_of_int imm)
   | LDR(reg1, reg2) ->
     print2 "ldr" (Reg.show reg1) (Reg.show reg2)
+
+  | READSD(reg1) ->
+    Printf.fprintf out_channel "\t%s\t%s, %s\n" "readsd" (Reg.show reg1) (Reg.show destination)
 
 let print_float_exp out_channel destination exp =
   let print1 inst arg = Printf.fprintf out_channel "\t%s\t%s, %s\n" inst (Reg.show destination) arg in
