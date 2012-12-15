@@ -18,6 +18,8 @@ end vga;
 architecture synt of vga is
   signal videoon, videov, videoh : std_logic := '0';
   signal hcount, vcount : std_logic_vector(9 downto 0) := (others => '0');
+
+  constant h_offset : integer := 8;
 begin
 
   hcounter: process (clk, reset)
@@ -41,10 +43,10 @@ begin
       videoh <= '0';
     end if;
 
-    if hcount >= 797 then
-      column <= hcount - 797;
-    elsif hcount < 637 then
-      column <= hcount + 3;
+    if hcount >= (800 - h_offset) then
+      column <= hcount - (800 - h_offset);
+    elsif hcount < (640 - h_offset) then
+      column <= hcount + h_offset;
     else
       -- this is to remove latches
       -- if something wrong, remove this
