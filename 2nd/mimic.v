@@ -22,9 +22,11 @@ module mimic(input clk,
              input [7:0]   key_status,
              input [7:0]   keycode,
 
-             input [7:0]   sd_data,
+             input [7:0]   sd_read_data,
+             output [7:0]  sd_write_data,
              output [31:0] sd_addr,
-             output        sd_go,
+             output        sd_read,
+             output        sd_write,
              input         sd_ready);
 
    wire [15:0] inst_address, inst_write_address;
@@ -175,9 +177,11 @@ module mimic(input clk,
        .data(write_data_sd),
        .float(write_float_sd),
 
-       .sd_data(sd_data),
+       .sd_read_data(sd_read_data),
+       .sd_write_data(sd_write_data),
        .sd_addr(sd_addr),
-       .sd_go(sd_go),
+       .sd_read(sd_read),
+       .sd_write(sd_write),
        .sd_ready(sd_ready));
 
    assign write_enable_misc = write_enable_rs == 1'b1       ? write_enable_rs :

@@ -22,7 +22,8 @@ module sdcard(input clk,
 
    wire sd_read_spi, sd_write_spi;
 
-   assign debug = {4'b0, sd_go, sd_busy, sd_controller_go, sd_ready};
+   wire [9:0] debug_out;
+   assign debug = debug_out[9:2];
 
    sd_cont sd_cont_inst
       (.clk(clk),
@@ -39,7 +40,9 @@ module sdcard(input clk,
        .sd_addr(sd_block),
        .sd_read(sd_read_spi),
        .sd_write(sd_write_spi),
-       .sd_busy(sd_busy));
+       .sd_busy(sd_busy),
+
+       .debug(debug_out));
 
    sd_cache sd_cache_inst
       (.clk(clk),

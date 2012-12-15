@@ -70,10 +70,12 @@ architecture top of top is
 			key_status : in std_logic_vector(7 downto 0);
 			keycode    : in std_logic_vector(7 downto 0);
 
-			sd_data  : in std_logic_vector(7 downto 0);
-			sd_addr  : out std_logic_vector(31 downto 0);
-			sd_go    : out STD_LOGIC;
-			sd_ready : in STD_LOGIC);
+			sd_read_data  : in std_logic_vector(7 downto 0);
+			sd_write_data : out std_logic_vector(7 downto 0);
+			sd_addr       : out std_logic_vector(31 downto 0);
+			sd_read       : out STD_LOGIC;
+			sd_write      : out STD_LOGIC;
+			sd_ready      : in STD_LOGIC);
   end component;
 
   component sramc is
@@ -151,16 +153,18 @@ architecture top of top is
 
 	component sdcard is
 		port (
-			clk : in STD_LOGIC;
+			clk    : in STD_LOGIC;
 			sd_clk : out STD_LOGIC;
-			sd_ce : out STD_LOGIC;
+			sd_ce  : out STD_LOGIC;
 			sd_out : out STD_LOGIC;
-			sd_in : in STD_LOGIC;
+			sd_in  : in STD_LOGIC;
 
-			sd_data : out std_logic_vector(7 downto 0);
-			sd_addr : in std_logic_vector(31 downto 0);
-			sd_go : in STD_LOGIC;
-			sd_ready : out STD_LOGIC;
+			sd_read_data  : out std_logic_vector(7 downto 0);
+			sd_write_data : in std_logic_vector(7 downto 0);
+			sd_addr       : in std_logic_vector(31 downto 0);
+			sd_read       : in STD_LOGIC;
+			sd_write      : in STD_LOGIC;
+			sd_ready      : out STD_LOGIC;
 
 			debug : out std_logic_vector(7 downto 0));
 	end component;
@@ -186,9 +190,9 @@ architecture top of top is
 	signal keycode    : std_logic_vector(7 downto 0);
 
 	-- sd
-	signal sd_data : std_logic_vector(7 downto 0);
+	signal sd_read_data, sd_write_data : std_logic_vector(7 downto 0);
 	signal sd_addr : std_logic_vector(31 downto 0);
-	signal sd_go, sd_ready : STD_LOGIC;
+	signal sd_read, sd_write, sd_ready : STD_LOGIC;
 
 	signal debug : std_logic_vector(7 downto 0);
 
@@ -228,10 +232,12 @@ begin  -- test
 		key_status => key_status,
 		keycode    => keycode,
 
-		sd_data  => sd_data,
-		sd_addr  => sd_addr,
-		sd_go    => sd_go,
-		sd_ready => sd_ready);
+		sd_read_data  => sd_read_data,
+		sd_write_data => sd_write_data,
+		sd_addr       => sd_addr,
+		sd_read       => sd_read,
+		sd_write      => sd_write,
+		sd_ready      => sd_ready);
 
   i232c_buffer_inst : i232c_buffer port map (
     clk      => iclk,
@@ -288,10 +294,12 @@ begin  -- test
 		 sd_out   => SD_DO,
 		 sd_in    => SD_DI,
 
-		 sd_data  => sd_data,
-		 sd_addr  => sd_addr,
-		 sd_go    => sd_go,
-		 sd_ready => sd_ready,
+		 sd_read_data  => sd_read_data,
+		 sd_write_data => sd_write_data,
+		 sd_addr       => sd_addr,
+		 sd_read       => sd_read,
+		 sd_write      => sd_write,
+		 sd_ready      => sd_ready,
 
 		 debug => debug);
 
