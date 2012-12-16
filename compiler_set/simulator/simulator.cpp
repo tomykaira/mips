@@ -283,6 +283,9 @@ int simulate(simulation_options * opt)
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
 
+	map<uint32_t, int> fmv_counter;
+	bool prev_is_fmvhi = false;
+	uint32_t fmvhi_operand = 0;
 
 	// メインループ
 	do
@@ -397,6 +400,15 @@ int simulate(simulation_options * opt)
 
 		call_count[opcode] ++;
 
+		if (prev_is_fmvhi) {
+			if (opcode == FMVLO) {
+				fmv_counter[fmvhi_operand + (IMM & 0xffff)] += 1;
+			} else {
+				fmv_counter[fmvhi_operand] += 1;
+			}
+			prev_is_fmvhi = false;
+		}
+
 		// 読み込んだopcode・functに対応する命令を実行する
 		switch(opcode)
 		{
@@ -476,6 +488,8 @@ int simulate(simulation_options * opt)
 				FRT = (FRT & 0xffff0000) | (IMM & 0xffff);
 				break;
 			case FMVHI:
+				prev_is_fmvhi = true;
+				fmvhi_operand = (uint32_t)IMM << 16;
 				logger.reg("FMVHI", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
 				FRT = ((uint32_t)IMM << 16);
 				break;
@@ -748,6 +762,12 @@ int simulate(simulation_options * opt)
 		printf("PROGRAM\t%lld\n", call_count[PROGRAM]);
 		printf("READSD\t%lld\n", call_count[READSD]);
 		printf("WRITESD\t%lld\n", call_count[WRITESD]);
+	}
+
+	map<uint32_t, int>::iterator it = fmv_counter.begin();
+	while( it != fmv_counter.end() ) {
+		cout << (*it).first << "\t" << (asF((*it).first)) << "\t" << (*it).second << endl;
+		++it;
 	}
 
 	if (!opt->lib_test_mode)
