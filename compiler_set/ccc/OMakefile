@@ -1,7 +1,7 @@
 .PHONY: all clean check
 
 USE_OCAMLFIND = true
-OCAML_FLAGS=-w A -warn-error A
+OCAMLFLAGS=-annot -w A -warn-error A
 
 OCAMLPACKS[] =
 	deriving
