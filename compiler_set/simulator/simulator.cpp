@@ -5,6 +5,7 @@
 #include "InputFile.h"
 #include "Display.h"
 #include "SDCard.h"
+#include "BoundedBuffer.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -240,7 +241,7 @@ int simulate(simulation_options * opt)
 	uint8_t opcode, funct;
 
 	int internal_stack[CALL_STACK_SIZE];
-	vector<int> jump_logger;
+	BoundedBuffer jump_logger(10);
 	int stack_pointer = 0;
 	char command[1024];
 	memset(internal_stack, 0, CALL_STACK_SIZE*sizeof(int));
@@ -474,7 +475,7 @@ int simulate(simulation_options * opt)
 				FRT = ((uint32_t)IMM << 16);
 				break;
 			case J:
-			  jump_logger.push_back(pc);
+			  jump_logger.add(pc);
 				pc = get_address(inst);
 
 				break;
@@ -497,17 +498,17 @@ int simulate(simulation_options * opt)
 				if (asF(FRS) <= asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case JR:
-				jump_logger.push_back(pc);
+				jump_logger.add(pc);
 				pc = IRS;
 				break;
 			case CALL:
-				jump_logger.push_back(pc);
+				jump_logger.add(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
 				break;
 			case CALLR:
-				jump_logger.push_back(pc);
+				jump_logger.add(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = IRS;
@@ -636,10 +637,7 @@ int simulate(simulation_options * opt)
 					DUMP_PC
 					printf("\tHR: %d\n", ireg[2]);
 					printf("\tr3: %d\n", ireg[3]);
-					for (int i = jump_logger.size()-10; i < jump_logger.size(); i++) {
-						int counter = jump_logger[i];
-						printf("%d\t%d\t%s\n", i, counter-1, ROM[counter - 1].getInst().c_str());
-					}
+					cout << jump_logger << endl;
 
 					break;
 				case 6:
