@@ -59,8 +59,24 @@ void execute_bin(char * program, char * argument) {
   int cluster_id   = get_cluster_id(bin_cluster_id, entry_id);
   int program_size = get_file_size(bin_cluster_id, entry_id);
 
+  if (entry_id == ENTRY_NOT_FOUND_ID) {
+    put_char('n');
+    put_char('o');
+    put_char(' ');
+    put_char('s');
+    put_char('u');
+    put_char('c');
+    put_char('h');
+    put_char(' ');
+    put_char('b');
+    put_char('i');
+    put_char('n');
+    return;
+  }
+
   read_file(cluster_id, program_size, file_content);
   execute(file_content, program_size, argument);
+  print_return_argument(argument);
 }
 
 void print_return_argument(char * result) {
@@ -74,7 +90,10 @@ void print_return_argument(char * result) {
 // update current_directory_id environment variable
 int resolve_result[3];
 void change_directory(char * path, int length) {
-  resolve_argument_path(current_directory_id, path, resolve_result);
+  if (resolve_argument_path(current_directory_id, path, resolve_result) == -1) {
+    copy_string(argument, file_not_found_error_message);
+    return;
+  }
   current_directory_id = resolve_result[2];
 }
 
@@ -135,9 +154,6 @@ void process_command() {
     argument[ptr] = 0;
     argument[ARGUMENT_HEAP_SIZE-1] = current_directory_id;
     execute_bin(program_name, argument);
-
-    send_rs(argument, 10);
-    print_return_argument(argument);
   }
 }
 
@@ -162,6 +178,15 @@ void add_key_input() {
 void get_bin_cluster_id() {
   int root_entry = 0;
   int entry_id = find_entry_by_name(root_entry, bin_token);
+  if (entry_id == ENTRY_NOT_FOUND_ID) {
+    put_char('n');
+    put_char('o');
+    put_char(' ');
+    put_char('b');
+    put_char('i');
+    put_char('n');
+    return;
+  }
   bin_cluster_id = get_cluster_id(root_entry, entry_id);
 }
 

@@ -51,7 +51,7 @@ int copy_string(char *dest, char * src);
 int copy_n_string(char *dest, char * src, int length);
 
 int evaluate_cond(int exp_id);
-void parse_input(int id);
+int parse_input(int id);
 int evaluate(int exp_id);
 
 char l_nil[32]    = "nil";
@@ -67,6 +67,8 @@ char l_t[32]      = "t";
 char l_lambda[32] = "lambda";
 char l_label[32]  = "label";
 char l_apply[32]  = "apply";
+
+char parse_error_message[32] = "Parse error";
 
 int input_pointer = 0;
 int exp_counter = 0;
@@ -93,6 +95,7 @@ int exp_id() {
 int atom_id() {
   if (atom_counter >= 256) {
     error(TOO_MANY_ATOM);
+    return -1;
   }
   atom_counter += 1;
   return atom_counter;
@@ -116,13 +119,15 @@ void read_input_rs() {
 
 // parent_directory_id, entry_id, cluster_id
 int resolve_result[3];
-void read_input_file() {
+int read_input_file() {
   int directory_id = 0;
   int entry_id = 0;
   int cluster_id = 0;
   int file_size = 0;
 
-  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  if (resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result) == -1) {
+    return -1;
+  }
   directory_id = resolve_result[0];
   entry_id     = resolve_result[1];
   cluster_id   = resolve_result[2];
@@ -132,6 +137,8 @@ void read_input_file() {
     error(TOO_MANY_INPUT);
   }
   read_file(cluster_id, file_size, input);
+
+  return 0;
 }
 
 void reconstruct_list(int exp_id) {
@@ -427,20 +434,25 @@ void skip_space() {
   }
 }
 
-void parse_list(int id) {
+int parse_list(int id) {
   int left = exp_id();
   int right = exp_id();
   if (input[input_pointer] == ')') {
     expression[right] = L_NIL;
   } else {
     expression[id] = CONS(left, right);
-    parse_input(left);
+    if (parse_input(left) == -1) {
+      return -1;
+    }
     skip_space();
-    parse_list(right);
+    if (parse_list(right) == -1) {
+      return -1;
+    }
   }
+  return 0;
 }
 
-void parse_input(int id) {
+int parse_input(int id) {
   int exp_start = input_pointer;
 
   if (input[exp_start] == '(') {
@@ -450,20 +462,27 @@ void parse_input(int id) {
     expression[id] = CONS(left, right);
     input_pointer += 1;
     skip_space();
-    parse_input(left);
+    if (parse_input(left) == -1) {
+      return -1;
+    }
     skip_space();
     if (input[input_pointer] == '.') {
       input_pointer += 1;
       skip_space();
-      parse_input(right);
+      if (parse_input(right) == -1) {
+        return -1;
+      }
       skip_space();
     } else {
-      parse_list(right);
+      if (parse_list(right) == -1) {
+        return -1;
+      }
     }
     if (input[input_pointer] == ')') {
       input_pointer += 1;
     } else {
       error(R_PAREN_NOT_FOUND);
+      return -1;
     }
     skip_space();
 
@@ -472,6 +491,10 @@ void parse_input(int id) {
     int length = 0;
     int atom_pointer = 0;
     int new_id = atom_id();
+
+    if (new_id == -1) {
+      return -1;
+    }
 
     while (input[input_pointer] != ' '
            && input[input_pointer] != ')') {
@@ -483,7 +506,7 @@ void parse_input(int id) {
       if (str_equal(id_map + NTH_ATOM(atom_pointer), input + exp_start, length)
           && id_map[NTH_ATOM(atom_pointer) + length] == 0) {
         expression[id] = GEN_ATOM(atom_pointer);
-        return;
+        return 0;
       }
       atom_pointer += 1;
     }
@@ -492,6 +515,8 @@ void parse_input(int id) {
     copy_n_string(id_map + NTH_ATOM(new_id), input + exp_start, length);
     expression[id] = GEN_ATOM(new_id);
   }
+
+  return 0;
 }
 
 int main() {
@@ -516,11 +541,19 @@ int main() {
   if (argument[0] == 0) {
     read_input_rs();
   } else {
-    read_input_file();
+    debug(argument[0]);
+    if (read_input_file() == -1) {
+      copy_string(argument, file_not_found_error_message);
+      return 1;
+    }
   }
 
   input_pointer = 0;
-  parse_input(0);
+  if (parse_input(0) == -1) {
+    copy_string(argument, parse_error_message);
+    return 1;
+  }
 
   evaluate(0);
+  return;
 }

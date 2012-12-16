@@ -26,7 +26,11 @@ SDCard::~SDCard() {
 
 uint32_t SDCard::read_at(uint32_t address) {
 	if (!fp) {
-		throw(string("Specify SDCard file with -s"));
+		if (address == 0) {
+			return 0;
+		} else {
+			throw(string("Specify SDCard file with -s"));
+		}
 	} else {
 		fseek(fp, address, SEEK_SET);
 		int ret = fgetc(fp);

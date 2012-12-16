@@ -606,12 +606,9 @@ copy_n_string_end:
 	return
 
 error:
-	addi	$r4, $r0, 69
-	outputb	$r4
-	addi	$r3, $r3, 48
-	outputb	$r3
+	sti	$r3, $r2, 0	# set error code to argument[0]
 	debug	6
-	halt
+	return
 
 debug:
 	debug	6
