@@ -171,6 +171,16 @@ void goto_last_column() {
   }
 }
 
+int line_include_eof() {
+  int ptr = 0;
+  while (ptr < COLS) {
+    if (buffer[C(current_line, ptr)] == EOF)
+      return 1;
+    ptr += 1;
+  }
+  return 0;
+}
+
 // int direction: 0: up, 1: right,  2: down, 3: left
 // return: 1 when quit
 int interpret_command(char input) {
@@ -226,6 +236,27 @@ int interpret_command(char input) {
 
         move_memory(buffer + C(current_line, current_column), -1, COLS - current_column - 1);
         buffer[C(current_line, COLS-1)] = 0;
+      }
+    }
+    break;
+  case 'd':
+    {
+      if (line_include_eof()) {
+        int ptr = 0;
+        initialize_array(buffer + C(current_line, 0), C(ROWS - current_line, 0), 0);
+        current_line -= 1;
+
+        while (ptr < COLS) {
+          if (buffer[C(current_line, ptr)] == EOL) {
+            buffer[C(current_line, ptr)] = EOF;
+            break;
+          }
+          ptr += 1;
+        }
+
+      } else {
+        move_memory(buffer + C(current_line, 0), - COLS, C(ROWS - current_line - 1, 0));
+        initialize_array(buffer + C(ROWS-1, 0), COLS, 0);
       }
     }
     break;
