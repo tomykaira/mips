@@ -7,11 +7,11 @@ open Out
 let used = function
   | Label _ | SetL _ | Nop | Comment _ | FMvlo _ | FMvhi _ | J _ | Call _ | Return | Inputb _ | Halt -> S.empty
   | AddI(_,x,_) | SubI(_,x,_) | XorI(_,x,_) | SllI(_,x,_) | SraI(_,x,_) | IMovF(_,x) | FMovI(_,x) | FInv(_,x) | FSqrt(_,x) | LdI(_,x,_) | FLdI(_,x,_) | Jr(x) | CallR(x) | Outputb(x) -> S.singleton x
-  | Add(_,x,y) | Sub(_,x,y) | Xor(_,x,y) | FAdd(_,x,y) | FSub(_,x,y) | FMul(_,x,y) | StI(x,y,_) | LdR(_,x,y) | FStI(x,y,_) | FLdR(_,x,y) | BEq(x,y,_,_) | BLT(x,y,_,_) | BLE(x,y,_,_) | FBEq(x,y,_,_) | FBLT(x,y,_,_) | FBLE(x,y,_,_) -> S.add x (S.singleton y)
+  | Add(_,x,y) | Sub(_,x,y) | Xor(_,x,y) | FAdd(_,x,y) | FSub(_,x,y) | FMul(_,x,y) | FMulN(_,x,y) | StI(x,y,_) | LdR(_,x,y) | FStI(x,y,_) | FLdR(_,x,y) | BEq(x,y,_,_) | BLT(x,y,_,_) | BLE(x,y,_,_) | FBEq(x,y,_,_) | FBLT(x,y,_,_) | FBLE(x,y,_,_) -> S.add x (S.singleton y)
 
 (* その命令のターゲットレジスタ *)
 let target = function
-  | SetL(x,_) | Add(x,_,_) | Sub(x,_,_) | Xor(x,_,_) | AddI(x,_,_) | SubI(x,_,_) | XorI(x,_,_) | FMvlo(x,_) | FMvhi(x,_) | SllI(x,_,_) | SraI(x,_,_) | IMovF(x,_) | FMovI(x,_) | FAdd(x,_,_) | FSub(x,_,_) | FMul(x,_,_) | FInv(x,_) | FSqrt(x,_) | LdI(x,_,_) | LdR(x,_,_) | FLdI(x,_,_) | FLdR(x,_,_) | Inputb(x) -> Some x
+  | SetL(x,_) | Add(x,_,_) | Sub(x,_,_) | Xor(x,_,_) | AddI(x,_,_) | SubI(x,_,_) | XorI(x,_,_) | FMvlo(x,_) | FMvhi(x,_) | SllI(x,_,_) | SraI(x,_,_) | IMovF(x,_) | FMovI(x,_) | FAdd(x,_,_) | FSub(x,_,_) | FMul(x,_,_) | FMulN(x,_,_) | FInv(x,_) | FSqrt(x,_) | LdI(x,_,_) | LdR(x,_,_) | FLdI(x,_,_) | FLdR(x,_,_) | Inputb(x) -> Some x
   | _ -> None
 
 
@@ -30,8 +30,8 @@ let rec fill' ds ret read write l =
 	match i with
 	  | Label _ -> false
 	  | SetL _
-	  | Nop
-	  | Comment _ -> true
+	  | Nop      -> true
+	  | Comment _ -> false
 
 	  | Add _
 	  | Sub _
@@ -52,6 +52,7 @@ let rec fill' ds ret read write l =
 	  | FAdd _
 	  | FSub _
 	  | FMul _
+	  | FMulN _
 	  | FInv  _
 	  | FSqrt _ -> false
 

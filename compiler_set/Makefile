@@ -3,7 +3,7 @@
 LORELEY_DIR=test/Loreley
 
 BINARY = -b
-INLINE= -inline 50
+INLINE= -inline 50 
 
 # min-camlのライブラリファイル
 LIB_ML = lib_ml.ml
@@ -83,4 +83,5 @@ lor-clean:
 	$(MIN_CAML) $(OPTION) $(BINARY) $(INLINE) __tmp__
 	cd linker; $(LINKER) ../$(LIB_ASM) ../__tmp__.s ${abspath $*.s}
 
-
+min-rt-test:
+	cd test/min-rt; make BIN=-x min-rt-new-bin.test; cd ../..

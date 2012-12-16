@@ -8,13 +8,26 @@ let add x l = if List.mem_assoc (fst x) l then l else x::l
 
 let dummy = Var(Id.genid "")
 
+(* envを操作する関数群 *)
 let addq x l =
   let l' = add x l in if List.length l' > qlen then List.tl l' else l'
 let push l = addq (dummy, "%g0") l
 let rec pushn n l = if n<=0 then l else pushn (n-1) (push l)
 
+
 (* 部分式をインデックスに変数を引く関数 *)
 let rec find x env = try Var(List.assoc x env) with Not_found -> x
+
+(* 式の中に関数呼び出しがあるか判定 *)
+let rec ecall = function
+  | Let(_,exp,e) -> ecall' exp || ecall e
+  | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> ecall e
+  | Ans(exp) -> ecall' exp
+and ecall' = function
+  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
+    -> ecall e1 || ecall e2
+  | App _ | ExtFunApp _ -> true
+  | _ -> false
 
 (* 共通部分式除去を行う関数 *)
 let rec g env env2 env3 = function
@@ -29,7 +42,9 @@ let rec g env env2 env3 = function
 	  if S.mem y env2 then Let(xt, exp', g [] env2 [] e)
 	  else Let(xt, exp', g [(exp', x)] env2 [] e)
       | ExtFunApp _ -> Let(xt, exp', g [] env2 [] e)
-      | _ -> Let(xt, exp', g (add (exp',x) env) env2 (pushn (Inline.size' exp') env3) e))
+      | _ ->
+	  let env3' = if ecall' exp' then [] else pushn (size' exp') env3 in
+	  Let(xt, exp', g (add (exp',x) env) env2 (pushn (size' exp') env3) e))
   | LetRec({ name = (x,_) as xt; args = yts; body = e1 }, e2) ->
       let env2' =
 	let env2' = S.add x env2 in

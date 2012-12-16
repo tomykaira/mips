@@ -35,6 +35,7 @@ let offin = ref false
 let offcf = ref false
 let offte = ref false
 let offel = ref false
+let offaa = ref true  (* バグがある様で、trueにするとバグる *)
 let offll = ref false
 let offut = ref false
 let offet = Global.offet := false; Global.offet
@@ -45,13 +46,14 @@ let offje = ref false
 let offds = ref false
 
 let off flag f x = if !flag then x else f x
-
+let off2 flag f x = if flag then x else f x
 
 (* 最適化処理をくりかえす *)
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
+  let f e = if n = 997 then (print_endline (Show.show<ANormal.t> e); e) else e in
   if n = 0 then e else
-  let e' = off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off offbe Beta.f (off offcs Cse.f e))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off2 (!offaa || (n mod 3 <> 1)) AliasAnalysis.f ( (off offbe Beta.f (off offcs Cse.f e))))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'
@@ -118,6 +120,7 @@ let () =
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated");
 
    ("-b", Arg.Set Global.bin, "use binary file as input");
+   ("-x", Arg.Set Global.emit_halt, "emit halt instead of the last return");
 
    ("-dbParser", Arg.Set dbpa, "debug: print Syntax.t after parsing");
    ("-dbTyping", Arg.Set dbty, "debug: print Syntax.t after typing");
@@ -142,6 +145,7 @@ let () =
    ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
    ("-offIfThenElse", Arg.Set offel, "off: NO if then else");
    ("-offElim", Arg.Set offel, "off: NO Elim");
+   ("-offAliasAnalysis", Arg.Set offaa, "off: NO Alias Analysis");
    ("-offLambdaLift", Arg.Set offll, "off: NO LambdaLift");
    ("-offUnfoldTuple", Arg.Set offut, "off: NO Unfold Tuple");
    ("-offEmbedTuple", Arg.Set offet, "off: NO Embed Tuple");
