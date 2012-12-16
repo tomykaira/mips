@@ -8,7 +8,7 @@ using namespace std;
 
 class BoundedBuffer {
 	vector<int> _content;
-	size_t _size;
+	const size_t _size;
 	int _pointer;
 	int _valid_element_count;
 public:

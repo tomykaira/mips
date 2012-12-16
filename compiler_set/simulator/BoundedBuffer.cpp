@@ -12,11 +12,12 @@ using namespace std;
 /**
  * Default constructor
  */
-BoundedBuffer::BoundedBuffer(size_t size) {
+BoundedBuffer::BoundedBuffer(size_t size):
+	_size(size),
+	_pointer(0),
+	_valid_element_count(0)
+{
 	_content = vector<int>(size);
-	_size = size;
-	_pointer = 0;
-	_valid_element_count = 0;
 }
 
 /**
