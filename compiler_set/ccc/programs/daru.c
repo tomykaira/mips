@@ -14,6 +14,7 @@
 #define NO_EMPTY_DIRECTORY_ENTRY_POSITION 0xf03
 #define CLUSTER_NOT_FOUND 0xf04
 #define PATH_NOT_FOUND 0xf05
+#define NO_SUCCESSOR_CLUSTER 0xf06
 
 #define E(id, offset) (((id) << 5) + (offset))
 #define D(base, id, offset) ((base) + ((id) << 5) + (offset))
@@ -293,14 +294,26 @@ int list_directory(int count) {
 }
 
 
+int next_cluster(int cluster_id) {
+  int address = FAT_TABLE1 + (cluster_id << 1);
+  int entry = FAT_ENTRY(address);
+  if (entry == 0xffff) {
+    error(NO_SUCCESSOR_CLUSTER);
+  } else {
+    return entry;
+  }
+}
+
 int read_file(int cluster_id, int size, char * content) {
   int i = 0;
   int address = B(cluster_id);
-  // loading a multi-cluster file is not dangerous
-  // the only problem is in the buffer size
-  while (i < size) {
+
+  while (i < size && i < CLUSTER_SIZE) {
     content[i] = read_sd(address + i);
     i += 1;
+  }
+  if (i < size) {
+    read_file(next_cluster(cluster_id), size - CLUSTER_SIZE, content + CLUSTER_SIZE);
   }
   return size;
 }

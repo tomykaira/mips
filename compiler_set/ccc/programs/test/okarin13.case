@@ -1,0 +1,5 @@
+cd HOGE
+rm TEST
+rm INNER
+ls
+exit
