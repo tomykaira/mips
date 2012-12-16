@@ -33,6 +33,5 @@ include ../Makefile.in
 
 # use this with cserver
 # ./cserver -b -B 460800 sld/contest.sld contest_new.ppm
-write: min-rt-new.bin
+write: min-rt-new-bin.bin
 	$(CORE_RUNNER) $< -R
-
