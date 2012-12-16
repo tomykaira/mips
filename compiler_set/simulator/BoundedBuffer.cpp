@@ -4,8 +4,6 @@
  */
 #include "BoundedBuffer.hpp"
 #include <ostream>
-#include <iostream>
-
 #include <vector>
 
 using namespace std;
@@ -31,7 +29,6 @@ BoundedBuffer::~BoundedBuffer() {
  * Add an element
  */
 void BoundedBuffer::add(int element) {
-	cout << "append" << element << endl;
 	_content[_pointer] = element;
 	_pointer = (_pointer + 1) % _size;
 	_valid_element_count = max(_valid_element_count, _pointer);
