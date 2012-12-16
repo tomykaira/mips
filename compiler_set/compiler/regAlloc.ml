@@ -203,7 +203,9 @@ let rec gc dest cont regenv ifprefer e =
       | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FSub(x, y) -> (Ans(FSub(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FMul(x, y) -> (Ans(FMul(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FMulN(x, y) -> (Ans(FMulN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FDiv(x, y) -> (Ans(FDiv(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
+      | FDivN(x, y) -> (Ans(FDivN(find x Type.Float regenv, find y Type.Float regenv)), regenv, graph)
       | FInv(x) -> (Ans(FInv(find x Type.Float regenv)), regenv, graph)
       | FSqrt(x) -> (Ans(FSqrt(find x Type.Float regenv)), regenv, graph)
 

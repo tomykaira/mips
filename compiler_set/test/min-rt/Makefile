@@ -18,14 +18,15 @@ include ../Makefile.in
 
 %.s: %.ml
 	cat $(LIB_ML) globals.ml $*.ml > $(call tmp,$*).ml
-	$(MIN_CAML) $(OPTION) $(call tmp,$*)
+	$(MIN_CAML) $(BIN) $(OPTION) $(call tmp,$*)
 	$(LINKER) $(LIB_ASM) $(call tmp,$*).s ${abspath $*.s}
 
+
 %.sim: %.bin
-	$(SIMULATOR) -f $(SLD_PATH) $*.bin > $*.sim
+	$(SIMULATOR) $(BIN) -f $(SLD_PATH) $*.bin > $*.sim
 
 %.ppm: %.bin
-	$(SIMULATOR) -f $(SLD_PATH) $*.bin | tail -c +2 > output.ppm
+	$(SIMULATOR) $(BIN) -f $(SLD_PATH) $*.bin | tail -c +2 > output.ppm
 
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
