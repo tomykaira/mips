@@ -78,132 +78,54 @@ let filter env mem =
 
 (* 命令列を順方向に走査して、put -> get 及び 同じものの put を削除する関数
    返り値の2番目は必ず決まった位置にある変数の集合 *)
-let rec g dest env mem const funs = function
+let rec g dest env mem const = function
   | Let((x,t), exp, e) ->
       let env' = S.add x env in
-      let (exp', mem') = g' x env' mem const funs exp in
+      let (exp', mem') = g' x env' mem const exp in
       let const' = match exp with
       | Int(i) -> M.add x i const
       | _ -> const in
-      let (e', mem'') = g dest env' (filter env' mem') const' funs e in
+      let (e', mem'') = g dest env' (filter env' mem') const' e in
       (Let((x,t), exp', e'), mem'')
   | LetRec({ name = (x,t); args = yts; body = e1 }, e2) ->
       let ret = Id.genid "dest" in
       let env' = S.add x env in
-      let ys = List.map fst yts in
-      let zs = S.elements (S.filter (fun x -> M.mem x mem) (fv e1)) in
-      let (retarray, t2) =
-	match t with Type.Fun(_,(Type.Array _ as t)) -> (true,t) | _ -> (false,Type.Unit) in
-      let data = Id.genid "data" in
-      let new_node = ((t2,S.empty,S.empty),unknown) in
-      let allknown_mem =
-	(fun a -> if retarray then M.add ret new_node a else a)
-	  (M.map (fun (x,_) -> (x,A(M'.empty,data))) mem) in
-      let env'' = S.add_list ys (S.add data env') in
-      let rec f af =
-        let (_, af') = g ret env'' allknown_mem const (M.add x (data,ret,ys,zs,af) funs) e1 in
-	if af = af' then af else f af' in
-      let after = f allknown_mem in
-      let funs' = M.add x (data,ret,ys,zs,after) funs in
       let empty_mem =
-	M.map (fun (x,_) -> (x,unknown))
-	  (if retarray then M.add ret new_node mem else mem) in
-      let (e1', m) =  g ret (S.add_list ys env') empty_mem const funs' e1 in
-      let (e2', mem') =  g dest env' mem const funs' e2 in
+	let mem' = M.map (fun (x,_) -> (x,unknown)) mem in
+	match t with
+	| Type.Fun(_,(Type.Array _ as t)) ->
+	    M.add ret ((t,S.empty,S.empty),unknown) mem'
+	| _ -> mem' in
+      let (e1', _) = g ret (S.add_list (List.map fst yts) env') empty_mem const e1 in
+      let (e2', mem') =  g dest env' mem const e2 in
       (LetRec({ name = (x,t); args = yts; body = e1' }, e2'), mem')
   | LetTuple(xts,y,e) ->
-      let (e', mem') = g dest (S.add_list (List.map fst xts) env) mem const funs e in
+      let (e', mem') = g dest (S.add_list (List.map fst xts) env) mem const e in
       (LetTuple(xts,y,e'), mem')
   | LetList((m,t),y,e) ->
-      let (e', mem') = g dest (S.add_list_matcher m env) mem const funs e in
+      let (e', mem') = g dest (S.add_list_matcher m env) mem const e in
       (LetList((m,t),y,e'), mem')
   | Ans(exp) ->
-      let (exp', mem) = g' dest env mem const funs exp in
+      let (exp', mem) = g' dest env mem const exp in
       (Ans(exp'), mem)
-and g' dest env mem const funs = function
+and g' dest env mem const = function
   | IfEq(x,y,e1,e2) ->
-      let (e1', mem1) = g dest env mem const funs e1 in
-      let (e2', mem2) = g dest env mem const funs e2 in
+      let (e1', mem1) = g dest env mem const e1 in
+      let (e2', mem2) = g dest env mem const e2 in
       (IfEq(x,y,e1',e2'), munion mem1 mem2)
   | IfLE(x,y,e1,e2) ->
-      let (e1', mem1) = g dest env mem const funs e1 in
-      let (e2', mem2) = g dest env mem const funs e2 in
+      let (e1', mem1) = g dest env mem const e1 in
+      let (e2', mem2) = g dest env mem const e2 in
       (IfLE(x,y,e1',e2'), munion mem1 mem2)
   | IfLT(x,y,e1,e2) ->
-      let (e1', mem1) = g dest env mem const funs e1 in
-      let (e2', mem2) = g dest env mem const funs e2 in
+      let (e1', mem1) = g dest env mem const e1 in
+      let (e2', mem2) = g dest env mem const e2 in
       (IfLT(x,y,e1',e2'), munion mem1 mem2)
   | IfNil(x,e1,e2) ->
-      let (e1', mem1) = g dest env mem const funs e1 in
-      let (e2', mem2) = g dest env mem const funs e2 in
+      let (e1', mem1) = g dest env mem const e1 in
+      let (e2', mem2) = g dest env mem const e2 in
       (IfNil(x,e1',e2'), munion mem1 mem2)
-  | App(x,ys) as exp when M.mem x funs ->
-      let (data,ret,zs,ws,after) = M.find x funs in
-      let (ys', zs') =
-	if M.mem dest mem && M.mem ret after then (dest::ys,ret::zs)
-	else (ys,zs) in
-      let en1 = List.fold_left2 (fun en x y -> M.add x y en) (M.empty) zs' ys' in
-      let en2 = List.fold_left2 (fun en x y -> M.add x y en) (M.empty) ys' zs' in
-      let ren en x = try M.find x en with Not_found -> x in
-      (* この関数適用の後にメモリの状態がどう変わるか *)
-      let memchange =
-	M.mapi
-	  (fun x a -> try 
-	    let (y,z) = M.find (ren en2 x) after in
-	    match z with
-	    | A(a,b) -> (y, A(M'.map (ren en1) a, ren en1 b))
-	    | B(a,b) -> (y, B(M.map (ren en1) a, M'.map (ren en1) b))
-	  with Not_found -> a)
-	  mem in
-      (* メモリの状態 *)
-      let mem' =
-	M.mapi
-	  (fun x (y,z) ->
-	    let z' =
-	      match z, finds x memchange with
-	      | A(a,b), A(c,d) when d = data ->
-		  A(M'.fold (fun p q a -> M'.add p q a) c a, b)
-	      | _, A(c,d) -> A(c, d)
-	      | _, B(c,d) -> B(c, d)
-	      | B(a,b), B(c,d) ->
-		  let g _ p q = match p, q with
-	          | Some x, Some y when x = y -> Some(x)
-	          | _ -> None in
-	          let p = M.merge g a c in
-	          let q = M'.merge g b d in
-	          B (p,q) in
-	    (y,z'))
-	  mem in
-      (* 状態の変わったメモリとエイリアス関係にあるメモリの状態はunknown *)
-      let un =
-	M.fold
-	  (fun x ((_,y,_),_) un ->
-	    match finds x memchange with
-	    | A(a,b) when M'.is_empty a && b = data -> un
-	    | _ ->
-		S.fold
-		  (fun p un -> S.add p un)
-	          y
-	          un)
-	  memchange
-	  S.empty in
-      (* 引数,自由変数となったメモリの子孫の状態はunknownにしてしまう *)
-      let un' =
-	(* unknownにする配列を集める *)
-	let rec f x ret =
-	  if not (M.mem x mem') || S.mem x ret then ret else
-	  let ret = S.add x ret in
-	  let z = findc x mem in
-	  S.fold (fun y ret -> f y ret) z ret in
-        List.fold_left
-	  (fun c y ->
-	    try S.fold (fun y c -> f y c) (findc y mem') c with Not_found -> c)
-	    un
-	    (ys@ws) in
-      let mem'' =
-	S.fold (fun x mem -> ovwr x unknown mem) un' mem' in
-      (exp, (*mem''*) M.map (fun (y,_) -> (y,unknown)) mem)
-  | Get(x,y) as exp->
+  | Get(x,y) as exp ->
       let st = finds x mem in
       (match st with
       | A (a, b) ->
@@ -251,19 +173,9 @@ and g' dest env mem const funs = function
 	    (exp,mem'))
   | ExtFunApp(("create_array"|"create_float_array"|"create_tuple_array"),_::x::_) as exp ->
       (exp, ovwr dest (A(M'.empty, x)) mem)
-  | ExtFunApp(_,ys) | App(_,ys) as exp ->
-      let mem' =
-	List.fold_left
-	  (fun mem y ->
-	    if M.mem y mem then
-	      S.fold
-		(fun t mem -> ovwr t unknown mem)
-		(finda y mem)
-		(ovwr y unknown mem)
-	    else mem)
-	  mem
-	  ys in
-      (exp, mem')
+    | App _ | ExtFunApp _ as exp ->
+      (* メモリの状態を空っぽに *)
+      (exp, M.map (fun (y,_) -> (y,unknown)) mem)
   | exp -> (exp, mem)
 
 
@@ -272,4 +184,4 @@ let f gr e =
 (*   M.iter (fun x (t,k,l) -> Format.eprintf "%s : " x; Format.eprintf "%s/" (Type.show t);S.iter (Format.eprintf "%s ") k; Format.eprintf "/"; S.iter (Format.eprintf "%s ") l; Format.eprintf "@.") gr; *)
   let mem = M.map (fun x -> (x, unknown)) gr in
   Format.eprintf "eliminating loads...@.";
-  fst (g (Id.genid "dest") S.empty mem M.empty M.empty e)
+  fst (g (Id.genid "dest") S.empty mem  M.empty e)

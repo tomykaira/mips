@@ -145,7 +145,7 @@ let rem x g =
   M.map
     (fun (p,q,r) ->
       if List.mem x p then
-	let sc = if S.mem x r then 12 else 0 in
+	let sc = if S.mem x r then 10 else 0 in
 	(List.filter (fun y -> x <> y) p, q+1+sc, r)
       else (p,q,r))
     (M.remove x g)
