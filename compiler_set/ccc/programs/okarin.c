@@ -76,6 +76,7 @@ void execute_bin(char * program, char * argument) {
 
   read_file(cluster_id, program_size, file_content);
   execute(file_content, program_size, argument);
+  print_return_argument(argument);
 }
 
 void print_return_argument(char * result) {
@@ -153,9 +154,6 @@ void process_command() {
     argument[ptr] = 0;
     argument[ARGUMENT_HEAP_SIZE-1] = current_directory_id;
     execute_bin(program_name, argument);
-
-    send_rs(argument, 10);
-    print_return_argument(argument);
   }
 }
 
