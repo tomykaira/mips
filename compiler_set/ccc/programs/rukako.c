@@ -482,6 +482,7 @@ int parse_input(int id) {
       input_pointer += 1;
     } else {
       error(R_PAREN_NOT_FOUND);
+      return -1;
     }
     skip_space();
 
@@ -540,6 +541,7 @@ int main() {
   if (argument[0] == 0) {
     read_input_rs();
   } else {
+    debug(argument[0]);
     if (read_input_file() == -1) {
       copy_string(argument, file_not_found_error_message);
       return 1;
@@ -553,4 +555,5 @@ int main() {
   }
 
   evaluate(0);
+  return;
 }
