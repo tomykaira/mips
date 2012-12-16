@@ -248,7 +248,7 @@ void main(int argc)
         break_line();
         break;
       case 0x7f:
-        {
+        if (current_column > 0) {
           int current_char = 0;
           current_column -= 1;
           current_char = buffer[C(current_line, current_column)];
