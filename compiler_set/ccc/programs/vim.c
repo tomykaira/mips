@@ -70,10 +70,13 @@ void read() {
     prev_pointer += 1;
   }
 
-  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  if (resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result) == -1) {
+    copy_string(argument, file_not_found_error_message);
+    return;
+  }
   directory_id = resolve_result[2];
 
-  entry_id = try_find_entry_by_name(directory_id, filename);
+  entry_id = find_entry_by_name(directory_id, filename);
 
   if (entry_id == ENTRY_NOT_FOUND_ID) {
     buffer[0] = EOF;
@@ -134,7 +137,16 @@ void write() {
     update_file_size(directory_id, file_id, length);
   } else {
     int empty_index = find_empty_directory_index(directory_id);
+
+    if (empty_index == -1) {
+      copy_string(argument, no_empty_index_error_message);
+      return;
+    }
     file_id = create_fat_entry();
+    if (file_id == -1) {
+      copy_string(argument, no_fat_entry_error_message);
+      return;
+    }
     write_file(file_id, text_buffer, length);
     create_file_entry(directory_id, empty_index, 0, file_id, length, filename);
   }

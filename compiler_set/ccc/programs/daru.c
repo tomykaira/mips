@@ -20,6 +20,11 @@
 #define DIRECTORY_BIT(attribute) (((attribute) << 27) >> 26)
 #define FAT_ENTRY(address) ((read_sd(address + 1) << 8) + read_sd(address))
 
+char file_not_found_error_message[32] = "File not found";
+char no_fat_entry_error_message[32] = "Could not allocate FAT entry";
+char no_empty_index_error_message[32] = "no empty index";
+
+
 int B(int cluster_id) {
   if (cluster_id == 0) {
     return RDE;
@@ -94,9 +99,10 @@ int find_empty_directory_index(int cluster_id) {
     index += 1;
   }
   error(NO_EMPTY_DIRECTORY_ENTRY_POSITION);
+  return -1;
 }
 
-int try_find_entry_by_name(int cluster_id, char * token) {
+int find_entry_by_name(int cluster_id, char * token) {
   int disk_entry_id = 0;
   int logical_entry_id = 0;
   int ptr = 0;
@@ -160,16 +166,8 @@ int try_find_entry_by_name(int cluster_id, char * token) {
     }
     disk_entry_id += 1;
   }
+  error(CLUSTER_NOT_FOUND);
   return ENTRY_NOT_FOUND_ID;
-}
-
-int find_entry_by_name(int cluster_id, char * token) {
-  int entry_id = try_find_entry_by_name(cluster_id, token);
-  if (entry_id == ENTRY_NOT_FOUND_ID) {
-    error(CLUSTER_NOT_FOUND);
-  } else {
-    return entry_id;
-  }
 }
 
 int find_entry_by_cluster_id(int cluster_id, int file_cluster_id) {
@@ -187,6 +185,7 @@ int find_entry_by_cluster_id(int cluster_id, int file_cluster_id) {
     index += 1;
   }
   error(CLUSTER_NOT_FOUND);
+  return ENTRY_NOT_FOUND_ID;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -324,6 +323,7 @@ int create_fat_entry() {
     index += 1;
   }
   error(NO_EMPTY_TABLE);
+  return -1;
 }
 
 int write_name(int address, int max_length, char * name) {
@@ -433,6 +433,10 @@ void update_file_size(int cluster_id, int file_cluster_id, int new_size) {
   int index = find_entry_by_cluster_id(cluster_id, file_cluster_id);
   int address = D(rde, index, 0);
 
+  if (index == ENTRY_NOT_FOUND_ID) {
+    return;
+  }
+
   write_sd(address + 28, new_size);
   write_sd(address + 29, new_size >> 8);
   write_sd(address + 30, new_size >> 16);
@@ -444,6 +448,10 @@ void delete_file(int cluster_id, int file_cluster_id) {
   int index = find_entry_by_cluster_id(cluster_id, file_cluster_id);
   int address = D(rde, index, 0);
   int fat_address = file_cluster_id << 1;
+
+  if (index == ENTRY_NOT_FOUND_ID) {
+    return;
+  }
 
   write_sd(address, 0xe5);
 
@@ -482,7 +490,10 @@ int resolve_argument_path(int current_directory_id, char * argument, int * resul
     argument_pointer += basename(argument + argument_pointer, __token);
     argument_pointer += 1;
     directory_id = cluster_id;
-    entry_id   = find_entry_by_name(cluster_id, __token);
+    entry_id     = find_entry_by_name(cluster_id, __token);
+    if (entry_id == ENTRY_NOT_FOUND_ID) {
+      return -1;
+    }
     cluster_id = get_cluster_id(cluster_id, entry_id);
   }
 
@@ -490,4 +501,5 @@ int resolve_argument_path(int current_directory_id, char * argument, int * resul
   result[1] = entry_id;
   result[2] = cluster_id;
 
+  return 0;
 }

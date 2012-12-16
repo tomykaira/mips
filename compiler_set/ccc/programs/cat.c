@@ -9,7 +9,10 @@ void main() {
   int cluster_id = 0;
   int file_size = 0;
 
-  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  if (resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result) == -1) {
+    copy_string(argument, file_not_found_error_message);
+    return;
+  }
   directory_id = resolve_result[0];
   entry_id     = resolve_result[1];
   cluster_id   = resolve_result[2];

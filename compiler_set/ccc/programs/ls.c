@@ -15,7 +15,10 @@ void main() {
       (argument[0] == '.' && argument[1] == 0 || argument[0] == 0)) {
     cluster_id = 0;
   } else {
-    resolve_argument_path(current_directory_id, argument, resolve_result);
+    if (resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result) == -1) {
+      copy_string(argument, file_not_found_error_message);
+      return;
+    }
     cluster_id = resolve_result[2];
   }
 

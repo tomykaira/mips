@@ -22,12 +22,26 @@ void main() {
     prev_pointer += 1;
   }
 
-  resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result);
+  if (resolve_argument_path(argument[ARGUMENT_HEAP_SIZE-1], argument, resolve_result) == -1) {
+    copy_string(argument, file_not_found_error_message);
+    return;
+  }
   cluster_id   = resolve_result[2];
 
   // create directory
   new_cluster_id = create_fat_entry();
+
+  if (new_cluster_id == -1) {
+    copy_string(argument, no_fat_entry_error_message);
+    return;
+  }
+
   empty_index    = find_empty_directory_index(cluster_id);
+
+  if (empty_index == -1) {
+    copy_string(argument, no_empty_index_error_message);
+    return;
+  }
   create_empty_directory(new_cluster_id, cluster_id);
   create_file_entry(cluster_id, empty_index, 1, new_cluster_id, 0, new_name);
 
