@@ -134,7 +134,7 @@ let rec convert_statement stat =
     Assignments chain
   | BranchExpansion.Block (variables, stats) ->
     let new_variables =
-      List.map (fun (Variable(id, typ, exp)) -> rev_expand_exp (Some(id)) exp) variables
+      List.map (fun (Variable(id, _, exp)) -> rev_expand_exp (Some(id)) exp) variables
     in
     Block(new_variables, List.map convert_statement stats)
 

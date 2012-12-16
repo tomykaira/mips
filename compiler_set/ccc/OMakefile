@@ -1,7 +1,8 @@
 .PHONY: all clean check
 
 USE_OCAMLFIND = true
-OCAMLFLAGS=-annot -w A -warn-error A
+OCAMLFLAGS=-annot -w A -warn-error +a-33-4-34
+# ignore unused open, unused type (for deriving), fragile matching
 
 OCAMLPACKS[] =
 	deriving

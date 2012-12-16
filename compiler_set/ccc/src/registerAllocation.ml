@@ -8,8 +8,8 @@ type instruction =
   | BranchZero   of Reg.i * Id.l
   | BranchEq     of Reg.i * Reg.i * Id.l
   | BranchLt     of Reg.i * Reg.i * Id.l
-  | Call         of Id.l * Reg.i list * (Reg.i * Id.t) list
-  | CallAndSet   of Reg.i * Id.l * Reg.i list * (Reg.i * Id.t) list
+  | Call         of Id.l * (Reg.i * Id.t) list
+  | CallAndSet   of Reg.i * Id.l * (Reg.i * Id.t) list
   | Spill        of Reg.i * Id.t
   | Restore      of Reg.i * Id.t
   | Label        of Id.l
@@ -123,7 +123,7 @@ let setup_for_function live insts =
 
 
 let all_adjacent_nodes v =
-  let nodes = List.map snd (List.filter (fun (self, other) -> v = self) !interference_edges) in
+  let nodes = List.map snd (List.filter (fun (self, _) -> v = self) !interference_edges) in
   S.of_list nodes
 
 let adjacent_nodes v =
@@ -202,10 +202,10 @@ let simplify () =
   remove_edges node
 
 let precolored_nodes _ =
-  S.of_list (List.map (fun (n, r) -> n) !precolored)
+  S.of_list (List.map (fun (n, _) -> n) !precolored)
 
 let is_precolored node =
-  List.exists (fun (n, r) -> n = node) !precolored
+  List.exists (fun (n, _) -> n = node) !precolored
 
 let precolored_register node =
   try
@@ -246,14 +246,10 @@ let is_adjacent (u, v) =
   S.mem v (adjacent_nodes u)
 
 let meet_precolor_constraint u v =
-  let u_reg = precolored_register u in
-  let is_danger node =
-    match (u_reg, precolored_register v) with
-      | (Some(u_reg), Some(v_reg)) -> u_reg = v_reg
-      | (Some(u_reg), None) -> false
-      | (None, _) -> false
-  in
-  S.exists is_danger (adjacent_nodes v)
+  match (precolored_register u, precolored_register v) with
+    | (Some(u_reg), Some(v_reg)) -> u_reg = v_reg
+    | (Some(_), None)            -> false
+    | (None, _)                  -> false
 
 let coalesce () =
   let ((x, y), new_worklist) = MoveS.pop !worklist_moves in
@@ -322,7 +318,7 @@ let assign_colors () =
       let actual = resolve_alias node in
       Printf.printf "actual: %s\n" (Show.show<Id.t> actual);
       try
-        let (var, reg) = List.find (fun (v, r) -> v = actual) (!colored_nodes @ !precolored) in
+        let (_, reg) = List.find (fun (v, _) -> v = actual) (!colored_nodes @ !precolored) in
         available := RegS.remove reg !available
       with
         | Not_found -> ()
@@ -379,14 +375,14 @@ let replace_registers live color_map insts =
     match inst with
       | Heap.Assignment(id, exp) ->
         Assignment(r id, replace_exp exp)
-      | Heap.Call(l, args) ->
+      | Heap.Call(l, _) ->
         let live = LiveMap.find identified live in
         let allocation = S.map_list (fun name -> (r name, name)) live in
-        Call(l, List.map r args, allocation)
-      | Heap.CallAndSet(to_set, l, args) ->
+        Call(l, allocation)
+      | Heap.CallAndSet(to_set, l, _) ->
         let live = LiveMap.find identified live in
         let allocation = S.map_list (fun name -> (r name, name)) (S.remove to_set live) in
-        CallAndSet(r to_set, l, List.map r args, allocation)
+        CallAndSet(r to_set, l, allocation)
       | Heap.BranchZero(id, l) ->
         BranchZero(r id, l)
       | Heap.BranchEq(id1, id2, l) ->
@@ -472,7 +468,7 @@ let insert_redirection_for_output_variables insts =
     Heap.Assignment(new_id, Heap.Mov(old_id))
   in
   let register_binding (_, new_id, num) =
-    (new_id, Reg.(`I num))
+    (new_id, `I num)
   in
   let get_new (_, n, _) = n in
   let replace inst (accumulate, pairs) = match inst with
@@ -510,11 +506,11 @@ let insert_redirection_for_abi_constraint { parameters = params; _ } insts =
 let get_abi_constraint { parameters = params; _ } : (Id.t * Reg.i) list =
   Reg.assign_params (List.map (Id.raw $ parameter_id) params)
 
-let convert_function ({name = name} as signature, insts) =
+let convert_function (signature, insts) =
   let (insts, precolor_map) = insert_redirection_for_abi_constraint signature insts in
   precolored := precolor_map;
   Printf.printf "precolored: %s\n" (Show.show<(Id.t * Reg.i) list> !precolored);
-  (name, color_variables insts)
+  (signature.name, color_variables insts)
 
 let convert_initializer insts =
   let (insts, return_precoloring) = insert_redirection_for_output_variables insts in

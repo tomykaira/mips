@@ -52,7 +52,7 @@ let convert_exp = function
   | Sra(a, i)          -> SRAI(a, i)
   | Const(IntVal(i))   -> Int(i)
   | Const(CharVal(c))  -> Int(Char.code c)
-  | Const(FloatVal(f)) -> failwith "Float value is not yet supported"
+  | Const(FloatVal(_)) -> failwith "Float value is not yet supported"
   | (And(_) as x)
   | (Or(_) as x) -> failwith ("oops.. sorry, not supported: " ^ (Show.show<exp> x))
 

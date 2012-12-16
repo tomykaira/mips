@@ -67,10 +67,10 @@ let expand_exp var constructor =
   in
   match var with
     | Id.V(name) -> constructor name
-    | Id.A(name) ->                     (* Set and return pointer, only for call *)
+    | Id.A(_) ->                     (* Set and return pointer, only for call *)
       let temp_id = Id.unique "load" in
       insert_assignment temp_id (Assignment(temp_id, Const(Definition.IntVal(find_heap var))))
-    | Id.G(name) ->
+    | Id.G(_) ->
       let temp_id = Id.unique "load" in
       insert_assignment temp_id (Assignment(temp_id, LoadHeapImm(find_heap var)))
 
@@ -80,9 +80,9 @@ let convert_exp exp =
       (match var with
         | Id.V(name) ->
           Exp(Mov(name))
-        | Id.A(name) ->
+        | Id.A(_) ->
           Exp(Const(Definition.IntVal(find_heap var)))
-        | Id.G(name) ->
+        | Id.G(_) ->
           Exp(LoadHeapImm(find_heap var)))
     | Flow.Const(c) -> Exp(Const(c))
     | Flow.And(var1, var2) ->
@@ -125,11 +125,11 @@ let convert_exp exp =
 
 let generate_assignment var =
   match var with
-    | Id.V(name) -> None
-    | Id.A(name) ->                     (* Set and return pointer, only for call *)
+    | Id.V(_) -> None
+    | Id.A(_) ->                     (* Set and return pointer, only for call *)
       let temp_id = Id.unique "load" in
       Some(temp_id, Assignment(temp_id, Const(Definition.IntVal(find_heap var))))
-    | Id.G(name) ->
+    | Id.G(_) ->
       let temp_id = Id.unique "load" in
       Some(temp_id, Assignment(temp_id, LoadHeapImm(M.find var heap.allocation)))
 
@@ -143,8 +143,8 @@ let insert_load var constructor =
 let insert_store var constructor =
   match var with
     | Id.V(name) -> constructor name
-    | Id.A(name) -> failwith "Assignment to array is not allowed"
-    | Id.G(name) ->
+    | Id.A(_) -> failwith "Assignment to array is not allowed"
+    | Id.G(_) ->
       let temp_id = Id.unique "store" in
       constructor temp_id @ [StoreHeapImm(temp_id, M.find var heap.allocation)]
 
@@ -205,7 +205,7 @@ let assign_global { functions = funs; initialize_code = code } t =
     [Assignment(var, Const(value));
      StoreHeapImm(var, location)]
   in
-  let rec push_zeros top size =
+  let push_zeros top size =
     let pointer = Id.unique "start" in
     let size_register = Id.unique "size" in
     let initial_value = Id.unique "init" in
@@ -231,12 +231,12 @@ let assign_global { functions = funs; initialize_code = code } t =
     | Flow.Function(signature, insts) ->
       let new_insts = concat_map convert_instruction insts in
       { functions = funs @ [(signature, new_insts)]; initialize_code = code }
-    | Flow.GlobalVariable(Definition.Variable(id, typ, initial)) ->
+    | Flow.GlobalVariable(Definition.Variable(id, _, initial)) ->
       let top = heap.size in
       heap.size <- heap.size + 1;
       heap.allocation <- M.add id top heap.allocation;
       { functions = funs; initialize_code = code @ assign_and_save initial top }
-    | Flow.Array({ Definition.id = id; Definition.size = size; initial = initial }) ->
+    | Flow.Array({ Definition.id = id; Definition.size = size; initial = initial; _ }) ->
       let top = heap.size in
       heap.size <- heap.size + size;
       heap.allocation <- M.add id top heap.allocation;

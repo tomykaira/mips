@@ -1,5 +1,4 @@
 open Definition
-open Util
 
 type statement =
   | Label  of Id.l
@@ -23,10 +22,6 @@ type t =
 type while_environment = { continue : Id.l option; break : Id.l option }
     deriving (Show)
 
-
-let assign_const const =
-  let id = Id.gen () in
-  (id, Exp(Syntax.Assign(Syntax.VarSet(id), Syntax.Const(const))))
 
 let rec convert_statement env exp =
   let go = convert_statement env in

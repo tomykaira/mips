@@ -7,3 +7,4 @@ type t =
       deriving (Show)
 
 type fun_type = Fun of t * t list
+      deriving (Show)

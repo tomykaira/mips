@@ -4,7 +4,7 @@ open Util
 let parse_buf_exn lexbuf =
   try
     Parser.translation_unit Lexer.token lexbuf
-  with exn ->
+  with _ ->
     begin
       let curr = lexbuf.Lexing.lex_curr_p in
       let line = curr.Lexing.pos_lnum in

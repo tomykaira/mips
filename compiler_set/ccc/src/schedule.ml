@@ -29,7 +29,7 @@ let exp_latency = function
 let instruction_latency (Entity.E(_, inst)) = match inst with
   | StoreHeap(_)
   | StoreHeapImm(_) -> 1
-  | Assignment(id, exp) ->
+  | Assignment(_, exp) ->
     exp_latency exp
 
   | _ -> 0
@@ -130,7 +130,7 @@ let select graph ready_insts =
 (* count down latency of the instructions whose source is already selected *)
 let tick_without_selection graph =
   List.fold_right
-    (fun ({ selected = selected; latency = t; source = s; _} as edge) others ->
+    (fun ({ selected = selected; latency = t; _} as edge) others ->
       if selected && t = 0 then
         others
       else if selected && t > 0 then

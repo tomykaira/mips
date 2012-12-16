@@ -51,7 +51,7 @@ let rec convert_statement env stat =
     | FlatExp.Assignments (assignments) ->
       Assignments(assignments)
     | FlatExp.Block (variables, stats) ->
-      let variable_definitions = List.map (fun {FlatExp.result = result; FlatExp.chain = ass} -> Assignments ass) variables in
+      let variable_definitions = List.map (fun {FlatExp.chain = ass; _} -> Assignments ass) variables in
       Sequence(variable_definitions @ (List.map go stats))
     | FlatExp.IfEq (exp1, exp2, stat_true, stat_false) ->
       expand_branch exp1 exp2 stat_true stat_false (fun id1 id2 label -> BranchEq(id1, id2, label))

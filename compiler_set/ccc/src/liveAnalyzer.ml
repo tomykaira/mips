@@ -32,9 +32,9 @@ let use_exp = function
   | Const(_) -> []
 
 let use_instruction (E(_, inst)) = match inst with
-  | Assignment(id, exp) ->
+  | Assignment(_, exp) ->
     use_exp exp
-  | Call(l, args) -> args
+  | Call(_, args) -> args
   | CallAndSet(_, _, args) -> args
   | BranchZero(id, _) -> [id]
   | BranchEq(id1, id2, _) | BranchLt(id1, id2, _) -> [id1; id2]
@@ -68,7 +68,7 @@ let find_label context label =
   in
   List.find label_matcher context
 
-let rec live_instruction inst (env, next, context) =
+let live_instruction inst (env, next, context) =
   let find_or_empty inst =
     if LiveMap.mem inst env then
       LiveMap.find inst env

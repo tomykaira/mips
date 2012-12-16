@@ -16,4 +16,4 @@ let zip xs ys =
 let rec range i j = if i > j then [] else i :: (range (i+1) j)
 
 let rev_assoc value xs =
-  fst (List.find (fun (k, v) -> v = value) xs)
+  fst (List.find (fun (_, v) -> v = value) xs)

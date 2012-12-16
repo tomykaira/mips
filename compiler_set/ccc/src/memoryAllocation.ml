@@ -65,19 +65,19 @@ let move_exp = function
   | Heap.Sll(reg1, i)     -> Sll(reg1, i)
   | Heap.Sra(reg1, i)     -> Sra(reg1, i)
   | Heap.Negate(reg1)     -> Negate(reg1)
-  | Heap.LoadHeap(reg1)   -> assert false
-  | Heap.LoadHeapImm(int) -> assert false
+  | Heap.LoadHeap(_)      -> assert false
+  | Heap.LoadHeapImm(_)   -> assert false
 
 let rec assign_local inst =
   let store_before_call = concat_map (fun (reg, id) -> assign_local (RegAlloc.Spill(reg, id))) in
   let load_after_call   = concat_map (fun (reg, id) -> assign_local (RegAlloc.Restore(reg, id))) in
   match inst with
-    | RegAlloc.Call(l, args, to_save) ->
+    | RegAlloc.Call(l, to_save) ->
       load_after_call to_save
       @ [Call(l, stack.size)]
       @ store_before_call to_save
 
-    | RegAlloc.CallAndSet(dest, l, args, to_save) ->
+    | RegAlloc.CallAndSet(dest, l, to_save) ->
       load_after_call to_save
       @ [Assignment(dest, Mov(Reg.ret));
          Call(l, stack.size)]

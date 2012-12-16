@@ -61,7 +61,7 @@ and statement =
   | OUTPUTB of Reg.i
   | HALT
 
-let rec print_stat out_channel stat =
+let print_stat out_channel stat =
   let print0 inst = output_string out_channel ("\t" ^ inst ^ "\n") in
   let print1 inst arg =
     Printf.fprintf out_channel "\t%s\t%s\n" inst arg in

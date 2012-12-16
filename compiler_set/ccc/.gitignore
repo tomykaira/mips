@@ -16,3 +16,4 @@ parser.mli
 *.omc
 .omakedb*
 src/main
+*.annot

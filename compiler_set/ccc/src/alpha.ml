@@ -11,7 +11,7 @@ let rename_global_variable env (Variable(name, typ, const)) =
 
 (* Map Id.V old_name -> Id.A new_name
    To replace Id.v occurrence in statements *)
-let rename_array env ({id = id; } as signature) =
+let rename_array env ({id = id; _} as signature) =
   let new_name = Id.A(Id.unique id) in
   (M.add id new_name env, { signature with id = new_name})
 
@@ -122,7 +122,7 @@ let convert (ts : Id.t MacroExpand.t list) : Id.v MacroExpand.t list =
         (new_env, MacroExpand.Array(new_sig) :: definitions)
 
   in
-  let (env, result) = List.fold_left convert_t (M.empty, []) ts in
+  let (_, result) = List.fold_left convert_t (M.empty, []) ts in
   let result = List.rev result in
   List.iter (print_endline $ Show.show<Id.v MacroExpand.t>) result;
   result
