@@ -173,7 +173,11 @@ and g' dest env mem const = function
 	    (exp,mem'))
   | ExtFunApp(("create_array"|"create_float_array"|"create_tuple_array"),_::x::_) as exp ->
       (exp, ovwr dest (A(M'.empty, x)) mem)
-    | App _ | ExtFunApp _ as exp ->
+  | ExtFunApp(("xor"|"sqrt"|"not"|"print_char"|"input_char"|"read_char"),_) as exp ->      
+      (* 後でコンパイラで展開される外部関数。
+	 退避不要なのでここをまたぐ変数はスタックに置かれない *)
+      (exp, mem)
+  | App _ | ExtFunApp _ as exp ->
       (* メモリの状態を空っぽに *)
       (exp, M.map (fun (y,_) -> (y,unknown)) mem)
   | exp -> (exp, mem)
