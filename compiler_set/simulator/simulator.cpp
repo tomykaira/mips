@@ -125,6 +125,9 @@ uint32_t RAM[RAM_SIZE];
 // プログラムカウンタ
 uint32_t pc;
 
+// call counter: count each operation
+long long unsigned call_count[1 << 6];
+
 float asF(uint32_t r)
 {
 	conv a;
@@ -280,6 +283,7 @@ int simulate(simulation_options * opt)
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
 
+
 	// メインループ
 	do
 	{
@@ -390,6 +394,8 @@ int simulate(simulation_options * opt)
 		{
 			cerr << "." << flush;
 		}
+
+		call_count[opcode] ++;
 
 		// 読み込んだopcode・functに対応する命令を実行する
 		switch(opcode)
@@ -689,6 +695,60 @@ int simulate(simulation_options * opt)
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
  end_simulation:
+
+	if (!opt->lib_test_mode) {
+		printf("ADD\t%lld\n", call_count[ADD]);
+		printf("SUB\t%lld\n", call_count[SUB]);
+		printf("XOR\t%lld\n", call_count[XOR]);
+		printf("ADDI\t%lld\n", call_count[ADDI]);
+		printf("SUBI\t%lld\n", call_count[SUBI]);
+		printf("XORI\t%lld\n", call_count[XORI]);
+		printf("SLLI\t%lld\n", call_count[SLLI]);
+		printf("SRAI\t%lld\n", call_count[SRAI]);
+
+		printf("SETL\t%lld\n", call_count[SETL]);
+		printf("FMVLO\t%lld\n", call_count[FMVLO]);
+		printf("FMVHI\t%lld\n", call_count[FMVHI]);
+		printf("IMOVF\t%lld\n", call_count[IMOVF]);
+		printf("FMOVI\t%lld\n", call_count[FMOVI]);
+
+		printf("FADD\t%lld\n", call_count[FADD]);
+		printf("FSUB\t%lld\n", call_count[FSUB]);
+		printf("FMUL\t%lld\n", call_count[FMUL]);
+		printf("FMULN\t%lld\n", call_count[FMULN]);
+		printf("FINV\t%lld\n", call_count[FINV]);
+		printf("FSQRT\t%lld\n", call_count[FSQRT]);
+
+		printf("LDI\t%lld\n", call_count[LDI]);
+		printf("LDR\t%lld\n", call_count[LDR]);
+		printf("STI\t%lld\n", call_count[STI]);
+		printf("FLDI\t%lld\n", call_count[FLDI]);
+		printf("FSTI\t%lld\n", call_count[FSTI]);
+		printf("FLDR\t%lld\n", call_count[FLDR]);
+
+		printf("BEQ\t%lld\n", call_count[BEQ]);
+		printf("BLT\t%lld\n", call_count[BLT]);
+		printf("BLE\t%lld\n", call_count[BLE]);
+		printf("FBEQ\t%lld\n", call_count[FBEQ]);
+		printf("FBLT\t%lld\n", call_count[FBLT]);
+		printf("FBLE\t%lld\n", call_count[FBLE]);
+
+		printf("J\t%lld\n", call_count[J]);
+		printf("JR\t%lld\n", call_count[JR]);
+		printf("CALL\t%lld\n", call_count[CALL]);
+		printf("CALLR\t%lld\n", call_count[CALLR]);
+		printf("RETURN\t%lld\n", call_count[RETURN]);
+		printf("INPUTB\t%lld\n", call_count[INPUTB]);
+		printf("OUTPUTB\t%lld\n", call_count[OUTPUTB]);
+		printf("HALT\t%lld\n", call_count[HALT]);
+		printf("DEBUG\t%lld\n", call_count[DEBUG]);
+
+		printf("DISPLAY\t%lld\n", call_count[DISPLAY]);
+		printf("READKEY\t%lld\n", call_count[READKEY]);
+		printf("PROGRAM\t%lld\n", call_count[PROGRAM]);
+		printf("READSD\t%lld\n", call_count[READSD]);
+		printf("WRITESD\t%lld\n", call_count[WRITESD]);
+	}
 
 	if (!opt->lib_test_mode)
 		display.preview();
