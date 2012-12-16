@@ -479,35 +479,35 @@ int simulate(simulation_options * opt)
 
 				break;
 			case BEQ:
-			        if (IRS == IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (IRS == IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLT:
-			        if (IRS <  IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (IRS <  IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case BLE:
-			        if (IRS <= IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (IRS <= IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBEQ:
-			        if (asF(FRS) == asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (asF(FRS) == asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLT:
-			        if (asF(FRS) <  asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (asF(FRS) <  asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case FBLE:
-			        if (asF(FRS) <= asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
+				if (asF(FRS) <= asF(FRT)) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
 				break;
 			case JR:
-			  	jump_logger.push_back(pc);
+				jump_logger.push_back(pc);
 				pc = IRS;
 				break;
 			case CALL:
-			        jump_logger.push_back(pc);
+				jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
 				break;
 			case CALLR:
-			        jump_logger.push_back(pc);
+				jump_logger.push_back(pc);
 				assert(stack_pointer < CALL_STACK_SIZE-1);
 				internal_stack[++stack_pointer] = pc;
 				pc = IRS;
@@ -607,7 +607,7 @@ int simulate(simulation_options * opt)
 					ROM[IRS] = b;
 					break;
 				}
-		case READSD:
+			case READSD:
 				IRT = sd_card.read_at(IRS);
 				logger.reg("READSD", get_rt(inst), IRT);
 				break;
