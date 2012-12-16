@@ -33,7 +33,10 @@ void update_notification_line() {
   }
 }
 
+// fail if the line is too long
 void insert_character(char input) {
+  if (buffer[C(current_line, 79)] != 0)
+    return;
   move_memory(buffer + C(current_line, current_column), 1, COLS - current_column - 1);
   buffer[C(current_line, current_column)] = input;
   current_column += 1;
