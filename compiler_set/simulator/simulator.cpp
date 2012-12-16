@@ -283,9 +283,15 @@ int simulate(simulation_options * opt)
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
 
+	// metrics: FMVHI,  FMVLO
 	map<uint32_t, int> fmv_counter;
 	bool prev_is_fmvhi = false;
 	uint32_t fmvhi_operand = 0;
+
+	// metrics: memory
+	uint32_t max_heap = HR, min_frame = FR;
+	uint32_t max_call_depth = 0;
+
 
 	// メインループ
 	do
@@ -306,6 +312,16 @@ int simulate(simulation_options * opt)
 		}
 		assert(FR < RAM_SIZE);
 		assert(HR < RAM_SIZE);
+
+		if (max_heap < (unsigned)HR) {
+			max_heap = HR;
+		}
+		if (min_frame > (unsigned)FR && (unsigned)FR > 0x800) { // 初期値設定を読みとばす
+			min_frame = FR;
+		}
+		if ((unsigned)stack_pointer > max_call_depth) {
+			max_call_depth = stack_pointer;
+		}
 
 		dshd = (dshd+1)%(DELAY_SLOT+1);
 		pc += dspc[dshd];
@@ -762,12 +778,20 @@ int simulate(simulation_options * opt)
 		printf("PROGRAM\t%lld\n", call_count[PROGRAM]);
 		printf("READSD\t%lld\n", call_count[READSD]);
 		printf("WRITESD\t%lld\n", call_count[WRITESD]);
-	}
 
-	map<uint32_t, int>::iterator it = fmv_counter.begin();
-	while( it != fmv_counter.end() ) {
-		cout << (*it).first << "\t" << (asF((*it).first)) << "\t" << (*it).second << endl;
-		++it;
+
+		cout << "Floating constant load operation usage:" << endl;
+		map<uint32_t, int>::iterator it = fmv_counter.begin();
+		while( it != fmv_counter.end() ) {
+			cout << (*it).first << "\t" << (asF((*it).first)) << "\t" << (*it).second << endl;
+			++it;
+		}
+
+		cout << "Memory usage:" << endl;
+
+		cout << "max_heap\t" << max_heap - DEFAULT_HR << endl;
+		cout << "min_frame\t" << min_frame << "\tUsage\t" << (0x7ffffff - min_frame) << endl;
+		cout << "max call depth\t" << max_call_depth << endl;
 	}
 
 	if (!opt->lib_test_mode)
