@@ -38,10 +38,10 @@ and immans' = function
 
 
 (* 本体 *)
-let rec g = function
+let rec g tail = function
   | Let((x,t) as xt, exp, e) ->
       let len =
-	if size e < 10 then 100
+	if (*tail &&*) size e < 10 then 1000000
 	else if immans' exp then 3
 	else 0 in
       (match exp with
@@ -49,44 +49,44 @@ let rec g = function
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
 	  let exp' = IfEq(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' exp') else
-	  g (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' exp, g e))
+	  if e' = Ans(Unit) then Ans(g' tail exp') else
+	  g tail (Let(yt, exp', e'))
+	  with Not_found -> Let(xt, g' false exp, g tail e))
       | IfLE(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
 	  let exp' = IfLE(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' exp') else
-	  g (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' exp, g e))
+	  if e' = Ans(Unit) then Ans(g' tail exp') else
+	  g tail (Let(yt, exp', e'))
+	  with Not_found -> Let(xt, g' false exp, g tail e))
       | IfLT(p,q,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
 	  let exp' = IfLT(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' exp') else
-	  g (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' exp, g e))
+	  if e' = Ans(Unit) then Ans(g' tail exp') else
+	  g tail (Let(yt, exp', e'))
+	  with Not_found -> Let(xt, g' false exp, g tail e))
       | IfNil(p,e1,e2) when len > 0 ->
 	  (try let (m, yt, e') = h x (fv e) len e in
 	  let z = Id.genid x in
 	  let exp' = IfNil(p,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' exp') else
-	  g (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' exp, g e))
-      | _ -> Let(xt, g' exp, g e))
+	  if e' = Ans(Unit) then Ans(g' tail exp') else
+	  g tail (Let(yt, exp', e'))
+	  with Not_found -> Let(xt, g' false exp, g tail e))
+      | _ -> Let(xt, g' false exp, g tail e))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
-      LetRec({ name = xt; args = yts; body = g e1 }, g e2)
-  | LetTuple(xts, y, e) -> LetTuple(xts, y, g e)
-  | LetList(xt, y, e) -> LetList(xt, y, g e)
-  | Ans(exp) -> Ans(g' exp)
-and g' = function
-  | IfEq(x, y, e1, e2) -> IfEq(x, y, g e1, g e2)
-  | IfLE(x, y, e1, e2) -> IfLE(x, y, g e1, g e2)
-  | IfLT(x, y, e1, e2) -> IfLT(x, y, g e1, g e2)
-  | IfNil(x, e1, e2) -> IfNil(x, g e1, g e2)
+      LetRec({ name = xt; args = yts; body = g true e1 }, g tail e2)
+  | LetTuple(xts, y, e) -> LetTuple(xts, y, g tail e)
+  | LetList(xt, y, e) -> LetList(xt, y, g tail e)
+  | Ans(exp) -> Ans(g' tail exp)
+and g' tail = function
+  | IfEq(x, y, e1, e2) -> IfEq(x, y, g tail e1, g tail e2)
+  | IfLE(x, y, e1, e2) -> IfLE(x, y, g tail e1, g tail e2)
+  | IfLT(x, y, e1, e2) -> IfLT(x, y, g tail e1, g tail e2)
+  | IfNil(x, e1, e2) -> IfNil(x, g tail e1, g tail e2)
   | exp -> exp
 
 
 let f e =
   Format.eprintf "if then else...@.";
-  g e
+  g true e

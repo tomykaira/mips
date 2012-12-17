@@ -82,7 +82,8 @@ let bis (x,t) = (x, btoi t)
 let rec size = function
   | Let(_, exp, e) -> 1 + size' exp + size e
   | LetRec({ name = _; args = _; body = e1 }, e2) -> 1 + size e1 + size e2
-  | LetTuple(_, _, e) | LetList(_, _, e) -> 1 + size e
+  | LetTuple(xts, _, e) -> List.length xts + size e
+  | LetList((xs,_), _, e) -> List.length (Syntax.matcher_variables xs) + size e
   | Ans(exp) -> size' exp
 and size' = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
