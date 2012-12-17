@@ -11,6 +11,8 @@ targets:
 
 include ../Makefile.in
 
+OPTION= -b -inline 600 -offEmbedTuple -offUnfoldTuple
+
 # It should not depend on %.sim, because this is not updated after sim is updated.
 %.ans:
 	make $*.sim
@@ -23,10 +25,10 @@ include ../Makefile.in
 
 
 %.sim: %.bin
-	$(SIMULATOR) $(BIN) -f $(SLD_PATH) $*.bin > $*.sim
+	$(SIMULATOR) $(BIN) -f $(SLD_PATH) -x $*.bin > $*.sim
 
-%.ppm: %.bin
-	$(SIMULATOR) $(BIN) -f $(SLD_PATH) $*.bin | tail -c +2 > output.ppm
+%.ppm: %.sim
+	tail -c +2 $< > $@
 
 %.core: %.bin
 	$(CORE_RUNNER) $*.bin -i $(SLD_PATH) > $*.core
@@ -35,3 +37,4 @@ include ../Makefile.in
 # ./cserver -b -B 460800 sld/contest.sld contest_new.ppm
 write: min-rt-new-bin.bin
 	$(CORE_RUNNER) $< -R
+

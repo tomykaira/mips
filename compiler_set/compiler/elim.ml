@@ -3,7 +3,12 @@ open ANormal
 
 let rec effect env = function (* 副作用の有無 *)
   | Let(_, exp, e) -> effect' env exp || effect env e
-  | LetRec(_, e) | LetTuple(_, _, e) | LetList(_,_,e) -> effect env e
+  | LetRec({ name = (x,_); args = _; body = e1 }, e) ->
+      let env' = 
+	let env' = S.add x env in
+	if effect env' e1 then env else env' in
+      effect env' e
+  | LetTuple(_, _, e) | LetList(_,_,e) -> effect env e
   | Ans(exp) -> effect' env exp
 and effect' env = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_,e1,e2)-> effect env e1 || effect env e2

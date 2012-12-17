@@ -514,6 +514,9 @@ int simulate(simulation_options * opt)
 				pc = IRS;
 				break;
 			case RETURN:
+				if (opt->disable_end_marker && stack_pointer == 0) {
+					goto end_simulation;
+				}
 				assert(stack_pointer > 0);
 				pc = internal_stack[stack_pointer--];
 				break;
