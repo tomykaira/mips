@@ -1,5 +1,4 @@
 module text_drawer(input clk,
-                   input        clk100,
                    input        reset,
 
                    output [7:0] red,green,blue,
@@ -22,7 +21,6 @@ module text_drawer(input clk,
    wire [6:0] char_to_show;
    display_buffer display_buffer_inst
      (.clk(clk),
-      .clk100(clk100),
       .write_enable(buffer_write_enable),
       .address(buffer_write_enable == 1'b1 ? position : display_address),
       .write_data(char_code),
