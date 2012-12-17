@@ -19,7 +19,7 @@ architecture synt of vga is
   signal videoon, videov, videoh : std_logic := '0';
   signal hcount, vcount : std_logic_vector(9 downto 0) := (others => '0');
 
-  constant h_offset : integer := 8;
+  constant h_offset : integer := 0;
 begin
 
   hcounter: process (clk, reset)
@@ -52,9 +52,6 @@ begin
       -- if something wrong, remove this
       column <= hcount;
     end if;
---    if hcount < 3
---    then videoh <= '0';
---    end if;
   end process;
 
   vcounter: process (clk, reset)
