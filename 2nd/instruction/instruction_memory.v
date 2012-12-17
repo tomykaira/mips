@@ -17,10 +17,8 @@ module instruction_memory (input clk,
    always @ (posedge clk) begin
       if (write_enable == 1) begin
          RAM[write_address] <= write_data;
-         $display("WRITE: %h: %h", write_address, write_data);
       end
       read_data <= RAM[read_address]; // word align
-      $display("INST: %8d %h", read_address, read_data);
    end
 
 endmodule

@@ -93,8 +93,10 @@ architecture top of top is
     );
   end component;
 
+	-- 13.0(m) / (460800*12(d)*15.152)
+	-- 大きめに寄せたほうがいいかも
   component rs232c_buffer is
-    generic (wtime : std_logic_vector(15 downto 0) := x"0005");
+    generic (wtime : std_logic_vector(15 downto 0) := x"009d");
 
     port (
       clk       : in std_logic;
@@ -107,7 +109,7 @@ architecture top of top is
 
   component i232c_buffer is
 
-    generic (wtime : std_logic_vector(15 downto 0) := x"0005");
+    generic (wtime : std_logic_vector(15 downto 0) := x"009d");
 
     port (
       clk       : in std_logic;
