@@ -1,8 +1,9 @@
 module display_buffer (input clk,
-                           input            write_enable,
-                           input [11:0]     address,
-                           input [6:0]      write_data,
-                           output reg [6:0] read_data);
+                       input            clk100,
+                       input            write_enable,
+                       input [11:0]     address,
+                       input [6:0]      write_data,
+                       output reg [6:0] read_data);
    // display size: 80x30
    parameter MEM_SIZE=2400;
 
@@ -11,12 +12,13 @@ module display_buffer (input clk,
    initial
      $readmemb ("initial_text.dat", RAM);
 
+   always @ (posedge clk100) begin
+      read_data <= RAM[address];
+   end
+
    always @ (posedge clk) begin
       if (write_enable == 1) begin
          RAM[address] <= write_data;
-      end
-      else begin
-         read_data <= RAM[address];
       end
    end
 
