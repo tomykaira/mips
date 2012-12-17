@@ -41,6 +41,16 @@ and allimm' = function
   | Int _ | Float _ -> true
   | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) -> allimm e1 && allimm e2
   | _ -> false
+
+let rec ji  = function
+  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> ji e
+  | Ans(exp) -> ji' exp
+and ji' = function
+  | Int _ | Float _ as exp -> exp
+  | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) ->
+      if ji e1 = ji e2 then ji e1 else raise Not_found
+  | _ -> raise Not_found
+
 (* envifに追加するデータ型を返す関数 *)
 let rec imm = function
   | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> imm e
@@ -76,7 +86,8 @@ let rec g env envle envne envif = function (* 定数畳み込み等を行うル�
       let e' = g env' envle envne envif' e in
       concat e1' xt e'
   | LetRec({ name = x; args = ys; body = e1 }, e2) ->
-      LetRec({ name = x; args = ys; body = g env envle envne envif e1 }, g env envle envne envif e2)
+      LetRec({ name = x; args = ys; body = g env envle envne envif e1 },
+	     g env envle envne envif e2)
   | LetTuple(xts, y, e) when memt y env ->
       List.fold_left2
 	(fun e' xt z -> Let(xt, Var(z), e'))
@@ -160,12 +171,13 @@ and g' env envle envne envif = function
       Ans(IfEq(x, y, g (M.add y (Float(findf x env)) env) envle envne envif e1, g env envle envne envif e2))
   | IfEq(x, y, e1, e2) when memf y env ->
       Ans(IfEq(x, y, g (M.add x (Float(findf y env)) env) envle envne envif e1, g env envle envne envif e2))
-  | IfEq(x, y, e1, _) when x = y -> g env envle envne envif e1
+  | IfEq(x, y, e1, _) when x = y || (S'.mem (x,y) envle && S'.mem (y,x) envle) -> g env envle envne envif e1
   | IfEq(x, y, _, e2) when S'.mem (x,y) envne || S'.mem (y,x) envne ->
       g env envle envne envif e2
   | IfEq(x, y, e1, e2) ->
       let e1' = g env envle envne envif e1 in
       let e2' = g env envle (S'.add (x,y) envne) envif e2 in
+      if e1' = e2' then e1' else 
       Ans(IfEq(x, y, e1', e2'))
 
   | IfLE(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
@@ -184,7 +196,8 @@ and g' env envle envne envif = function
   | IfLE(x, y, e1, e2) ->
       let e1' = g env (S'.add (x,y) envle) envne envif e1 in
       let e2' = g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e2 in
-      Ans(IfLE(x, y, e1', e2'))
+      if e1' = e2' then e1' else 
+      Ans(IfLE(x, y, e1', e2')) 
 
 
   | IfLT(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
@@ -199,12 +212,13 @@ and g' env envle envne envif = function
   | IfLT(x, y, e1, e2) when memi x env && memi y env -> if findi x env < findi y env then g env envle envne envif e1 else g env envle envne envif e2
   | IfLT(x, y, e1, e2) when memf x env && memf y env -> if findf x env < findf y env then g env envle envne envif e1 else g env envle envne envif e2
   | IfLT(x, y, e1, _) when S'.mem (x,y) envle && (S'.mem (x,y) envne || S'.mem (y,x) envne) -> g env envle envne envif e1
-  | IfLT(x, y, _, e2) when x = y || S'.mem (y,x) envle -> g env envle envne envif e2
-  | IfLT(x, y, e1, e2) ->
+  | IfLT(x, y, _, e2) when x = y || S'.mem (y,x) envle -> g env envle envne envif e2 
+  | IfLT(x, y, e1, e2) -> 
       let e1' = g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e1 in
       let e2' = g env (S'.add (y,x) envle) envne envif e2 in
-      if e1' = e2' then e1' else
-      Ans(IfLT(x, y, e1', e2'))
+      if e1' = e2' then e1' else 
+      Ans(IfLT(x,y,e1',e2')) 
+(*      Ans(IfLE(y, x, e2', e1'))  *)
 
 
   | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2

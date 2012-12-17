@@ -9,7 +9,7 @@ LIB_ASM = $(COMPILER_SET)/lib_asm.s
 
 MIN_CAML=BISECT_FILE=$(COMPILER_SET)/compiler/coverage $(COMPILER_SET)/compiler/min-caml
 
-OPTION= -b -inline 650 
+OPTION= -b -inline 600 
 
 
 LINKER=groovy $(COMPILER_SET)/linker/linker.groovy
