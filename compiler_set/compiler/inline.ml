@@ -3,22 +3,36 @@ open ANormal
 (* インライン展開する関数の最大サイズ. Mainで-inlineオプションによりセットされる *)
 let threshold = ref 0
 
-(* その関数が末尾再帰か判定 *)
+(* その関数が末尾再帰のみか判定 *)
 let rec tailrec x = function
-  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> tailrec x e
+  | Let(_,exp,e) -> not (recur' x exp) && tailrec x e
+  | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> tailrec x e
   | Ans(exp) -> tailrec' x exp
 and tailrec' x = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
     -> tailrec x e1 || tailrec x e2
   | App(y,_) when x = y -> true
   | _ -> false
+(* その関数が再帰か判定 *)
+and recur x = function
+  | Let(_,exp,e) -> recur' x exp || recur x e
+  | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> recur x e
+  | Ans(exp) -> recur' x exp
+and recur' x = function
+  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
+    -> recur x e1 || recur x e2
+  | App(y,_) when x = y -> true
+  | _ -> false
+
+let lp = ref 0
 
 let rec g env = function (* インライン展開ルーチン本体 *)
   | Let(xt, exp, e) -> concat (g' env exp) xt (g env e)
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* 関数定義の場合 *)
-    let env = if size e1 > !threshold || tailrec x e1 then env
+    let e1' = g env e1 in
+    let env' = if size e1' > !threshold || ((!lp <> 0 || size e1' > !threshold / 20) && recur x e1') then env
     else M.add x (yts, e1) env in
-    LetRec({ name = (x, t); args = yts; body = g env e1}, g env e2)
+    LetRec({ name = (x, t); args = yts; body = e1'}, g env' e2)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
   | LetList(xts, y, e) -> LetList(xts, y, g env e)
   | Ans(exp) -> g' env exp
@@ -39,6 +53,7 @@ and g' env = function
   | e -> Ans(e)
 
 
-let f e =
+let f n e =
   Format.eprintf "inlining functions...@.";
+  lp := n;
   g M.empty e

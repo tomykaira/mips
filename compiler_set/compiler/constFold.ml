@@ -62,6 +62,8 @@ let rec replace con = function
       Ans(IfLT(p,q,replace con e3, replace con e4))
   | _ -> assert false
 
+let sc f x y = if compare x y > 0 then f x y else f y x
+
 let rec g env envle envne envif = function (* 定数畳み込み等を行うルーチン本体 *)
   | Let((x, _) as xt, exp, e) -> (* letのケース *)
       let e1' = g' env envle envne envif exp in
@@ -95,12 +97,15 @@ and g' env envle envne envif = function
   | Add(x, y) when memi x env && memi y env -> Ans(Int(findi x env + findi y env)) 
   | Add(x, y) when memi x env && findi x env = 0 -> Ans(Var(y))
   | Add(x, y) when memi y env && findi y env = 0 -> Ans(Var(x))
+  | Add(x, y) -> sc (fun x y -> Ans(Add(x,y))) x y
+
   | Sub(x, y) when memi x env && memi y env -> Ans(Int(findi x env - findi y env))
   | Sub(x, y) when memi y env && findi y env = 0 -> Ans(Var(x))
   | Mul(x, y) when memi x env && memi y env -> Ans(Int(findi x env * findi y env))
   | Mul(x, y) when memi x env && findi x env = 1 -> Ans(Var(y))
   | Mul(x, y) when memi y env && findi y env = 1 -> Ans(Var(x))
   | Mul(x, _) | Mul(_, x) when memi x env && findi x env = 0 -> Ans(Int(0))
+  | Mul(x, y) -> sc (fun x y -> Ans(Mul(x,y))) x y
 
   | Sll(x, y) when memi x env -> (* 安全そうなら畳み込み *)
       let i = findi x env in
@@ -118,6 +123,8 @@ and g' env envle envne envif = function
   | FAdd(x, y) when memf x env && memf y env -> Ans(Float(findf x env +. findf y env))
   | FAdd(x, y) when memf x env && findf x env = 0.0 -> Ans(Var(y))
   | FAdd(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
+  | FAdd(x, y) -> sc (fun x y -> Ans(FAdd(x,y))) x y
+
   | FSub(x, y) when memf x env && memf y env -> Ans(Float(findf x env -. findf y env))
   | FSub(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
 
@@ -128,6 +135,8 @@ and g' env envle envne envif = function
   | FMul(x, y) when memf x env && findf x env = -1.0 -> Ans(FNeg(y))
   | FMul(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x)) 
   | FMul(x, _) | FMul(_, x) when memf x env && findf x env = 0.0 -> Ans(Float(0.0)) 
+  | FMul(x, y) -> sc (fun x y -> Ans(FMul(x,y))) x y
+
   | FDiv(x, y) when memf x env && memf y env -> Ans(Float(findf x env /. findf y env)) 
   | FDiv(x, y) when memf y env && findf y env = 1.0 -> Ans(Var(x))
   | FDiv(x, y) when memf y env && findf y env = -1.0 -> Ans(FNeg(x)) 
@@ -205,6 +214,8 @@ and g' env envle envne envif = function
       Ans(Int((findi x env) lxor (findi y env)))
   | ExtFunApp("xor", [x;y]) when memi x env && findi x env = 0 -> Ans(Var(y))
   | ExtFunApp("xor", [x;y]) when memi y env && findi y env = 0 -> Ans(Var(x))
+  | ExtFunApp("xor", [x;y]) -> sc (fun x y -> Ans(ExtFunApp("xor", [x;y]))) x y
+
   | ExtFunApp("not", [x]) when memi x env -> Ans(Int(1 - (findi x env)))
   | ExtFunApp("not", [x]) as exp when M.mem x env -> (match M.find x env with
     | ExtFunApp("not", [y]) -> Ans(Var(y))
