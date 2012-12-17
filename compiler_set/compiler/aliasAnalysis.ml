@@ -215,11 +215,11 @@ let f e =
   analyse x M.empty M.empty e;
   let gr =
     M.fold
-      (fun x (t,p,q) gr -> match t with
-      | Type.Array _ ->
+      (fun x (t,p,q) gr ->
+	if earray t then
 	  let q' = M.fold (fun x _ s -> S.add x s) q S.empty in
 	  M.add x (t,p,q') gr
-      | _ -> gr)
+        else gr)
       !graph
       M.empty in
   let fil p = S.filter (fun x -> M.mem x gr) p in

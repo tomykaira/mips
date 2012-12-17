@@ -35,7 +35,7 @@ let offin = ref false
 let offcf = ref false
 let offte = ref false
 let offel = ref false
-let offaa = ref true  (* バグがある様で、trueにするとバグる *)
+let offaa = ref false  
 let offll = ref false
 let offut = ref false
 let offet = Global.offet := false; Global.offet
@@ -51,9 +51,8 @@ let off2 flag f x = if flag then x else f x
 (* 最適化処理をくりかえす *)
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
-  let f e = if n = 997 then (print_endline (Show.show<ANormal.t> e); e) else e in
   if n = 0 then e else
-  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin Inline.f (off2 (!offaa || (n mod 3 <> 1)) AliasAnalysis.f ( (off offbe Beta.f (off offcs Cse.f e))))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin (Inline.f (!limit-n)) (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f ( (off offbe Beta.f (off offcs Cse.f e))))))) in
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'
@@ -143,7 +142,7 @@ let () =
    ("-offBeta", Arg.Set offbe, "off: NO beta");
    ("-offInline", Arg.Set offin, "off: NO Inline");
    ("-offConstFold", Arg.Set offcf, "off: NO ConstFold");
-   ("-offIfThenElse", Arg.Set offel, "off: NO if then else");
+   ("-offIfThenElse", Arg.Set offte, "off: NO if then else");
    ("-offElim", Arg.Set offel, "off: NO Elim");
    ("-offAliasAnalysis", Arg.Set offaa, "off: NO Alias Analysis");
    ("-offLambdaLift", Arg.Set offll, "off: NO LambdaLift");
