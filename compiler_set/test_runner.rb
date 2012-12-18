@@ -22,6 +22,9 @@ when 'core'
 when 'min-rt'
   target_directories = ['min-rt']
   task_suffix = 'test'
+when 'loreley'
+  target_directories = ['Loreley/test/with-ocaml', 'Loreley/test/with-answer']
+  task_suffix = 'test'
 else
   target_directories = ARGV
   STDERR.puts "Unknown test mode.  \"test\" or \"core\""
