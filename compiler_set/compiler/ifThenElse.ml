@@ -14,7 +14,7 @@ let rec h x fvs n = function
 	(Ans(exp), xt, e)
       else let (m, yt, e') = h x fvs n' e in (Let(xt,exp,m), yt, e')
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
-      let (m, yt, e2') = h x fvs (n-1) e2 in
+      let (m, yt, e2') = h x fvs (n-size e1) e2 in
       (LetRec({ name = xt; args = yts; body = e1 }, m), yt, e2')
   | LetTuple(xts, y ,e) ->
       let (m, yt, e') = h x fvs (n-1) e in
@@ -37,61 +37,45 @@ and immans' = function
       immans e1 || immans e2
   | _ -> false
 (* 葉が全て即値か調べる関数 *)
-(*let rec allimm  = function
+let rec allimm  = function
   | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> allimm e
   | Ans(exp) -> allimm' exp
 and allimm' = function
   | Int _ | Float _ -> true
   | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfNil(_,e1,e2) ->
       allimm e1 && allimm e2
-  | _ -> false *)
+  | _ -> false 
 
 let tailsize = 10
+let nontailaisize = 8
+let nontailisize = 8
 
 (* 本体 *)
 let rec g tail = function
   | Let((x,t) as xt, exp, e) ->
       let len =
-	if size e < tailsize then 1000000 else
-	if immans' exp then 6
+	if allimm' exp then nontailaisize
+	else if immans' exp then nontailisize
 	else 0 in
+      let rec procif constr e1 e2 =
+	if tail && size e < tailsize then
+	  let z = Id.genid x in
+	  let exp' = constr (concat e1 xt e) (concat e2 (z,t) (ag (M.singleton x z) e)) in
+	  Ans(g' tail exp')
+	else if len > 0 then
+	  (try
+	    let (m,yt,e') = h x (fv e) len e in
+	    let z = Id.genid x in
+	    let exp' = constr (concat e1 xt m) (concat e2 (z,t) (ag (M.singleton x z) m)) in
+	    if e' = Ans(Unit) then Ans(g' tail exp') else
+	    g tail (Let(yt, exp', e'))
+	  with Not_found -> Let(xt, g' false exp, g tail e))	    
+	else Let(xt, g' false exp, g tail e) in
       (match exp with
-      | IfEq(p,q,e1,e2) when len > 0 ->
-	  (try let (m, yt, e') =
-	    (*if false && tail && size e < tailsize then (e,dummy, Ans(Unit))
-	    else*) h x (fv e) len e in
-	  let z = Id.genid x in
-	  let exp' = IfEq(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' tail exp') else
-	  g tail (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' false exp, g tail e))
-      | IfLE(p,q,e1,e2) when len > 0 ->
-	  (try let (m, yt, e') =
-	    (*if tail && size e < tailsize then (e,dummy,Ans(Unit))
-	    else*) h x (fv e) len e in
-	  let z = Id.genid x in
-	  let exp' = IfLE(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' tail exp') else
-	  g tail (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' false exp, g tail e)) 
-      | IfLT(p,q,e1,e2) when len > 0 ->
-	  (try let (m, yt, e') =
-	    (*if false && tail && size e < tailsize then (e,dummy,Ans(Unit))
-	    else*) h x (fv e) len e in
-	  let z = Id.genid x in
-	  let exp' = IfLT(p,q,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in 
-	  if e' = Ans(Unit) then Ans(g' tail exp') else
-	  g tail (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' false exp, g tail e))
-      | IfNil(p,e1,e2) when len > 0 ->
-	  (try let (m, yt, e') =
-	    (*if tail && size e < tailsize then (e,dummy,Ans(Unit))
-	    else*) h x (fv e) len e in
-	  let z = Id.genid x in
-	  let exp' = IfNil(p,concat e1 xt m, concat e2 (z,t) (ag (M.singleton x z) m)) in
-	  if e' = Ans(Unit) then Ans(g' tail exp') else
-	  g tail (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' false exp, g tail e))
+      | IfEq(p,q,e1,e2) -> procif (fun a b -> IfEq(p,q,a,b)) e1 e2
+      | IfLE(p,q,e1,e2) -> procif (fun a b -> IfLE(p,q,a,b)) e1 e2
+      | IfLT(p,q,e1,e2) -> procif (fun a b -> IfLT(p,q,a,b)) e1 e2
+      | IfNil(p,e1,e2)  -> procif (fun a b -> IfNil(p, a,b)) e1 e2
       | _ -> Let(xt, g' false exp, g tail e))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
       LetRec({ name = xt; args = yts; body = g true e1 }, g tail e2)

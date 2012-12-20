@@ -26,11 +26,14 @@ and recur' x = function
 
 let lp = ref 0
 
+let rectimes = 1
+let recratio = 20
+
 let rec g env = function (* インライン展開ルーチン本体 *)
   | Let(xt, exp, e) -> concat (g' env exp) xt (g env e)
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* 関数定義の場合 *)
     let e1' = g env e1 in
-    let env' = if size e1' > !threshold || ((!lp <> 0 || size e1' > !threshold / 20) && recur x e1') then env
+    let env' = if size e1' > !threshold || ((!lp >= rectimes || size e1' > !threshold / recratio) && recur x e1') then env
     else M.add x (yts, e1) env in
     LetRec({ name = (x, t); args = yts; body = e1'}, g env' e2)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)

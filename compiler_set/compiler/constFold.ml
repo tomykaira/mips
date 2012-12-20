@@ -42,14 +42,6 @@ and allimm' = function
   | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) -> allimm e1 && allimm e2
   | _ -> false
 
-let rec ji  = function
-  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> ji e
-  | Ans(exp) -> ji' exp
-and ji' = function
-  | Int _ | Float _ as exp -> exp
-  | IfEq(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfLT(_,_,e1,e2) ->
-      if ji e1 = ji e2 then ji e1 else raise Not_found
-  | _ -> raise Not_found
 
 (* envifに追加するデータ型を返す関数 *)
 let rec imm = function
