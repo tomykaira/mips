@@ -29,7 +29,7 @@ RAM_SIZE = 20000
 (File.readlines("$PROJECT_DIR/core_runner/bootloader.bin").map { |x| x.split("\t").first } + ["00000000"] * RAM_SIZE)[0...RAM_SIZE].each { |x| puts x }
 EOF
 
-  grep wtime $PROJECT_DIR/2nd/top.vhd | grep "0099" ||
+  grep wtime $PROJECT_DIR/2nd/top.vhd | grep "009d" ||
     (echo "Have you set synthesize mode? RS232C wtime is awkward."; exit 1)
 
   xst -intstyle ise -filter "iseconfig/filter.filter" -ifn "$TOP.xst" -ofn "$TOP.syr"

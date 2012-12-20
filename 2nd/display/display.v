@@ -35,7 +35,7 @@ module display(input clk,
    wire [8:0] row;
    wire [9:0] column;
    text_drawer text_drawer_inst
-      (.clk(clk), .clk100(clk100), .reset(reset),
+      (.clk(clk), .reset(reset),
        .red(red), .green(green), .blue(blue), .row(row), .column(column),
        .buffer_write_enable(buffer_write_enable), .position(position), .char_code(char_code));
 

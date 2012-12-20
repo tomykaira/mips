@@ -126,6 +126,9 @@ uint32_t RAM[RAM_SIZE];
 // プログラムカウンタ
 uint32_t pc;
 
+// call counter: count each operation
+long long unsigned call_count[1 << 6];
+
 float asF(uint32_t r)
 {
 	conv a;
@@ -281,6 +284,16 @@ int simulate(simulation_options * opt)
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
 	int dshd = 0;                      //キューの先頭
 
+	// metrics: FMVHI,  FMVLO
+	map<uint32_t, int> fmv_counter;
+	bool prev_is_fmvhi = false;
+	uint32_t fmvhi_operand = 0;
+
+	// metrics: memory
+	uint32_t max_heap = HR, min_frame = FR;
+	uint32_t max_call_depth = 0;
+
+
 	// メインループ
 	do
 	{
@@ -300,6 +313,16 @@ int simulate(simulation_options * opt)
 		}
 		assert(FR < RAM_SIZE);
 		assert(HR < RAM_SIZE);
+
+		if (max_heap < (unsigned)HR) {
+			max_heap = HR;
+		}
+		if (min_frame > (unsigned)FR && (unsigned)FR > 0x800) { // 初期値設定を読みとばす
+			min_frame = FR;
+		}
+		if ((unsigned)stack_pointer > max_call_depth) {
+			max_call_depth = stack_pointer;
+		}
 
 		dshd = (dshd+1)%(DELAY_SLOT+1);
 		pc += dspc[dshd];
@@ -392,6 +415,17 @@ int simulate(simulation_options * opt)
 			cerr << "." << flush;
 		}
 
+		call_count[opcode] ++;
+
+		if (prev_is_fmvhi) {
+			if (opcode == FMVLO) {
+				fmv_counter[fmvhi_operand + (IMM & 0xffff)] += 1;
+			} else {
+				fmv_counter[fmvhi_operand] += 1;
+			}
+			prev_is_fmvhi = false;
+		}
+
 		// 読み込んだopcode・functに対応する命令を実行する
 		switch(opcode)
 		{
@@ -471,6 +505,8 @@ int simulate(simulation_options * opt)
 				FRT = (FRT & 0xffff0000) | (IMM & 0xffff);
 				break;
 			case FMVHI:
+				prev_is_fmvhi = true;
+				fmvhi_operand = (uint32_t)IMM << 16;
 				logger.reg("FMVHI", get_rt(inst), ((uint32_t)IMM << 16) | (FRT & 0xffff));
 				FRT = ((uint32_t)IMM << 16);
 				break;
@@ -690,6 +726,74 @@ int simulate(simulation_options * opt)
 	while (!isHalt(opcode, funct)); // haltが来たら終了
 
  end_simulation:
+
+	if (!opt->lib_test_mode) {
+		printf("ADD\t%lld\n", call_count[ADD]);
+		printf("SUB\t%lld\n", call_count[SUB]);
+		printf("XOR\t%lld\n", call_count[XOR]);
+		printf("ADDI\t%lld\n", call_count[ADDI]);
+		printf("SUBI\t%lld\n", call_count[SUBI]);
+		printf("XORI\t%lld\n", call_count[XORI]);
+		printf("SLLI\t%lld\n", call_count[SLLI]);
+		printf("SRAI\t%lld\n", call_count[SRAI]);
+
+		printf("SETL\t%lld\n", call_count[SETL]);
+		printf("FMVLO\t%lld\n", call_count[FMVLO]);
+		printf("FMVHI\t%lld\n", call_count[FMVHI]);
+		printf("IMOVF\t%lld\n", call_count[IMOVF]);
+		printf("FMOVI\t%lld\n", call_count[FMOVI]);
+
+		printf("FADD\t%lld\n", call_count[FADD]);
+		printf("FSUB\t%lld\n", call_count[FSUB]);
+		printf("FMUL\t%lld\n", call_count[FMUL]);
+		printf("FMULN\t%lld\n", call_count[FMULN]);
+		printf("FINV\t%lld\n", call_count[FINV]);
+		printf("FSQRT\t%lld\n", call_count[FSQRT]);
+
+		printf("LDI\t%lld\n", call_count[LDI]);
+		printf("LDR\t%lld\n", call_count[LDR]);
+		printf("STI\t%lld\n", call_count[STI]);
+		printf("FLDI\t%lld\n", call_count[FLDI]);
+		printf("FSTI\t%lld\n", call_count[FSTI]);
+		printf("FLDR\t%lld\n", call_count[FLDR]);
+
+		printf("BEQ\t%lld\n", call_count[BEQ]);
+		printf("BLT\t%lld\n", call_count[BLT]);
+		printf("BLE\t%lld\n", call_count[BLE]);
+		printf("FBEQ\t%lld\n", call_count[FBEQ]);
+		printf("FBLT\t%lld\n", call_count[FBLT]);
+		printf("FBLE\t%lld\n", call_count[FBLE]);
+
+		printf("J\t%lld\n", call_count[J]);
+		printf("JR\t%lld\n", call_count[JR]);
+		printf("CALL\t%lld\n", call_count[CALL]);
+		printf("CALLR\t%lld\n", call_count[CALLR]);
+		printf("RETURN\t%lld\n", call_count[RETURN]);
+		printf("INPUTB\t%lld\n", call_count[INPUTB]);
+		printf("OUTPUTB\t%lld\n", call_count[OUTPUTB]);
+		printf("HALT\t%lld\n", call_count[HALT]);
+		printf("DEBUG\t%lld\n", call_count[DEBUG]);
+
+		printf("DISPLAY\t%lld\n", call_count[DISPLAY]);
+		printf("READKEY\t%lld\n", call_count[READKEY]);
+		printf("PROGRAM\t%lld\n", call_count[PROGRAM]);
+		printf("READSD\t%lld\n", call_count[READSD]);
+		printf("WRITESD\t%lld\n", call_count[WRITESD]);
+
+
+		cout << "Floating constant load operation usage:" << endl;
+		map<uint32_t, int>::iterator it = fmv_counter.begin();
+		while( it != fmv_counter.end() ) {
+			cout << (*it).first << "\t" << (asF((*it).first)) << "\t" << (*it).second << endl;
+			++it;
+		}
+
+		cout << "Memory usage:" << endl;
+
+		cout << "max_heap\t" << max_heap - DEFAULT_HR << endl;
+		cout << "min_frame\t" << min_frame << "\tUsage\t" << (0x7ffffff - min_frame) << endl;
+		cout << "max call depth\t" << max_call_depth << endl;
+	}
 
 	if (!opt->lib_test_mode)
 		display.preview();
