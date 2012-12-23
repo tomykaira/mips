@@ -169,7 +169,7 @@ and g' env envle envne envif = function
   | IfEq(x, y, e1, e2) ->
       let e1' = g env envle envne envif e1 in
       let e2' = g env envle (S'.add (x,y) envne) envif e2 in
-      if e1' = e2' then e1' else 
+      if Beta.same M.empty e1' e2' then e1' else 
       Ans(IfEq(x, y, e1', e2'))
 
   | IfLE(x, y, e1, e2) when M.mem x envif && (memi y env || memf y env) ->
@@ -188,7 +188,7 @@ and g' env envle envne envif = function
   | IfLE(x, y, e1, e2) ->
       let e1' = g env (S'.add (x,y) envle) envne envif e1 in
       let e2' = g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e2 in
-      if e1' = e2' then e1' else 
+      if Beta.same M.empty e1' e2' then e1' else 
       Ans(IfLE(x, y, e1', e2')) 
 
 
@@ -208,7 +208,7 @@ and g' env envle envne envif = function
   | IfLT(x, y, e1, e2) -> 
       let e1' = g env (S'.add (x,y) envle) (S'.add (x,y) envne) envif e1 in
       let e2' = g env (S'.add (y,x) envle) envne envif e2 in
-      if e1' = e2' then e1' else 
+      if Beta.same M.empty e1' e2' then e1' else 
       Ans(IfLT(x,y,e1',e2')) 
 (*      Ans(IfLE(y, x, e2', e1'))  *)
 

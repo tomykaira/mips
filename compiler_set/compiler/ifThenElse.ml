@@ -47,8 +47,9 @@ and allimm' = function
   | _ -> false 
 
 let tailsize = 10
-let nontailaisize = 8
-let nontailisize = 8
+let nontailaisize = 6
+let nontailisize  = 6
+let nontailsize = 0
 
 (* 本体 *)
 let rec g tail = function
@@ -56,7 +57,7 @@ let rec g tail = function
       let len =
 	if allimm' exp then nontailaisize
 	else if immans' exp then nontailisize
-	else 0 in
+	else nontailsize in
       let rec procif constr e1 e2 =
 	if tail && size e < tailsize then
 	  let z = Id.genid x in

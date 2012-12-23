@@ -11,7 +11,7 @@ targets:
 
 include ../Makefile.in
 
-OPTION= -b -inline 600 -offEmbedTuple -offUnfoldTuple 
+OPTION= -b -inline 800 -offEmbedTuple -offUnfoldTuple 
 
 # It should not depend on %.sim, because this is not updated after sim is updated.
 %.ans:
