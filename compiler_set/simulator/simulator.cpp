@@ -300,8 +300,10 @@ int simulate(simulation_options * opt)
 		ZR = 0;
 		freg[0] = 0;
 
-		ram.validate(FR, "frame register");
-		ram.validate(HR, "heap register");
+		// turn on when you find memory error
+		// these are quite heavy
+		// ram.validate(FR, "frame register");
+		// ram.validate(HR, "heap register");
 
 		if (max_heap < (unsigned)HR) {
 			max_heap = HR;

@@ -27,9 +27,10 @@ public:
   // should be lesser than RAM_SIZE
   int32_t default_fr() { return RAM_SIZE - 1; }
 
-  uint32_t& operator[] (unsigned int index);
+  void set(uint32_t address, uint32_t value);
+  uint32_t get(uint32_t address);
 
-  void validate(unsigned int address, std::string description);
+  void validate(uint32_t address);
 
 };
 
@@ -40,12 +41,10 @@ class MemoryException {
 public:
   const uint32_t    address;
   const std::string cause;
-  const std::string description;
 
-  MemoryException(uint32_t address, std::string cause, std::string description) :
+  MemoryException(uint32_t address, std::string cause) :
     address(address),
-    cause(cause),
-    description(description)
+    cause(cause)
   {
   }
 
