@@ -769,6 +769,10 @@ int simulate(simulation_options * opt)
 		cout << "max_heap\t" << max_heap - DEFAULT_HR << endl;
 		cout << "min_frame\t" << min_frame << "\tUsage\t" << (0x7ffffff - min_frame) << endl;
 		cout << "max call depth\t" << max_call_depth << endl;
+		cout << endl;
+		cout << "sd read\t" << ram.getRead() << endl;
+		cout << "sd write\t" << ram.getWrite() << endl;
+
 	}
 
 	if (!opt->lib_test_mode)
