@@ -10,7 +10,7 @@
 
 class Ram {
   // RAM
-  uint32_t ram_[RAM_SIZE];
+  uint32_t * ram_;
 
 public:
   /// Default constructor
@@ -30,7 +30,7 @@ public:
   uint32_t& operator[] (unsigned int index);
 
   void validate(unsigned int address, std::string description);
-  
+
 };
 
 /// stream output operator

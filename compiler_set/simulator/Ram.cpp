@@ -11,12 +11,14 @@
  * Default constructor
  */
 Ram::Ram() {
+  ram_ = new uint32_t[RAM_SIZE];
 }
 
 /**
  * Default destructor
  */
 Ram::~Ram() {
+  delete [] ram_;
 }
 
 void Ram::validate(unsigned int index, std::string description) {
