@@ -34,7 +34,6 @@ let add_arrow x y i =
   add_arrow' x (M.find x !graph) y i 
 
 
-
 (* エイリアス関係の追加 *)
 let add_alias' x (t1,p1,q1) y (t2,p2,q2) =
   if t1 <> t2 then () else
@@ -59,7 +58,6 @@ let add_alias x y =
   if not (M.mem x !graph && M.mem y !graph) then () else
   add_alias' x (M.find x !graph) y (M.find y !graph) 
   
-
 
 (* 2つのインデックスに共通部分があるか調べる *)
 let iinter x y =

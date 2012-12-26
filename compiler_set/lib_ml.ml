@@ -55,11 +55,11 @@ let rec atan2 y x =
 in
 
 (* tan *)
+let rec tan_sub i xx y =
+  if i < 2.5 then y
+  else tan_sub (i -. 2.) xx (xx /. (i -. y))
+in
 let rec tan x = (* -pi/4 <= x <= pi/4 *)
-  let rec tan_sub i xx y =
-    if i < 2.5 then y
-      else tan_sub (i -. 2.) xx (xx /. (i -. y))
-  in
   x /. (1. -. (tan_sub 9. (x *. x) 0.0))
 in
 

@@ -18,6 +18,17 @@ let rec g env = function
 	| _ -> (false, g env e)) in
       if b && not (List.mem x (fv e')) then e' else Let(xt, exp', e')
 and g' env = function
+  | AddI(x, i) as exp ->
+      (match find x env with
+      | AddI(y, j) when is16 (i+j) -> AddI(y, i+j)
+      | SubI(y, j) when is16 (i-j) -> AddI(y, i-j)
+      | _ -> exp)
+  | SubI(x, i) as exp ->
+      (match find x env with
+      | AddI(y, j) when is16 (-i+j) -> AddI(y, -i+j)
+      | SubI(y, j) when is16 (-i-j) -> AddI(y, -i-j)
+      | _ -> exp)
+
   | FMul(x, y) as exp ->
       (match (find x env, find y env) with
       | (FNeg(z), FNeg(w)) -> FMul(z, w)
@@ -37,23 +48,23 @@ and g' env = function
 
   | LdI(x, i) as exp ->
       (match find x env with
-      | AddI(y, j) when -0x8000 <= i+j && i+j <= 0x7FFF -> LdI(y, i+j)
-      | SubI(y, j) when -0x8000 <= i-j && i-j <= 0x7FFF -> LdI(y, i-j)
+      | AddI(y, j) when is16 (i+j) -> LdI(y, i+j)
+      | SubI(y, j) when is16 (i-j) -> LdI(y, i-j)
       | _ -> exp)
   | StI(z, x, i) as exp ->
       (match find x env with
-      | AddI(y, j) when -0x8000 <= i+j && i+j <= 0x7FFF -> StI(z, y, i+j)
-      | SubI(y, j) when -0x8000 <= i-j && i-j <= 0x7FFF -> StI(z, y, i-j)
+      | AddI(y, j) when is16 (i+j) -> StI(z, y, i+j)
+      | SubI(y, j) when is16 (i-j) -> StI(z, y, i-j)
       | _ -> exp)
   | FLdI(x, i) as exp ->
       (match find x env with
-      | AddI(y, j) when -0x8000 <= i+j && i+j <= 0x7FFF -> FLdI(y, i+j)
-      | SubI(y, j) when -0x8000 <= i-j && i-j <= 0x7FFF -> FLdI(y, i-j)
+      | AddI(y, j) when is16 (i+j) -> FLdI(y, i+j)
+      | SubI(y, j) when is16 (i-j) -> FLdI(y, i-j)
       | _ -> exp)
   | FStI(z, x, i) as exp ->
       (match find x env with
-      | AddI(y, j) when -0x8000 <= i+j && i+j <= 0x7FFF -> FStI(z, y, i+j)
-      | SubI(y, j) when -0x8000 <= i-j && i-j <= 0x7FFF -> FStI(z, y, i-j)
+      | AddI(y, j) when is16 (i+j) -> FStI(z, y, i+j)
+      | SubI(y, j) when is16 (i-j) -> FStI(z, y, i-j)
       | _ -> exp)
 
   | IfEq(x, y, e1, e2) -> IfEq(x, y, g env e1, g env e2)

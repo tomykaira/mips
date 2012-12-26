@@ -30,7 +30,6 @@ let log2 n = log2_sub n 0
 (* その数が2のべき乗か返す *)
 let is_bin n = 1 lsl (log2 n) = n
 
-let is16 i = -0x8000 <= i && i <= 0x7FFF
 
 let rec g env = function (* 命令列の16bit即値最適化 *)
   | Ans(exp) -> Ans(g' env exp)    

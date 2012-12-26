@@ -47,8 +47,8 @@ and allimm' = function
   | _ -> false 
 
 let tailsize = 10
-let nontailaisize = 6
-let nontailisize  = 6
+let nontailaisize = 8
+let nontailisize  = 8
 let nontailsize = 0
 
 (* 本体 *)

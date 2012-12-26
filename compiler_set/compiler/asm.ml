@@ -66,9 +66,10 @@ type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret 
 
 
 (* ヒープポインタの位置 *)
-let hp = ref 1;
+let hp = ref 1
 
-
+(* その整数が16bitに収まるか判定 *)
+let is16 i = -0x8000 <= i && i <= 0x7FFF
 
 (* プログラム全体 = トップレベル関数 + メインの式 *)
 type prog = Prog of fundef list * t
@@ -148,7 +149,7 @@ let rec fv_var_exp = function
 and fv_var = function
   | Ans(exp) -> fv_var_exp exp
   | Let((x, _), exp, e) ->
-      fv_var_exp exp @ remove_and_uniq (S.singleton x) (fv_var e)
+      remove_and_uniq (S.singleton x) (fv_var_exp exp @ fv_var e)
 
 (* そのプログラムの使うスタックの大きさを求める *)
 let rec st = function
@@ -162,9 +163,6 @@ and st' = function
 let stack_max e =
   List.length (fv_var e) + st e
 
-
-
-let fv e = remove_and_uniq S.empty (fv e)
 
 let rec fv_int_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
