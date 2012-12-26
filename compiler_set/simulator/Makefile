@@ -1,16 +1,20 @@
 include ../Makefile.in
 
-HEADER = ../include/common.h fpu.h logger.h simulator.h InputFile.h Display.h
-
 all:simulator
-simulator: simulator.o fpu.o logger.o InputFile.o Display.o SDCard.o BoundedBuffer.o
-simulator.o: $(HEADER)
-fpu.o: fpu.h
-logger.o: logger.h simulator.h
-InputFile.o: InputFile.h simulator.h
-Display.o: Display.h simulator.h
-SDCard.o: SDCard.h simulator.h
-BoundedBuffer.o: BoundedBuffer.hpp
+
+OBJS := BoundedBuffer.o Display.o fpu.o InputFile.o logger.o Ram.o SDCard.o simulator.o
+
+simulator: $(OBJS)
+
+# pull in dependency info for *existing* .o files
+-include $(OBJS:.o=.d)
+
+%.d: %.cpp
+	g++ -MM $(CPPFLAGS) $(CXXFLAGS) $< > $@
+
+# compile and generate dependency info
+%.o: %.cpp
+	g++ -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 clean:
 	rm *.o

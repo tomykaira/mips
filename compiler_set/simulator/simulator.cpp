@@ -6,6 +6,7 @@
 #include "Display.h"
 #include "SDCard.h"
 #include "BoundedBuffer.hpp"
+#include "Ram.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -120,9 +121,6 @@ long long unsigned cnt;
 #define ROM_SIZE 20000
 Binary ROM[ROM_SIZE];// sync with instruction memory
 
-#define RAM_SIZE ((int)(RAM_NUM*1024*1024/4))
-// RAM
-uint32_t RAM[RAM_SIZE];
 // プログラムカウンタ
 uint32_t pc;
 
@@ -263,8 +261,10 @@ int simulate(simulation_options * opt)
 
 	int end_marker = 0;
 
-	FR = RAM_SIZE-1;
-	HR = DEFAULT_HR;
+	Ram ram;
+
+	FR = ram.default_fr();
+	HR = ram.default_hr();
 
 	// load argument heap from file
 	if (opt->argument) {
@@ -274,11 +274,11 @@ int simulate(simulation_options * opt)
 			return 1;
 		}
 		rep(i, length) {
-			RAM[DEFAULT_HR + i] = opt->argument[i];
+			ram[DEFAULT_HR + i] = opt->argument[i];
 		}
 	}
 
-	RAM[DEFAULT_HR + ARGUMENT_HEAP_SIZE - 1] = opt->current_directory_id;
+	ram[DEFAULT_HR + ARGUMENT_HEAP_SIZE - 1] = opt->current_directory_id;
 
 
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
@@ -300,19 +300,8 @@ int simulate(simulation_options * opt)
 		ZR = 0;
 		freg[0] = 0;
 
-		// フレーム/ヒープレジスタは絶対に負になることはない
-		if (FR < 0)
-		{
-			cerr << "error> Frame Register(reg[1]) has become less than 0." << endl;
-			break;
-		}
-		if(HR < 0)
-		{
-			cerr << "error> Heap Register(reg[2]) has become less than 0." << endl;
-			break;
-		}
-		assert(FR < RAM_SIZE);
-		assert(HR < RAM_SIZE);
+		ram.validate(FR, "frame register");
+		ram.validate(HR, "heap register");
 
 		if (max_heap < (unsigned)HR) {
 			max_heap = HR;
@@ -557,46 +546,31 @@ int simulate(simulation_options * opt)
 				pc = internal_stack[stack_pointer--];
 				break;
 			case LDR:
-				logger.reg("LDR", get_rd(inst), RAM[(IRS + IRT)]);
-				assert(IRS + IRT >= 0);
-				assert(IRS + IRT < RAM_SIZE);
-				IRD = RAM[(IRS + IRT)];
+				IRD = ram[(IRS + IRT)];
+				logger.reg("LDR", get_rd(inst), IRD);
 
 				break;
 			case FLDR:
-				logger.reg("FLDR", get_rd(inst), RAM[(IRS + IRT)]);
-				assert(IRS + IRT >= 0);
-				assert(IRS + IRT < RAM_SIZE);
-				FRD = RAM[(IRS + IRT)];
+				FRD = ram[(IRS + IRT)];
+				logger.reg("FLDR", get_rd(inst), FRD);
 				break;
 			case STI:
 				logger.memory("STI", IRS+IMM, IRT);
-				assert(IRS + IMM >= 0);
-				if (IRS + IMM >= RAM_SIZE) {
-					DUMP_PC
-					fprintf(stderr, "Fail: IRS + IMM >= RAM_SIZE\n");
-					return 1;
-				}
-				RAM[(IRS + IMM)] = IRT;
+				ram[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
-				logger.reg("LDI", get_rt(inst), RAM[(IRS + IMM)]);
+				IRT = ram[(IRS + IMM)];
+				logger.reg("LDI", get_rt(inst), IRT);
 
-				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
-				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
 				logger.memory("STI", IRS + IMM, FRT);
-				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
-				RAM[(IRS + IMM)] = FRT;
+				ram[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
-				logger.reg("FLDI", get_rt(inst), RAM[(IRS + IMM)]);
-				assert(IRS + IMM >= 0);
-				assert(IRS + IMM < RAM_SIZE);
-				FRT = RAM[(IRS + IMM)];
+				FRT = ram[(IRS + IMM)];
+				logger.reg("FLDI", get_rt(inst), FRT);
+
 				break;
 			case INPUTB:
 				IRT = input_file.read();
@@ -669,7 +643,7 @@ int simulate(simulation_options * opt)
 					DUMP_PC
 					printf("\tr3: %d\n", ireg[3]);
 					rep(i, 10) {
-						printf("%d: %d\n", FR - i, RAM[FR - i]);
+						printf("%d: %d\n", FR - i, ram[FR - i]);
 					}
 					break;
 				case 5:
@@ -686,11 +660,11 @@ int simulate(simulation_options * opt)
 					}
 
 					rep(j, 8) {
-						printf("%02x ", RAM[ireg[2] + j]);
+						printf("%02x ", ram[ireg[2] + j]);
 					}
 					printf("\n");
 					rep(j, 8) {
-						printf("%02x ", RAM[ireg[3] + j]);
+						printf("%02x ", ram[ireg[3] + j]);
 					}
 					printf("\n");
 					break;
@@ -699,13 +673,13 @@ int simulate(simulation_options * opt)
 					printf("stack_top: %d\n", internal_stack[stack_pointer]);
 					printf("%d: ", ireg[3]);
 					rep(j, 20) {
-						printf("%02x ", RAM[ireg[3] + j]);
+						printf("%02x ", ram[ireg[3] + j]);
 					}
 					printf("\n");
 
 					printf("%d: ", ireg[4]);
 					rep(j, 20) {
-						printf("%02x ", RAM[ireg[4] + j]);
+						printf("%02x ", ram[ireg[4] + j]);
 					}
 					printf("\n");
 
@@ -801,7 +775,7 @@ int simulate(simulation_options * opt)
 	if (opt->enable_show_heap) {
 		char heap[ARGUMENT_HEAP_SIZE];
 		rep(i, ARGUMENT_HEAP_SIZE) {
-			heap[i] = RAM[DEFAULT_HR + i] & 0xff;
+			heap[i] = ram[DEFAULT_HR + i] & 0xff;
 		}
 		printf("%s\n", heap);
 	}
@@ -812,7 +786,7 @@ int simulate(simulation_options * opt)
 int main(int argc, char** argv)
 {
 	int c;
-	int ret;
+	int ret = 0;
 	int length = 0;
 	char dirpath[255];
 
@@ -944,6 +918,8 @@ int main(int argc, char** argv)
 	} catch (string exception) {
 		cerr << "Exception: " << exception << endl;
 		return 1;
+	} catch (MemoryException exception) {
+		cerr << exception << endl;
 	}
 
 	cerr << endl;
