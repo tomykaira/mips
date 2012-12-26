@@ -274,11 +274,11 @@ int simulate(simulation_options * opt)
 			return 1;
 		}
 		rep(i, length) {
-			ram[DEFAULT_HR + i] = opt->argument[i];
+			ram.set(DEFAULT_HR + i, opt->argument[i]);
 		}
 	}
 
-	ram[DEFAULT_HR + ARGUMENT_HEAP_SIZE - 1] = opt->current_directory_id;
+	ram.set(DEFAULT_HR + ARGUMENT_HEAP_SIZE - 1, opt->current_directory_id);
 
 
 	int dspc[DELAY_SLOT+1] = {0};      //遅延分岐のキュー。毎週,pcは先頭の要素分だけ加算される。
@@ -546,29 +546,29 @@ int simulate(simulation_options * opt)
 				pc = internal_stack[stack_pointer--];
 				break;
 			case LDR:
-				IRD = ram[(IRS + IRT)];
+				IRD = ram.get(IRS + IRT);
 				logger.reg("LDR", get_rd(inst), IRD);
 
 				break;
 			case FLDR:
-				FRD = ram[(IRS + IRT)];
+				FRD = ram.get(IRS + IRT);
 				logger.reg("FLDR", get_rd(inst), FRD);
 				break;
 			case STI:
 				logger.memory("STI", IRS+IMM, IRT);
-				ram[(IRS + IMM)] = IRT;
+				ram.set(IRS + IMM, IRT);
 				break;
 			case LDI:
-				IRT = ram[(IRS + IMM)];
+				IRT = ram.get(IRS + IMM);
 				logger.reg("LDI", get_rt(inst), IRT);
 
 				break;
 			case FSTI:
 				logger.memory("STI", IRS + IMM, FRT);
-				ram[(IRS + IMM)] = FRT;
+				ram.set(IRS + IMM, FRT);
 				break;
 			case FLDI:
-				FRT = ram[(IRS + IMM)];
+				FRT = ram.get(IRS + IMM);
 				logger.reg("FLDI", get_rt(inst), FRT);
 
 				break;
@@ -643,7 +643,7 @@ int simulate(simulation_options * opt)
 					DUMP_PC
 					printf("\tr3: %d\n", ireg[3]);
 					rep(i, 10) {
-						printf("%d: %d\n", FR - i, ram[FR - i]);
+						printf("%d: %d\n", FR - i, ram.get(FR - i));
 					}
 					break;
 				case 5:
@@ -660,11 +660,11 @@ int simulate(simulation_options * opt)
 					}
 
 					rep(j, 8) {
-						printf("%02x ", ram[ireg[2] + j]);
+						printf("%02x ", ram.get(ireg[2] + j));
 					}
 					printf("\n");
 					rep(j, 8) {
-						printf("%02x ", ram[ireg[3] + j]);
+						printf("%02x ", ram.get(ireg[3] + j));
 					}
 					printf("\n");
 					break;
@@ -673,13 +673,13 @@ int simulate(simulation_options * opt)
 					printf("stack_top: %d\n", internal_stack[stack_pointer]);
 					printf("%d: ", ireg[3]);
 					rep(j, 20) {
-						printf("%02x ", ram[ireg[3] + j]);
+						printf("%02x ", ram.get(ireg[3] + j));
 					}
 					printf("\n");
 
 					printf("%d: ", ireg[4]);
 					rep(j, 20) {
-						printf("%02x ", ram[ireg[4] + j]);
+						printf("%02x ", ram.get(ireg[4] + j));
 					}
 					printf("\n");
 
@@ -775,7 +775,7 @@ int simulate(simulation_options * opt)
 	if (opt->enable_show_heap) {
 		char heap[ARGUMENT_HEAP_SIZE];
 		rep(i, ARGUMENT_HEAP_SIZE) {
-			heap[i] = ram[DEFAULT_HR + i] & 0xff;
+			heap[i] = ram.get(DEFAULT_HR + i) & 0xff;
 		}
 		printf("%s\n", heap);
 	}
