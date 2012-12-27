@@ -15,7 +15,6 @@
 #define eq(a, b) (strcmp(a, b) == 0)
 
 #define ROM_NUM (64 * 1024) // 64KByte
-#define RAM_NUM (512.00)
 
 #define MAX_INSTS 64 // 6bit
 
