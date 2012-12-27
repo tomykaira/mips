@@ -77,7 +77,7 @@ min_caml_int_tuple_array_init:
 	nop
 	sti	$r3, $r4, 0
 	add	$r4, $r4, $r5
-	j	min_caml_int_tuple_array
+	j	min_caml_int_tuple_array_init
 INT_TUPLE_ARRAY_INIT_RETURN:
 	return
 
@@ -99,7 +99,7 @@ min_caml_float_tuple_array_init:
 	nop
 	fsti	$f1, $r3, 0
 	add	$r3, $r3, $r4
-	j	min_caml_float_tuple_array
+	j	min_caml_float_tuple_array_init
 FLOAT_TUPLE_ARRAY_INIT_RETURN:
 	return
 
@@ -1851,4 +1851,33 @@ clear_display_start:
 	blt $r3, $r4, clear_display_start
 	nop
 	nop
+	return
+
+
+min_caml_land_sub:
+	slli $r5, $r5, 31
+	addi $r6, $r0, 30
+	addi $r12, $r0, 0
+land_sub_loop:
+	blt $r6, $r0, land_sub_return
+	addi $r7, $r3, 0
+	srai $r3, $r3, 1
+	srai $r12, $r12, 1
+	slli $r8, $r3, 1
+	sub $r7, $r7, $r8
+	beq $r7, $r0, land_sub_skip
+	addi $r9, $r4, 0
+	srai $r4, $r4, 1
+	slli $r10, $r4, 1
+	sub $r9, $r9, $r10
+	beq $r9, $r0, land_sub_skip
+	nop
+	nop
+	slli $r11, $r30, 30
+	add $r12, $r12, $r11
+land_sub_skip:
+	subi $r6, $r6, 1
+	j land_sub_loop
+land_sub_return:
+	xor $r3, $r5, $r12
 	return
