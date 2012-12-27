@@ -23,8 +23,8 @@ let rec g env = function (* 不要定義削除ルーチン本体 *)
   | Let((x, t), exp, e) -> (* letの場合 *)
       let (exp', fvs') = g' env exp in
       let (e', fvs) = g env e in
-      if effect' env exp' || S.mem x (fv e') then
-	if e' = Ans(Unit) then (Ans(exp'), fvs') else
+      if effect' env exp' || S.mem x fvs then
+	if e' = Ans(Unit) || e' = Ans(Var(x)) then (Ans(exp'), fvs') else
 	(Let((x, t), exp', e'), S.union fvs' (S.remove x fvs))
       else (e', fvs)
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* let recの場合 *)

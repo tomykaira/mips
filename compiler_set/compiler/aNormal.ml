@@ -47,8 +47,8 @@ let rec concat e1 xt e2 =
   | LetList(yt, z, e) -> LetList(yt, z, concat e xt e2)
   | Ans(exp) -> Let(xt, exp, e2)
 
-
-let rec fv = function (* 式に出現する（自由な）変数 *)
+(* 式に出現する自由変数 *)
+let rec fv = function 
   | Let((x, _), exp, e) -> S.union (fv' exp) (S.remove x (fv e))
   | LetRec({ name = (x, _); args = yts; body = e1 }, e2) ->
       let zs = S.diff (fv e1) (S.of_list (List.map fst yts)) in
@@ -82,7 +82,8 @@ let bis (x,t) = (x, btoi t)
 let rec size = function
   | Let(_, exp, e) -> 1 + size' exp + size e
   | LetRec({ name = _; args = _; body = e1 }, e2) -> 1 + size e1 + size e2
-  | LetTuple(_, _, e) | LetList(_, _, e) -> 1 + size e
+  | LetTuple(xts, _, e) -> List.length xts + size e
+  | LetList((xs,_), _, e) -> List.length (Syntax.matcher_variables xs) + size e
   | Ans(exp) -> size' exp
 and size' = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
@@ -148,6 +149,7 @@ and ag' env = function
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
   | Nil -> Nil
   | Cons(x, y) -> Cons(find x env, find y env)
+
 
 (* ネストしたletの簡約 *)
 let rec f = function 

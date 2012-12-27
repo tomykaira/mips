@@ -382,6 +382,7 @@ int simulate(simulation_options * opt)
 			}
 		}
 
+
 		opcode = get_opcode(inst);
 		funct = get_funct(inst);
     //無限ループの可能性
@@ -424,7 +425,7 @@ int simulate(simulation_options * opt)
 				fmv_counter[fmvhi_operand] += 1;
 			}
 			prev_is_fmvhi = false;
-		}
+		}		
 
 		// 読み込んだopcode・functに対応する命令を実行する
 		switch(opcode)
@@ -435,7 +436,6 @@ int simulate(simulation_options * opt)
 				break;
 			case SUB:
 				logger.reg("SUB", get_rd(inst), IRS - IRT);
-
 				IRD = IRS - IRT;
 				break;
 			case XOR:
@@ -557,16 +557,15 @@ int simulate(simulation_options * opt)
 				pc = internal_stack[stack_pointer--];
 				break;
 			case LDR:
-				logger.reg("LDR", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
+				logger.reg("LDR", get_rd(inst), RAM[(IRS + IRT)]);
 				IRD = RAM[(IRS + IRT)];
-
 				break;
 			case FLDR:
-				logger.reg("FLDR", get_rd(inst), RAM[(IRS + IRT)]);
 				assert(IRS + IRT >= 0);
 				assert(IRS + IRT < RAM_SIZE);
+				logger.reg("FLDR", get_rd(inst), RAM[(IRS + IRT)]);
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
@@ -580,10 +579,9 @@ int simulate(simulation_options * opt)
 				RAM[(IRS + IMM)] = IRT;
 				break;
 			case LDI:
-				logger.reg("LDI", get_rt(inst), RAM[(IRS + IMM)]);
-
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
+				logger.reg("LDI", get_rt(inst), RAM[(IRS + IMM)]);
 				IRT = RAM[(IRS + IMM)];
 				break;
 			case FSTI:
@@ -593,9 +591,9 @@ int simulate(simulation_options * opt)
 				RAM[(IRS + IMM)] = FRT;
 				break;
 			case FLDI:
-				logger.reg("FLDI", get_rt(inst), RAM[(IRS + IMM)]);
 				assert(IRS + IMM >= 0);
 				assert(IRS + IMM < RAM_SIZE);
+				logger.reg("FLDI", get_rt(inst), RAM[(IRS + IMM)]);
 				FRT = RAM[(IRS + IMM)];
 				break;
 			case INPUTB:

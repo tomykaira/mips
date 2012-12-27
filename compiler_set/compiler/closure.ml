@@ -124,7 +124,7 @@ let rec gl_args l =
 	let x' = Id.genid x in
 	(x'::xs', (fun t -> Let((x', findg x), ExtArray(Id.L(x)), load t)))
       else (x::xs', load)
-      
+
 
 (* クロージャ変換ルーチン本体 *)
 let rec g env known const top = function

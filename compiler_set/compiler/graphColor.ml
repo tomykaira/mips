@@ -7,7 +7,6 @@ type info =
   | Colored of Id.t
   | Prefer of Id.t list * Id.t list
 
-
 (* グラフにノードを追加する関数 *)
 let addn' x (l, s1, re1) m =
   try
