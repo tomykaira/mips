@@ -320,6 +320,7 @@ let f (Prog(fundefs, e)) =
   List.iter h fundefs;
   Out.print buf (Out.Label "min_caml_start");
   g' (NonTail(reg_hp), Int(!hp));
+  Format.eprintf "%d@." !hp;
   Out.print buf (Out.AddI(reg_fp, reg_0, 2047));
   Out.print buf (Out.SllI(reg_fp, reg_fp, 16));
   Out.print buf (Out.AddI(reg_fp, reg_fp, 65535));  (* 512MB *)

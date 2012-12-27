@@ -11,7 +11,7 @@ targets:
 
 include ../Makefile.in
 
-OPTION= -b -inline 600 -offEmbedTuple -offUnfoldTuple
+OPTION= -b -inline 800 -offEmbedTuple -offUnfoldTuple 
 
 # It should not depend on %.sim, because this is not updated after sim is updated.
 %.ans:
@@ -25,7 +25,7 @@ OPTION= -b -inline 600 -offEmbedTuple -offUnfoldTuple
 
 
 %.sim: %.bin
-	$(SIMULATOR) $(BIN) -f $(SLD_PATH) -x $*.bin > $*.sim
+	$(SIMULATOR) -f $(SLD_PATH) -x $*.bin > $*.sim
 
 %.ppm: %.sim
 	tail -c +2 $< > $@

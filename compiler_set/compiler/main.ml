@@ -35,7 +35,7 @@ let offin = ref false
 let offcf = ref false
 let offte = ref false
 let offel = ref false
-let offaa = ref false  
+let offaa = ref false
 let offll = ref false
 let offut = ref false
 let offet = Global.offet := false; Global.offet
@@ -52,7 +52,8 @@ let off2 flag f x = if flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' =  off offel Elim.f (off offte IfThenElse.f (off offcf ConstFold.f (off offin (Inline.f (!limit-n)) (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f ( (off offbe Beta.f (off offcs Cse.f e))))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offin (Inline.f (!limit-n))  (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f (off offcf ConstFold.f (off offbe Beta.f (off offcs Cse.f e)))))) in
+  Format.eprintf "size : %d@." (ANormal.size e');
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
   iter (n - 1) e'

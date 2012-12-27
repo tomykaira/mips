@@ -55,11 +55,11 @@ let rec atan2 y x =
 in
 
 (* tan *)
+let rec tan_sub i xx y =
+  if i < 2.5 then y
+  else tan_sub (i -. 2.) xx (xx /. (i -. y))
+in
 let rec tan x = (* -pi/4 <= x <= pi/4 *)
-  let rec tan_sub i xx y =
-    if i < 2.5 then y
-      else tan_sub (i -. 2.) xx (xx /. (i -. y))
-  in
   x /. (1. -. (tan_sub 9. (x *. x) 0.0))
 in
 
@@ -323,21 +323,10 @@ let abs x =
 in
 
 
-let rec land_sub x y ret n =
-  if n < 0 then ret
-  else
-    let ret = (lsl) ret 1 in
-    let x1 = (lsr) x n in
-    let y1 = (lsr) y n in
-    let x2 = (lsl) x1 31 in
-    let y2 = (lsl) y1 31 in
-    let an = (if x2 = 0 then 0 else if y2 = 0 then 0 else 1) in
-    land_sub x y (ret+an) (n-1) in
-
 let rec land x y =
   if x < 0 then
-    if y < 0 then land_sub (-x) (-y) 1 30
-    else land_sub (-x) y 0 30
+    if y < 0 then land_sub (-x) (-y) 1
+    else land_sub (-x) y 0
   else
-    if y < 0 then land_sub x (-y) 0 30
-    else land_sub x y 0 30 in
+    if y < 0 then land_sub x (-y) 0
+    else land_sub x y 0 in

@@ -6,6 +6,9 @@ let counter = ref 0
 let pg0 = ("%g0", Type.Unit)
 
 
+(* 関数と,それを呼び出すと値の破壊されるレジスタの連想集合 *)
+let destroy : S.t M.t ref = ref M.empty 
+
 
 type alloc_result = (* allocにおいてspillingがあったかどうかを表すデータ型 *)
   | Alloc of Id.t (* allocated register *)
@@ -56,8 +59,6 @@ let rec alloc cont regenv graph x t =
 	    (List.rev free) in
 	Spill(y)
 
-
-
 (* 式が関数呼び出しか判定 *)
 let is_call = function
   | CallCls _ | CallDir _ -> true
@@ -67,9 +68,7 @@ let is_call = function
 
 (* 命令列から,関数呼び出しから関数呼び出しまでの一直線の区間を切り出す関数
    ついでにpreferの情報も集めておく.
-   1番目の返り値は関数呼び出しがあったかどうか,2番目は切り出された命令列, 
-   3番目はpreferの情報. *)
-
+   1番目の返り値は関数呼び出しがあったかどうか,2番目は切り出された命令列 *)
 (* 命令列中に関数呼び出しが存在するか判定 *)
 let rec ecall = function
   | Ans(exp) -> ecall' exp
@@ -225,10 +224,10 @@ let rec gc dest cont regenv ifprefer e =
       | IfFLT(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfFLT(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
       | IfFLE(x, y, e1, e2) -> g'_if dest cont regenv graph ifprefer (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
 
-      | CallCls(l, x, ys, zs) ->
-	  g'_call dest cont regenv graph (fun ys zs -> CallCls(l, find x Type.Int regenv, ys, zs)) ys zs
+      | CallCls(Id.L l, x, ys, zs) ->
+	  g'_call l dest cont regenv graph (fun ys zs -> CallCls(Id.L l, find x Type.Int regenv, ys, zs)) ys zs
       | CallDir(Id.L l, ys, zs) ->
-	  g'_call dest cont regenv graph (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
+	  g'_call l dest cont regenv graph (fun ys zs -> CallDir(Id.L l, ys, zs)) ys zs
       | _ -> assert false
 
     and g'_if dest cont regenv graph ifprefer constr e1 e2 = (* ifのレジスタ割り当て *)
@@ -309,16 +308,34 @@ let rec gc dest cont regenv ifprefer e =
 	
 
 (* 関数呼び出しのレジスタ割り当て *)
-    and g'_call dest cont regenv graph constr ys zs = 
-      (List.fold_left
-	 (fun e x ->
-	   if x = fst dest || not (M.mem x regenv) then e else
-	   seq(Save(M.find x regenv, x), e))
-	 (Ans(constr
-		(List.map (fun y -> find y Type.Int regenv) ys)
-		(List.map (fun z -> find z Type.Float regenv) zs)))
-	 (fv cont),
-       M.empty, graph)
+    and g'_call name dest cont regenv graph constr ys zs =
+      let regenv' =
+	if M.mem name !destroy then
+	  M.filter (fun _ x -> not (S.mem x (M.find name !destroy))) regenv
+	else M.empty in
+      let save =
+	List.fold_left
+	  (fun e x ->
+	    if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
+	    seq(Save(M.find x regenv, x), e))
+	  (Ans(constr
+		 (List.map (fun y -> find y Type.Int regenv) ys)
+		 (List.map (fun z -> find z Type.Float regenv) zs)))
+	  (fv cont) in
+      (save, regenv', graph)
+
+(* そのプログラム中で書き込まれるレジスタを集める *)
+let rec written tail = function
+  | Ans(exp) -> written' tail exp
+  | Let((x,_),exp,e) ->
+      let a = S.union (written' false exp) (written tail e) in
+      if is_reg x then S.add x a else a
+and written' tail = function
+  | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfFEq(_,_,e1,e2) | IfFLT(_,_,e1,e2) | IfFLE(_,_,e1,e2) -> S.union (written tail e1) (written tail e2)
+  | CallCls(Id.L(x),_,_,_) | CallDir(Id.L(x),_,_) ->
+      (try M.find x !destroy
+      with Not_found -> S.union (S.of_list allregs) (S.of_list allfregs))
+  | _ -> S.empty
 
 let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数のレジスタ割り当て *)
   let regenv = add x reg_cl M.empty in
@@ -348,6 +365,13 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
     | Type.Float -> (fregs.(0), fun a-> FMov(a))
     | _ -> (regs.(0), fun a -> AddI(a, 0)) in
   let (e', _, _) = gc (a, t) (Ans(b a)) regenv M.empty e in
+  let writ =
+    let w = written true e' in
+    match t with
+    | Type.Unit -> w
+    | Type.Float -> S.add fregs.(0) w
+    | _ -> S.add regs.(0) w in
+  destroy := M.add x writ !destroy;
   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
 let f (Prog(fundefs, e)) = (* プログラム全体のレジスタ割り当て *)
