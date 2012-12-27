@@ -15,6 +15,9 @@ let memt x env =
 let meml x env =
   try (match M.find x env with Nil | Cons(_, _) -> true | _ -> false)
   with Not_found -> false
+let memn x env =
+  try (match M.find x env with Neg(_) | FNeg(_) -> true | _ -> false)
+  with Not_found -> false
 
 let findi x env = (match M.find x env with Int(i) -> i | _ -> raise Not_found)
 let findf x env = (match M.find x env with Float(d) -> d | _ -> raise Not_found)
@@ -24,6 +27,7 @@ let findl x env =
   match found with
     | Nil | Cons(_, _) -> found
     | _ -> raise Not_found
+let findn x env = (match M.find x env with Neg(x) | FNeg(x) -> x | _ -> raise Not_found)
 
 
 (* 葉が全て直結した即値か調べる関数 *)
@@ -88,24 +92,27 @@ let rec g env envle envne envif = function (* 定数畳み込み等を行うル�
 	(g env envle envne envif e)
 	xts
 	(findt y env)
-  | LetTuple(xts, y, e) -> LetTuple(xts, y, g env envle envne envif e)
+  | LetTuple(xts, y, e) -> LetTuple(xts, y, g (M.add y (Tuple(List.map fst xts)) env) envle envne envif e)
   | LetList(xts, y, e) -> LetList(xts, y, g env envle envne envif e)
   | Ans(exp) -> g' env envle envne envif exp
 and g' env envle envne envif = function
   | Var(x) when memi x env -> Ans(Int(findi x env))
   | Var(x) when memf x env -> Ans(Float(findf x env))
   | Neg(x) when memi x env -> Ans(Int(-(findi x env)))
-  | Neg(x) when M.mem x env -> (match M.find x env with
-    | Neg(y) -> Ans(Var(y))
-    | _ -> Ans(Neg(x)))
+  | Neg(x) when memn x env -> Ans(Var(findn x env))
 
   | Add(x, y) when memi x env && memi y env -> Ans(Int(findi x env + findi y env)) 
   | Add(x, y) when memi x env && findi x env = 0 -> Ans(Var(y))
   | Add(x, y) when memi y env && findi y env = 0 -> Ans(Var(x))
+  | Add(x, y) when memn x env -> Ans(Sub(y,findn x env))
+  | Add(x, y) when memn y env -> Ans(Sub(x,findn y env))
   | Add(x, y) -> sc (fun x y -> Ans(Add(x,y))) x y
 
   | Sub(x, y) when memi x env && memi y env -> Ans(Int(findi x env - findi y env))
   | Sub(x, y) when memi y env && findi y env = 0 -> Ans(Var(x))
+  | Sub(x, y) when x = y -> Ans(Int(0))
+  | Sub(x, y) when memn y env -> Ans(Add(x,findn y env))
+
   | Mul(x, y) when memi x env && memi y env -> Ans(Int(findi x env * findi y env))
   | Mul(x, y) when memi x env && findi x env = 1 -> Ans(Var(y))
   | Mul(x, y) when memi y env && findi y env = 1 -> Ans(Var(x))
@@ -122,16 +129,18 @@ and g' env envle envne envif = function
   | Sra(x, y) when y = 0 -> Ans(Var(x))
 
   | FNeg(x) when memf x env -> Ans(Float(-.(findf x env)))
-  | FNeg(x) when M.mem x env -> (match M.find x env with
-    | Neg(y) -> Ans(Var(y))
-    | _ -> Ans(FNeg(x)))
+  | FNeg(x) when memn x env -> Ans(Var(findn x env))
+
   | FAdd(x, y) when memf x env && memf y env -> Ans(Float(findf x env +. findf y env))
   | FAdd(x, y) when memf x env && findf x env = 0.0 -> Ans(Var(y))
   | FAdd(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
+  | FAdd(x, y) when memn x env -> Ans(FSub(y,findn x env))
+  | FAdd(x, y) when memn y env -> Ans(FSub(x,findn y env))
   | FAdd(x, y) -> sc (fun x y -> Ans(FAdd(x,y))) x y
 
   | FSub(x, y) when memf x env && memf y env -> Ans(Float(findf x env -. findf y env))
   | FSub(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
+  | FSub(x, y) when memn y env -> Ans(FAdd(x,findn y env))
 
 (* シミュレータと結果が異なってしまうので中止 *)
 (*  | FMul(x, y) when memf x env && memf y env -> Ans(Float(findf x env *. findf y env)) *)

@@ -16,9 +16,9 @@ type environ = {
 (* envを操作する関数群 *)
 let add_precious exp x env =
   { env with precious = (exp,x)::env.precious }
-let rec take n = function
+(*let rec take n = function
   | [] -> []
-  | x::xs -> if n <= 0 then [] else x::take (n-1) xs 
+  | x::xs -> if n <= 0 then [] else x::take (n-1) xs *)
 let add_cheap exp x env =
   { env with cheap = (exp,x)::env.cheap }
 (*let rec pushn n env = env
@@ -67,7 +67,7 @@ let rec g env = function
   | Let((x,_) as xt, exp, e) ->
       let exp' = g' env exp in
       (match exp' with
-      | Unit | Var _ | Get _ | Put _ | ExtArray _ | Nil -> 
+      | Unit | Var _ | ExtArray _ | Nil -> 
 	  Let(xt, exp', g env e)
       | Int i when -0x8000 <= i && i <= 0x7FFF ->
 	  Let(xt, exp', g (add_cheap exp' x env) e)
@@ -85,7 +85,7 @@ let rec g env = function
 	    let env' = if ecall' exp' then make_empty e env else env in
 	    if effect' env'.noeffect exp' then env'
 	    else add_precious exp' x env' in
-	  Let(xt, exp', g (add_precious exp' x env') e))
+	  Let(xt, exp', g env' e))
   | LetRec({ name = (x,_) as xt; args = yts; body = e1 }, e2) ->
       let env' =
 	let eff = S.add x env.noeffect in
@@ -109,7 +109,7 @@ and g' env exp =
   | IfLE(x, y, e1, e2) -> IfLE(x, y, g env e1, g env e2)
   | IfLT(x, y, e1, e2) -> IfLT(x, y, g env e1, g env e2)
   | IfNil(x, e1, e2) -> IfNil(x, g env e1, g env e2)
-  | exp -> exp in
+  | _ -> exp in
   try Var(List.assoc exp' (env.precious@env.cheap))
   with Not_found -> exp'
 	
