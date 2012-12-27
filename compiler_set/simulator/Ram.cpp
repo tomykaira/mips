@@ -43,14 +43,15 @@ inline void Ram::validate(uint32_t index) {
 
 void Ram::update_history(int set_id, int latest_index) {
   int j;
+  int id = latest_index - (set_id << ASSOCIATIVITY_BITS);
   for (j = 0; j < ASSOCIATIVITY; ++j) {
-    if (history_[(set_id << ASSOCIATIVITY_BITS) + j] == latest_index - (set_id << ASSOCIATIVITY_BITS))
+    if (history_[(set_id << ASSOCIATIVITY_BITS) + j] == id)
       break;
   }
   for (--j; j >= 0; --j) {
     history_[(set_id << ASSOCIATIVITY_BITS) + j + 1] = history_[(set_id << ASSOCIATIVITY_BITS) + j];
   }
-  history_[set_id << ASSOCIATIVITY_BITS] = latest_index;
+  history_[set_id << ASSOCIATIVITY_BITS] = id;
 }
 
 int Ram::load_block(uint32_t address) {
