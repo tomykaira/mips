@@ -11,7 +11,7 @@ LIB_ML = lib_ml.ml
 # アセンブリのライブラリファイル
 LIB_ASM = lib_asm.s
 
-LOR_PATH=$(LORELEY_DIR)/Simple/simple1.lor
+LOR_PATH=$(LORELEY_DIR)/Contest/greenS.lor
 LOR_PPM_PATH=$(LOR_PATH).ppm
 
 MIN_CAML=./compiler/min-caml
@@ -49,13 +49,13 @@ lor:
 lor-run: $(LORELEY_DIR)/main.bin
 	touch $(LOR_PPM_PATH)
 #	eog $(LOR_PPM_PATH) & 2> /dev/null
-	simulator/simulator -t -f $(LORELEY_DIR)/Simple/simple1.lor $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
+	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
 
 lor-run_f:
 	make lor
 	touch $(LOR_PPM_PATH)
 #	eog $(LOR_PPM_PATH) & 2> /dev/null
-	simulator/simulator -t -f $(LORELEY_DIR)/Simple/simple1.lor $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
+	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
 lor-clean:

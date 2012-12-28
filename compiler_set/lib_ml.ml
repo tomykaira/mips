@@ -64,11 +64,23 @@ let rec tan x = (* -pi/4 <= x <= pi/4 *)
 in
 
 (* sin *)
-let rec sin_sub x = 
+let rec sin_sub1 x p =
+  if x < p then p else
+  let p2 = p *. 2.0 in
+  (* if p2*2=0, p2 is nan *)
+  if p2 *. 2.0 = 0.0 then p else
+  sin_sub1 x (p *. 2.0) in
+let rec sin_sub2 x p =
+  if x < pi *. 2.0 then x else
+  let x = if x >= p then x -. p else x in
+  sin_sub2 x (p *. 0.5) in
+
+let rec sin_sub x =
   let pi2 = pi *. 2.0 in
   if x > pi2 then sin_sub (x -. pi2)
   else if x < 0.0 then sin_sub (x +. pi2)
   else x in
+
 let rec sin x =
   let pi = 3.14159265358979323846264 in
   let pi2 = pi *. 2.0 in
@@ -76,13 +88,22 @@ let rec sin x =
   (* tan *)
   let s1 = x > 0.0 in
   let x0 = fabs x in
-  let x1 = sin_sub x0 in
+
+  (* 引数の絶対値がすごく大きくなりうる時 *)
+  if x0 *. 2.0 = 0.0 then x0 else
+  let p = sin_sub1 x0 pi2 in
+  let x1 = sin_sub2 x0 p in
+  (* それ以外の時 *)
+  (* let x1 = sin_sub x0 in *)
+
   let s2 = if x1 > pi then not s1 else s1 in
   let x2 = if x1 > pi then pi2 -. x1 else x1 in
   let x3 = if x2 > pih then pi -. x2 else x2 in
   let t = tan (x3 *. 0.5) in
   let ans = 2. *. t /. (1. +. t *. t) in
   if s2 then ans else fneg ans in
+
+
 
 (* cos *)
 let rec cos x = 

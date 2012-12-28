@@ -372,6 +372,11 @@ int simulate(simulation_options * opt)
 						printf("\t%02d: %08x %f\n", i, freg[i], asF(freg[i]));
 					}
 					break;
+				case 'e':
+					for (int i = 0; i < stack_pointer+1; i ++) {
+						printf("\t%02d: %d\n", i, internal_stack[i]);
+					}
+					break;
 				case 'c':
 					disable_step();
 					break;
@@ -475,6 +480,10 @@ int simulate(simulation_options * opt)
 			case FMUL:
 				logger.reg("FMUL", get_rd(inst), myfmul(FRS, FRT));
 				FRD = myfmul(FRS, FRT);
+				//conv a, b;
+				//a.i = FRS; b.i = FRT;
+				//a.f = a.f * b.f;
+				//FRD = a.i;
 				break;
 			case FMULN:
 				logger.reg("FMULN", get_rd(inst), myfmul(FRS, FRT));
@@ -487,6 +496,7 @@ int simulate(simulation_options * opt)
 			case FSQRT:
 				logger.reg("FSQRT", get_rd(inst), myfsqrt(FRS));
 				FRD = myfsqrt(FRS);
+				//if (FRS == 0) FRD = 0;
 				break;
 			case SETL:
 				logger.reg("SETL", get_rt(inst), IMM);
@@ -513,7 +523,6 @@ int simulate(simulation_options * opt)
 			case J:
 			  jump_logger.add(pc);
 				pc = get_address(inst);
-
 				break;
 			case BEQ:
 				if (IRS == IRT) dspc[dshd] = IMM + (-1) - DELAY_SLOT;
@@ -539,7 +548,7 @@ int simulate(simulation_options * opt)
 				break;
 			case CALL:
 				jump_logger.add(pc);
-				assert(stack_pointer < CALL_STACK_SIZE-1);
+				assert(stack_pointer < CALL_STACK_SIZE-1);			 
 				internal_stack[++stack_pointer] = pc;
 				pc = get_address(inst);
 				break;
@@ -569,7 +578,7 @@ int simulate(simulation_options * opt)
 				FRD = RAM[(IRS + IRT)];
 				break;
 			case STI:
-				logger.memory("STI", IRS+IMM, IRT);
+				logger.memory("STI", IRS+IMM, IRT);				
 				assert(IRS + IMM >= 0);
 				if (IRS + IMM >= RAM_SIZE) {
 					DUMP_PC

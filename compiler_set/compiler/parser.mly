@@ -179,7 +179,7 @@ exp:
 | exp SLASH_DOT exp
     { FDiv($1, $3) }
 | exp AST AST exp
-    { App(Var("exp"), [FMul($1, App(Var("log"), [$4]))]) }
+    { App(Var("exp"), [FMul($4, App(Var("log"), [$1]))]) }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
     { Let(addtyp $2, $4, $6) }

@@ -8,9 +8,9 @@
 (*乱数生成機：xorshift。本来32bit用なので31bitのOcamlでは動作が怪しい *)
 let random_source =
   let rs = Array.create 4 0 in
-  rs.(0) <- 123456789; 
+  rs.(0) <- 123456789;
   rs.(1) <- 362436069;
-  rs.(2) <- 521288629; 
+  rs.(2) <- 521288629;
   rs.(3) <- 88675123;
   rs
 in
@@ -94,8 +94,8 @@ let glConf            = Array.create 2 0 in
 
 (* 以下は計算用ロジック *)
 let rec gene_gen res=
-  if res==0 then []
-  else 
+  if res=0 then []
+  else
   (
    let head=read_float () in
    head::(gene_gen (res - 1))
@@ -103,7 +103,7 @@ let rec gene_gen res=
 in
 
 let rec dna_gen res=
-  if res==0 then []
+  if res=0 then []
   else
   (
   let len=read_int () in
@@ -136,7 +136,7 @@ in
 let read_gene ()=
 (genes := read_int();enable_finalXform:=read_int();
 dnaArray:=Array.init (!genes) read_dnas;
-if !enable_finalXform ==1 then (finalXform:=read_dnas 0) else ())
+if !enable_finalXform =1 then (finalXform:=read_dnas 0) else ())
 in
 
 let rec read_cMap_sub iter=
@@ -145,7 +145,7 @@ let rec read_cMap_sub iter=
  let g=read_float () in
  let b=read_float () in
  !cMap.(iter) <- (r,g,b);
- if iter==(cConf.(0)-1) then ()
+ if iter=(cConf.(0)-1) then ()
  else read_cMap_sub (iter + 1)
 )
 in
@@ -164,17 +164,17 @@ in
 
 let decode_init ()=
   let rec acmWeight pos min sum=
-    if pos==(!genes) then (min,sum) else
+    if pos=(!genes) then (min,sum) else
     let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(pos) in
     acmWeight (pos+1) (if min>cWeight then cWeight else min) (sum+.cWeight)
   in
   let (min, sum) = acmWeight 0 1000000.0 0.0 in
   (let rec initRandTbl_sub v pos rest=
-     if rest==0 then pos else
+     if rest=0 then pos else
      (funcRandTbl.(pos)<-v;initRandTbl_sub v (pos+1) (rest-1))
    in
    let rec initRandTbl fn index=
-     if fn==(!genes) then () else
+     if fn=(!genes) then () else
      (let (cIndex,cBlendRate,cWeight,_,fun_ary,_)= !dnaArray.(fn) in
      initRandTbl (fn+1) (initRandTbl_sub fn index (int_of_float (cWeight*.(float_of_int funcRandTblSize)/.sum)))) in
    initRandTbl 0 0)
@@ -183,7 +183,7 @@ in
 let rec read_environment pos=
 (
  conf.(pos) <- read_float ();
- if pos==9 then 
+ if pos=9 then
  (
   bound.(0) <- (conf.(3) -. conf.(5) *. conf.(7));
   bound.(1) <- (conf.(3) +. conf.(5) *. conf.(7));
@@ -192,8 +192,8 @@ let rec read_environment pos=
   let ret_width=(conf.(0)+.conf.(2)*.6.0) in
   let ret_height=(conf.(1)+.conf.(2)*.6.0) in
   tbl := (Array.init (int_of_float (ret_width*.ret_height)) array_gen)
- ) 
- else 
+ )
+ else
   read_environment (pos + 1)
 )
 in
@@ -258,7 +258,7 @@ let apply_func fn_coeff x y=
    let rN=abs_float power in
    let cn=dist/.power*.0.5 in
    let t_rnd=(floor ((random_float 1.0)*.rN)) in
-   let tmpr=(2.0*.3.14159265*.t_rnd+.(if ((land) (int_of_float t_rnd) 1) ==0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
+   let tmpr=(2.0*.3.14159265*.t_rnd+.(if ((land) (int_of_float t_rnd) 1) =0 then (atan2 y x) else 0.0-.(atan2 y x)))/.power in
    let r=weight*.((x*.x+.y*.y) ** cn) in
    let sina,cosa=sin tmpr,cos tmpr in
    (r*.cosa,r*.sina)
@@ -321,7 +321,7 @@ let apply_func fn_coeff x y=
   (
    (*julia*)
    let weight::[]=coeffs in
-   let a=(atan2 x y)*.0.5+.(if random_int 2==0 then 3.14159265 else 0.0) in
+   let a=(atan2 x y)*.0.5+.(if random_int 2=0 then 3.14159265 else 0.0) in
    let r=weight*.((x*.x+.y*.y) **0.25) in
    let ca,sa=cos a,sin a in
    (r*.ca,r*.sa)
@@ -357,8 +357,8 @@ let apply_func fn_coeff x y=
  (
   (* fn19:rectangles/rectangles_x/rectangles_y *)
    let weight::rect_x::rect_y::[]=coeffs in
-   ((if rect_x==0.0 then weight*.x else weight*.((2.0*.(floor (x/.rect_x))+.1.0)*.rect_x-.x)),
-    (if rect_y==0.0 then weight*.y else weight*.((2.0*.(floor (y/.rect_y))+.1.0)*.rect_y-.y)))
+   ((if rect_x=0.0 then weight*.x else weight*.((2.0*.(floor (x/.rect_x))+.1.0)*.rect_x-.x)),
+    (if rect_y=0.0 then weight*.y else weight*.((2.0*.(floor (y/.rect_y))+.1.0)*.rect_y-.y)))
  )
  |21 ->
  (
@@ -447,7 +447,7 @@ let apply_func fn_coeff x y=
 in
 
 let rec apply_gene_sub fn_ary x y retx rety=
-  if fn_ary==[] then (retx,rety)
+  if fn_ary == [] then (retx,rety)
   else
     (
      let head::tail=fn_ary in
@@ -477,14 +477,14 @@ let random_gen ()=
 (random_float 2.0) -. 1.0
 in
 
-(* 
+(*
  current_pos: (x,y,col)
  remaining_iteration: iter
  *)
 let rec shooting_sub x y col iter=
 let fn= funcRandTbl.(random_int funcRandTblSize) in
 let tx,ty,tcol=apply_gene fn x y col in
-let nx,ny,ncol=if !enable_finalXform==1 then apply_finalXform tx ty tcol else (tx,ty,tcol) in
+let nx,ny,ncol=if !enable_finalXform=1 then apply_finalXform tx ty tcol else (tx,ty,tcol) in
 (
  if regular nx ny then
     (let cIndexf=ncol*.(float_of_int cConf.(0)) in
@@ -492,9 +492,9 @@ let nx,ny,ncol=if !enable_finalXform==1 then apply_finalXform tx ty tcol else (t
      let frac=cIndexf-.cIndexi in
      let fracn=1.0-.frac in
      let (r1,g1,b1)= !cMap.(int_of_float cIndexi) in(*TODO: add color data into bin*)
-     let (r2,g2,b2)= 
-              !cMap.(int_of_float 
-              (if cIndexi+.1.0>=(float_of_int cConf.(0)) 
+     let (r2,g2,b2)=
+              !cMap.(int_of_float
+              (if cIndexi+.1.0>=(float_of_int cConf.(0))
                then cIndexi else (cIndexi+.1.0))) in
      let (nr,ng,nb)=(r1*.fracn+.r2*.frac,g1*.fracn+.g2*.frac,b1*.fracn+.b2*.frac) in
      let ret_width=(conf.(0)+.conf.(2)*.6.0) in
@@ -512,9 +512,9 @@ let nx,ny,ncol=if !enable_finalXform==1 then apply_finalXform tx ty tcol else (t
      target.(1) <- target.(1)+.ng;
      target.(2) <- target.(2)+.nb;
      target.(3) <- target.(3)+.255.0;
-     if iter==0 then () else shooting_sub nx ny ncol (iter - 1))
+     if iter=0 then () else shooting_sub nx ny ncol (iter - 1))
  else
-    (if iter==0 then () else shooting_sub nx ny ncol iter)
+    (if iter=0 then () else shooting_sub nx ny ncol iter)
 )
 in
 
@@ -548,16 +548,16 @@ let create_deFilter ()=
   deCoeffs:=Array.make (kernel_size*max_index_count) 0.0;
   filterWidth:=Array.make max_index_count 0;
   let deWidth pos=
-    (if pos>=width_threshold then 
+    (if pos>=width_threshold then
       (max_rad/. (((float_of_int width_threshold)**curve) +. ((float_of_int (pos+1-width_threshold))**(1.0/.curve)) ) )
     else
       (max_rad/.((float_of_int (pos+1))**curve)))
   in
   let rec deFilter_sub pos=
-     if pos==max_index_count then ()
+     if pos=max_index_count then ()
      else (
-        !filterWidth.(pos) <- 
-        int_of_float (ceil (deWidth pos));
+        !filterWidth.(pos) <-
+          int_of_float (ceil (deWidth pos));
         deFilter_sub (pos+1)
       )
   in
@@ -566,7 +566,7 @@ let create_deFilter ()=
        if x>max_rad then
         (if y>max_rad then sum
          else sumGauss (0.0-.max_rad) (y+.1.0) sum)
-       else 
+       else
           (let tmp=(sqrt (x*.x+.y*.y))/.(deWidth pos) in
            sumGauss (x+.1.0) y (if tmp<=1.0 then sum+.(gauss tmp) else sum))
     in
@@ -610,7 +610,7 @@ let rec apply_deFilter ()=
     let de_width= !filterWidth.(cIndex) in
     let tindex=kernel_size*cIndex in
     let emit_col r g b dense x y=
-      if x>=0 && y>=0 && x<=ret_width && y<=ret_height then 
+      if x>=0 && y>=0 && x<=ret_width && y<=ret_height then
       (let det= !deTbl.(x+y*ret_width) in
        det.(0)<-det.(0)+.r;
        det.(1)<-det.(1)+.g;
@@ -623,14 +623,14 @@ let rec apply_deFilter ()=
          let nr,nb,ng,ndense=
              r*. !deCoeffs.(index),g*. !deCoeffs.(index),
              b*. !deCoeffs.(index),dense*. !deCoeffs.(index) in
-             if p==0 && q==0 then
+             if p=0 && q=0 then
                (emit_col nr ng nb ndense i j)
-             else if q==0 then
+             else if q=0 then
                (emit_col nr ng nb ndense (i+p) (j);
                 emit_col nr ng nb ndense (i-p) (j);
                 emit_col nr ng nb ndense (i) (j+p);
                 emit_col nr ng nb ndense (i) (j-p))
-             else if p==q then
+             else if p=q then
                (emit_col nr ng nb ndense (i+p) (j+p);
                 emit_col nr ng nb ndense (i+p) (j-p);
                 emit_col nr ng nb ndense (i-p) (j+p);
@@ -677,13 +677,13 @@ let calcC v alpha=
 in
 
 let calcRGBA ir ig ib idense=
-  let ls=if idense==0.0 then 0.0 else (1067.8*.(log (1.0+.idense*.7.352941176e-5))/.idense) in
+  let ls=if idense=0.0 then 0.0 else (1067.8*.(log (1.0+.idense*.7.352941176e-5))/.idense) in
   let r,g,b,dense=ir*.ls,ig*.ls,ib*.ls,idense*.ls in
   let tdense=dense/.255.0 in
   let gamma,linrange=conf.(8),conf.(9) in
   let alpha,nls=if dense<=0.0 then 0.0,0.0 else
     (let talpha=calcAlpha tdense gamma linrange in
-    (if talpha<0.0 then 0.0 else 
+    (if talpha<0.0 then 0.0 else
     if talpha>1.0 then 1.0 else talpha),256.0*.talpha/.tdense) in
   let nr,ng,nb=calcNewColor r g b nls in
   (calcC nr alpha,calcC ng alpha,calcC nb alpha)
@@ -693,9 +693,9 @@ let output_ppm mode=
 let ret_width=(conf.(0)+.conf.(2)*.6.0) in
 let ret_height=(conf.(1)+.conf.(2)*.6.0) in
 let rec printer n=
-if n==(int_of_float (ret_width*.ret_height)) then ()
+if n=(int_of_float (ret_width*.ret_height)) then ()
 else
- (let [|oa;ob;oc;od|]= (if mode==1 then !deTbl.(n) else !tbl.(n)) in
+ (let [|oa;ob;oc;od|]= (if mode=1 then !deTbl.(n) else !tbl.(n)) in
   let a,b,c=calcRGBA oa ob oc od in
    print_int a;print_char ' ';
   print_int b;print_char ' ';
@@ -724,7 +724,7 @@ let flam ()=
  read_glConf ();
  decode_init ();
  shooting glConf.(0);
- if glConf.(1)==1 then (de_filter ();output_ppm 1) else (output_ppm 0)
+ if glConf.(1)=1 then (de_filter ();output_ppm 1) else (output_ppm 0)
 )
 in
 

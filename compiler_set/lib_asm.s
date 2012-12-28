@@ -220,7 +220,8 @@ min_caml_int_of_float:
 	nop
 FTOI_POSITIVE_MAIN:
 	# ここを有効にするとocaml仕様になる
-	#LORELEY call min_caml_floor
+	#LORELEY
+	call min_caml_floor
 	# $f2 <- 8388608.0(0x4b000000)
 	fmvhi $f2, 19200
 	fmvlo $f2, 0
@@ -341,7 +342,18 @@ min_caml_exp:
 	call min_caml_floor
 	addi $r1, $r1, 2
 	fsti $f1, $r1, -1
-	subi $r1, $r1, 2
+	# deal with very large/small number
+	# $f6 <- 2^31
+	fmvhi $f6, 20352
+	fble $f6, $f1, exp_pos_overflow
+	nop
+	nop
+	# $f6 <- -2^31
+	fmvhi $f6, 53120
+	fble $f1, $f6, exp_neg_overflow
+	nop
+	nop
+	subi $r1, $r1, 2	
 	call min_caml_int_of_float
 	addi $r1, $r1, 2
 	# px = $f1, x = $f2, C1 = f4, C2 = f5
@@ -405,6 +417,14 @@ exp_skip:
 	fsub $f4, $f0, $f4
 exp_cont:
 	fmul $f1, $f3, $f4
+	return
+exp_pos_overflow:
+	addi $r3, $r0, 255
+	slli $r3, $r3, 23
+	imovf $f1, $r3
+	return
+exp_neg_overflow:
+	imovf $f1, $r0
 	return
 
 # algorithm: remez5, 1_e
@@ -1881,3 +1901,4 @@ land_sub_skip:
 land_sub_return:
 	xor $r3, $r5, $r12
 	return
+
