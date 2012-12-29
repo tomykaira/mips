@@ -220,8 +220,18 @@ min_caml_int_of_float:
 	nop
 FTOI_POSITIVE_MAIN:
 	# ここを有効にするとocaml仕様になる
-	#LORELEY
-	call min_caml_floor
+	#LORELEY call min_caml_floor
+	
+	#nanか判定?
+	#if $f1 > 2^31, return 0
+#	fmvhi $f6, 20352
+#	fblt $f1, $f6, FTOI_CONT
+#	nop
+#	nop
+#	fadd $f1, $f0, $f0
+#	return
+#FTOI_CONT:	
+	
 	# $f2 <- 8388608.0(0x4b000000)
 	fmvhi $f2, 19200
 	fmvlo $f2, 0

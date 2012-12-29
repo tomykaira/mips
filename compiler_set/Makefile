@@ -49,13 +49,13 @@ lor:
 lor-run: $(LORELEY_DIR)/main.bin
 	touch $(LOR_PPM_PATH)
 #	eog $(LOR_PPM_PATH) & 2> /dev/null
-	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
+	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin #> $(LOR_PPM_PATH)
 
 lor-run_f:
 	make lor
 	touch $(LOR_PPM_PATH)
 #	eog $(LOR_PPM_PATH) & 2> /dev/null
-	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin > $(LOR_PPM_PATH)
+	simulator/simulator -f $(LOR_PATH) $(LORELEY_DIR)/main.bin #> $(LOR_PPM_PATH)
 
 # min-rt.s, min-rt.binを削除
 lor-clean:

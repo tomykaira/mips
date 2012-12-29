@@ -67,8 +67,7 @@ in
 let rec sin_sub1 x p =
   if x < p then p else
   let p2 = p *. 2.0 in
-  (* if p2*2=0, p2 is nan *)
-  if p2 *. 2.0 = 0.0 then p else
+  (* if not p2 +. p2 > P2, p2 is nan/inf? if not (p2 +. p2 > p2) then p else *)
   sin_sub1 x (p *. 2.0) in
 let rec sin_sub2 x p =
   if x < pi *. 2.0 then x else
@@ -89,11 +88,10 @@ let rec sin x =
   let s1 = x > 0.0 in
   let x0 = fabs x in
 
-  (* 引数の絶対値がすごく大きくなりうる時 *)
-  if x0 *. 2.0 = 0.0 then x0 else
+  (* if not x0 +. x0 > x0, x0 is nan/inf? if not (x0 +. x0 > x0) then x0 *. 0.0 else *)
   let p = sin_sub1 x0 pi2 in
   let x1 = sin_sub2 x0 p in
-  (* それ以外の時 *)
+
   (* let x1 = sin_sub x0 in *)
 
   let s2 = if x1 > pi then not s1 else s1 in

@@ -480,10 +480,7 @@ int simulate(simulation_options * opt)
 			case FMUL:
 				logger.reg("FMUL", get_rd(inst), myfmul(FRS, FRT));
 				FRD = myfmul(FRS, FRT);
-				//conv a, b;
-				//a.i = FRS; b.i = FRT;
-				//a.f = a.f * b.f;
-				//FRD = a.i;
+				//conv a, b; a.i = FRS; b.i = FRT; a.f = a.f * b.f; FRD = a.i;
 				break;
 			case FMULN:
 				logger.reg("FMULN", get_rd(inst), myfmul(FRS, FRT));
@@ -667,7 +664,7 @@ int simulate(simulation_options * opt)
 				}
 				switch(IMM) {
 				case 1:
-					enable_step();
+				        enable_step();
 					break;
 				case 2:
 					printf("calls: %d\n", ireg[28]);
