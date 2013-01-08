@@ -74,12 +74,6 @@ let rec sin_sub2 x p =
   let x = if x >= p then x -. p else x in
   sin_sub2 x (p *. 0.5) in
 
-let rec sin_sub x =
-  let pi2 = pi *. 2.0 in
-  if x > pi2 then sin_sub (x -. pi2)
-  else if x < 0.0 then sin_sub (x +. pi2)
-  else x in
-
 let rec sin x =
   let pi = 3.14159265358979323846264 in
   let pi2 = pi *. 2.0 in
@@ -91,9 +85,6 @@ let rec sin x =
   (* if not x0 +. x0 > x0, x0 is nan/inf? if not (x0 +. x0 > x0) then x0 *. 0.0 else *)
   let p = sin_sub1 x0 pi2 in
   let x1 = sin_sub2 x0 p in
-
-  (* let x1 = sin_sub x0 in *)
-
   let s2 = if x1 > pi then not s1 else s1 in
   let x2 = if x1 > pi then pi2 -. x1 else x1 in
   let x3 = if x2 > pih then pi -. x2 else x2 in

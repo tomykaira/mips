@@ -223,5 +223,5 @@ let f e =
       M.empty in
   let fil p = S.filter (fun x -> M.mem x gr) p in
   let gr = M.map (fun (t,p,q) -> (t,fil p,fil q)) gr in
-  let e = ElimGetPut.f gr e in
+  let e = ElimForward.f gr e in
   e

@@ -352,6 +352,7 @@ min_caml_exp:
 	call min_caml_floor
 	addi $r1, $r1, 2
 	fsti $f1, $r1, -1
+
 	# deal with very large/small number
 	# $f6 <- 2^31
 	fmvhi $f6, 20352
@@ -363,6 +364,7 @@ min_caml_exp:
 	fble $f1, $f6, exp_neg_overflow
 	nop
 	nop
+	
 	subi $r1, $r1, 2	
 	call min_caml_int_of_float
 	addi $r1, $r1, 2
