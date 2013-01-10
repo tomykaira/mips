@@ -58,7 +58,6 @@ and exp = (* 一つ一つの命令に対応する式 *)
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
-  | SAlloc of int
       deriving (Show)
 
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
@@ -105,7 +104,7 @@ let rec remove_and_uniq xs = function
 
 (* free variables in the order of use (for spilling) *)
 let rec fv_exp = function
-  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | SAlloc(_) | Inputb -> []
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | Inputb -> []
 
   | AddI(x,_) | SubI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_) | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x)
@@ -129,7 +128,7 @@ and fv = function
 
 let is_var x = not (is_reg x || x.[0] = '%')
 let rec fv_var_exp = function
-  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | SAlloc(_) | Inputb -> []
+  | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | Inputb -> []
 
   | AddI(x,_) | SubI(x,_)
   | XorI(x,_) | SllI(x,_) | SraI(x,_) | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x)
@@ -151,23 +150,12 @@ and fv_var = function
   | Let((x, _), exp, e) ->
       remove_and_uniq (S.singleton x) (fv_var_exp exp @ fv_var e)
 
-(* そのプログラムの使うスタックの大きさを求める *)
-let rec st = function
-  | Ans(exp) -> st' exp
-  | Let(_,exp,e) -> st' exp + st e
-and st' = function
-  | SAlloc(i) -> i
-  | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2) | IfFEq(_,_,e1,e2)
-  | IfFLT(_,_,e1,e2) | IfFLE(_,_,e1,e2) -> st e1 + st e2
-  | _ -> 0
-let stack_max e =
-  List.length (fv_var e) + st e
 
 
 let rec fv_int_exp = function
   | Nop | Int(_) | Float(_) | SetL(_) | Comment(_) | FMov(_) | FNeg(_)
   | FInv(_) | FSqrt(_) | FMovI(_) | Restore(_) | FAdd(_,_) | FSub(_,_)
-  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) | SAlloc(_) | Inputb
+  | FMul(_,_) | FMulN(_,_) | FDiv(_,_) | FDivN(_,_) | Save(_,_) | Inputb
     -> []
   | AddI(x,_) | SubI(x,_) | XorI(x,_) | SllI(x,_) | SraI(x,_)  | IMovF(x)
   | LdI(x,_) | FLdI(x,_) | FStI(_,x,_) | Outputb(x) -> [x]
@@ -190,8 +178,8 @@ let rec fv_float_exp = function
   | Add(_,_) | Sub(_,_) | Xor(_,_) | AddI(_,_)
   | SubI(_,_) | XorI(_,_)
   | SllI(_,_) | SraI(_,_)  | IMovF(_)  | LdI(_,_) | FLdI(_,_) | LdR(_,_)
-  | StI(_,_,_) | FLdR(_,_)| Save(_,_) | SAlloc(_) | Inputb -> []
-  | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) | Outputb(x)-> [x]
+  | StI(_,_,_) | FLdR(_,_)| Save(_,_) | Inputb | Outputb _ -> []
+  | FMov(x) | FNeg(x) | FInv(x) | FSqrt(x) | FMovI(x) | FStI(x,_,_) -> [x]
   | FAdd(x,y) | FSub(x,y) | FMul(x,y) | FMulN(x,y) | FDiv(x,y) | FDivN(x,y) ->
       [x;y]
   | IfEq(_,_,e1,e2) | IfLT(_,_,e1,e2) | IfLE(_,_,e1,e2)

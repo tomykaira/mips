@@ -125,20 +125,12 @@ and g' = function (* 各命令のアセンブリ生成 *)
   | NonTail(x), Restore(y) ->
       assert (List.mem x allfregs);
       Out.print buf (Out.FLdI(x, reg_fp, -offset y))
-(* スタック領域の確保の仮想命令の実装 *)
-  | NonTail(x), SAlloc(i) ->
-      let x' = Id.genid "salloc" in
-      let rec s n =
-	if n <= 0 then []
-	else (x' ^ "."^ string_of_int n)::s (n-1) in
-      stackmap := !stackmap@s i;
-      Out.print buf (Out.SubI(x, reg_fp, stacksize ()))
 
 (* 末尾だったら計算結果を第一レジスタにセットしてret *)
   | Tail, (Nop | StI _ | FStI _ | Comment _ | Save _ | Outputb _ as exp) ->
       g' (NonTail(Id.gentmp Type.Unit), exp);
       Out.print buf Out.Return
-  | Tail, (Add _ | Sub _ | Xor _ | AddI _ | SubI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | SAlloc _ | Inputb as exp) ->
+  | Tail, (Add _ | Sub _ | Xor _ | AddI _ | SubI _ | XorI _ | Int _ | SetL _ | SllI _ | SraI _ | FMovI _ | LdI _ | LdR _ | Inputb as exp) ->
       g' (NonTail(regs.(0)), exp);
       Out.print buf Out.Return
   | Tail, (Float _ | FMov _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FMulN _ | FDiv _ | FDivN _ | FInv _ | FSqrt _ | IMovF _ | FLdI _ | FLdR _ as exp) ->
@@ -320,7 +312,6 @@ let f (Prog(fundefs, e)) =
   List.iter h fundefs;
   Out.print buf (Out.Label "min_caml_start");
   g' (NonTail(reg_hp), Int(!hp));
-  Format.eprintf "%d@." !hp;
   Out.print buf (Out.AddI(reg_fp, reg_0, 2047));
   Out.print buf (Out.SllI(reg_fp, reg_fp, 16));
   Out.print buf (Out.AddI(reg_fp, reg_fp, 65535));  (* 512MB *)
