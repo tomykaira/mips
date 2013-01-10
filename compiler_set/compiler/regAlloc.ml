@@ -183,7 +183,7 @@ let rec gc dest cont regenv ifprefer e =
       with NoReg(x, t) -> 
 	g dest cont regenv graph ifprefer (Let((x, t), Restore(x), Ans(exp)))
     and g' dest cont regenv graph ifprefer = function (* 各命令のレジスタ割り当て *)
-      | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | SAlloc _ | Inputb as exp -> (Ans(exp), regenv, graph)
+      | Nop | Int _ | Float _ | SetL _ | Comment _ | Restore _ | Inputb as exp -> (Ans(exp), regenv, graph)
       | Add(x, y) -> (Ans(Add(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
       | Sub(x, y) -> (Ans(Sub(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
       | Xor(x, y) -> (Ans(Xor(find x Type.Int regenv, find y Type.Int regenv)), regenv, graph)
