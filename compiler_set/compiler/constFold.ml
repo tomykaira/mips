@@ -140,6 +140,7 @@ and g' env envle envne envif = function
 
   | FSub(x, y) when memf x env && memf y env -> Ans(Float(findf x env -. findf y env))
   | FSub(x, y) when memf y env && findf y env = 0.0 -> Ans(Var(x))
+  | FSub(x, y) when memf x env && findf x env = 0.0 -> Ans(FNeg(y))
   | FSub(x, y) when memn y env -> Ans(FAdd(x,findn y env))
 
 (* シミュレータと結果が異なってしまうので中止 *)
@@ -198,7 +199,7 @@ and g' env envle envne envif = function
   | IfLE(x, y, e1, e2) when List.mem (y,x) envle -> g' env envle envne envif (IfEq(x,y,e1,e2))
   | IfLE(x, y, e1, e2) ->
       let e1' = g env (addle (x,y) envle) envne envif e1 in
-      let e2' = g env (addle (x,y) envle) ((x,y)::envne) envif e2 in
+      let e2' = g env (addle (y,x) envle) ((x,y)::envne) envif e2 in
       if Beta.same M.empty e1' e2' then e1' else 
       Ans(IfLE(x, y, e1', e2')) 
 
@@ -220,8 +221,7 @@ and g' env envle envne envif = function
       let e1' = g env (addle (x,y) envle) ((x,y)::envne) envif e1 in
       let e2' = g env (addle (y,x) envle) envne envif e2 in
       if Beta.same M.empty e1' e2' then e1' else 
-      Ans(IfLT(x,y,e1',e2')) 
-(*      Ans(IfLE(y, x, e2', e1'))  *)
+      Ans(IfLE(y, x, e2', e1'))  
 
 
   | IfNil(x, e1, e2) when meml x env -> if findl x env = Nil then g env envle envne envif e1 else g env envle envne envif e2

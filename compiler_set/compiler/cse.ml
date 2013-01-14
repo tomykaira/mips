@@ -69,8 +69,6 @@ let rec g env = function
       (match exp' with
       | Unit | Var _ | ExtArray _ | Nil -> 
 	  Let(xt, exp', g env e)
-      | Int i when -0x8000 <= i && i <= 0x7FFF ->
-	  Let(xt, exp', g (add_cheap exp' x env) e)
       | App(y, _) when S.mem y env.noeffect  ->
 	  Let(xt, exp', g (add_precious exp' x (make_empty e env)) e)
       | ExtFunApp(("print_char"|"input_char"|"read_char"),_) ->
