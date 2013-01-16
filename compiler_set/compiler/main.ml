@@ -52,7 +52,7 @@ let off2 flag f x = if flag then x else f x
 let rec iter n e = 
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-  let e' =  off offel Elim.f (off offte IfThenElse.f (off offin (Inline.f (!limit-n))  (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f (off offcf ConstFold.f (off offbe Beta.f (off offcs Cse.f e)))))) in
+  let e' =  off offel Elim.f (off offte IfThenElse.f (off offin Inline.f  (off2 (!offaa || (n mod 2 <> 0)) AliasAnalysis.f (off offcf ConstFold.f (off offbe Beta.f (off offcs Cse.f e)))))) in
   Format.eprintf "size : %d@." (ANormal.size e');
   Format.eprintf "@.";
   if Beta.same M.empty e e' then e else
@@ -76,7 +76,7 @@ let lexbuf outchan l =
   Id.counter := 0;
   Typing.extenv := M.empty;
   Out.f outchan
-    (off offds DelaySlotFilling.f
+   (off offds DelaySlotFilling.f
     (off offje JumpElim.f
      (Emit.f
       (debas dbra (RegAlloc.f
