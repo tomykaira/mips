@@ -47,13 +47,11 @@ let rec find env m r o = function
       lr := true;
       ret := l;
       find (addre s l env) m r o (Label l::Return::xs)
-
   | ((Jr _ | J _ | Return) as y)::xs ->
       (try let (s,t) = findm m (y::o) in
           find (addre s t env) m (y::o@r) [] xs
       with Not_found -> find env (addm m (y::o)) (y::o@r) [] xs)
   | (Label u as y)::xs -> find env (addm m (J u::o)) r (y::o) xs
-
   | x::xs -> find env m r (x::o) xs
   
 

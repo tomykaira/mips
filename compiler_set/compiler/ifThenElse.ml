@@ -46,37 +46,74 @@ and allimm' = function
       allimm e1 && allimm e2
   | _ -> false 
 
+
+(* varsと同じ変数を比較するif文があるか判定 *)
+let rec sameif vars = function
+  | Let(_,exp,e) -> sameif' vars exp || sameif vars e
+  | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> sameif vars e
+  | Ans(exp) -> sameif' vars exp
+and sameif' vars = function
+  | IfEq(p,q,e1,e2) | IfLE(p,q,e1,e2) | IfLT(p,q,e1,e2) ->
+      (match vars with
+      | p'::q'::[]->
+	  (p=p' && q=q') || (p=q' && q=p') || sameif vars e1 || sameif vars e2
+      | _ -> sameif vars e1 || sameif vars e2)
+  | IfNil(p,e1,e2) ->
+      (match vars with
+      | p'::[] ->
+	  p=p' || sameif vars e1 || sameif vars e2
+      | _ -> sameif vars e1 || sameif vars e2) 
+  | _ -> false 
+
+(* varsと同じ変数を比較するif文が幹にあるか判定 *)
+let rec sameiftail vars = function
+  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> sameiftail vars e
+  | Ans(exp) -> sameiftail' vars exp
+and sameiftail' vars = function
+  | IfEq(p,q,e1,e2) | IfLE(p,q,e1,e2) | IfLT(p,q,e1,e2) ->
+      (match vars with
+      | p'::q'::[]->
+	  ((p=p' && q=q') || (p=q' && q=p')) || (sameiftail vars e1 && sameiftail vars e2)
+      | _ -> sameiftail vars e1 && sameiftail vars e2)
+  | IfNil(p,e1,e2) ->
+      (match vars with
+      | p'::[] ->
+	  p=p' || (sameiftail vars e1 && sameiftail vars e2)
+      | _ -> sameiftail vars e1 && sameif vars e2) 
+  | _ -> false 
+
 let tailsize = 10
-let nontailaisize = 8
-let nontailisize  = 8
-let nontailsize = 0
+let lp = ref 0
 
 (* 本体 *)
 let rec g tail = function
   | Let((x,t) as xt, exp, e) ->
-      let len =
-	if allimm' exp then nontailaisize
-	else if immans' exp then nontailisize
-	else nontailsize in
-      let rec procif constr e1 e2 =
-	if tail && size e < tailsize then
+      let rec procif vars constr e1 e2 =
+	if (tail && size e < tailsize) || sameiftail vars e then
 	  let z = Id.genid x in
 	  let exp' = constr (concat e1 xt e) (concat e2 (z,t) (ag (M.singleton x z) e)) in
 	  Ans(g' tail exp')
-	else if len > 0 then
-	  (try
-	    let (m,yt,e') = h x (fv e) len e in
-	    let z = Id.genid x in
-	    let exp' = constr (concat e1 xt m) (concat e2 (z,t) (ag (M.singleton x z) m)) in
-	    if e' = Ans(Unit) then Ans(g' tail exp') else
-	    g tail (Let(yt, exp', e'))
-	  with Not_found -> Let(xt, g' false exp, g tail e))	    
-	else Let(xt, g' false exp, g tail e) in
+	else
+	  let len =
+	    if allimm' exp then 8
+	    else if immans' exp then 8
+	    else if sameif vars e then 4
+	    else if !lp <= 2 then 1
+	    else 0 in
+	  if len > 0 then
+	    (try
+	      let (m,yt,e') = h x (fv e) len e in
+	      let z = Id.genid x in
+	      let exp' = constr (concat e1 xt m) (concat e2 (z,t) (ag (M.singleton x z) m)) in
+	      if e' = Ans(Unit) then Ans(g' tail exp') else
+	      g tail (Let(yt, exp', e'))
+	    with Not_found -> Let(xt, g' false exp, g tail e))	    
+	  else Let(xt, g' false exp, g tail e) in
       (match exp with
-      | IfEq(p,q,e1,e2) -> procif (fun a b -> IfEq(p,q,a,b)) e1 e2
-      | IfLE(p,q,e1,e2) -> procif (fun a b -> IfLE(p,q,a,b)) e1 e2
-      | IfLT(p,q,e1,e2) -> procif (fun a b -> IfLT(p,q,a,b)) e1 e2
-      | IfNil(p,e1,e2)  -> procif (fun a b -> IfNil(p, a,b)) e1 e2
+      | IfEq(p,q,e1,e2) -> procif [p;q] (fun a b -> IfEq(p,q,a,b)) e1 e2
+      | IfLE(p,q,e1,e2) -> procif [p;q] (fun a b -> IfLE(p,q,a,b)) e1 e2
+      | IfLT(p,q,e1,e2) -> procif [p;q] (fun a b -> IfLT(p,q,a,b)) e1 e2
+      | IfNil(p,e1,e2)  -> procif [p]   (fun a b -> IfNil(p, a,b)) e1 e2
       | _ -> Let(xt, g' false exp, g tail e))
   | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
       LetRec({ name = xt; args = yts; body = g true e1 }, g tail e2)
@@ -92,5 +129,6 @@ and g' tail = function
 
 
 let f e =
+  lp := !lp + 1;
   Format.eprintf "if then else...@.";
   g true e
