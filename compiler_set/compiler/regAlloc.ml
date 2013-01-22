@@ -240,7 +240,7 @@ let rec gc dest cont regenv ifprefer e =
 	  (g dest cont regenv graph (M.fold (fun x y p -> addp x [y] p) regenv2 ifprefer) e1, (e2', regenv2, graph2))
 	else (g dest cont regenv graph ifprefer e1, g dest cont regenv graph ifprefer e2) in
       (* aがtrueなら1が,falseなら2が基準 *)
-      let a = M.cardinal regenv1 < M.cardinal regenv2 in
+      let a = M.cardinal regenv1 >= M.cardinal regenv2 in
       let graphA = if a then graph1 else graph2 in
       let regenvA = if a then regenv1 else regenv2 in
       let regenvB = if a then regenv2 else regenv1 in

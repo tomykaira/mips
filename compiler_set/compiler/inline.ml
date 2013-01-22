@@ -3,6 +3,7 @@ open ANormal
 (* インライン展開する関数の最大サイズ. Mainで-inlineオプションによりセットされる *)
 let threshold = ref 0
 
+
 (* その関数が末尾再帰のみか判定 *)
 let rec tailrec x = function
   | Let(_,exp,e) -> not (recur' x exp) && tailrec x e
@@ -33,7 +34,7 @@ let rec g env = function (* インライン展開ルーチン本体 *)
   | Let(xt, exp, e) -> concat (g' env exp) xt (g env e)
   | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* 関数定義の場合 *)
     let e1' = g env e1 in
-    let env' = if size e1' > !threshold || ((!lp >= rectimes || size e1' > !threshold / recratio) && recur x e1') then env
+    let env' = if size e1' > !threshold || ((!lp > rectimes || size e1' > !threshold / recratio) && recur x e1') then env
     else M.add x (yts, e1) env in
     LetRec({ name = (x, t); args = yts; body = e1'}, g env' e2)
   | LetTuple(xts, y, e) -> LetTuple(xts, y, g env e)
@@ -56,7 +57,7 @@ and g' env = function
   | e -> Ans(e)
 
 
-let f n e =
+let f e =
   Format.eprintf "inlining functions...@.";
-  lp := n;
+  lp := !lp+1;
   g M.empty e

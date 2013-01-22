@@ -7,43 +7,52 @@ open Out
 
 (* ラベル+Returnがあったかどうかのフラグ *)
 let lr = ref false
-let ret = ref "return"
+let ret = ref ""
+
+(* 循環書き換えを防止しつつ書き換え情報を追加 *)
+let addre f t env = 
+  if f = t then env
+  else M.add f t (M.map (fun x -> if x = f then t else x) env)
+
+(* mからoの部分列を検索 *)
+let findm m o =
+  let o' = List.rev o in
+  let rec f = function
+    | [] -> raise Not_found
+    | (Label s)::xs ->
+	(try (s, List.assoc (List.filter (function Label _ -> false | _ -> true) xs) m)
+	with Not_found -> f xs)
+    | _::xs -> f xs in
+  f o'
+
+(* ラベルとジャンプ等に囲まれた部分を全てmに追加 *)
+let addm m o =
+  let o' = List.rev o in
+  let rec f m = function
+    | [] -> m
+    | (Label s)::xs -> f ((xs,s)::m) xs
+    | _::xs -> f m xs in
+  f m o'	  
 
 (* 無駄なコードの並びを探し,それを消したコードと,
    書き換えるべきラベルの集合を返す関数. *)
-let addre f t env = (*循環書き換えを防止*)
-  if f = t then env
-  else M.add f t (M.map (fun x -> if x = f then t else x) env)
-let rec find env m r = function
-  | [] -> (env, List.rev r)
-  | (Label s)::(J x)::xs -> find (addre s x env) m r (J x::xs)
-  | (Label s)::(Label t)::xs ->
-      (match r with
-      | [] -> find (addre s t env) m r (Label t::xs)
-      | x::y -> find (addre s t env) m y (x::Label t::xs))
+let rec find env m r o = function
+  | [] -> (env, List.rev (o@r))
+  | (Label s)::(J x)::xs -> find (addre s x env) m r o (J x::xs)
+  | (Label s)::(Label t)::xs -> find (addre s t env) m r o (Label t::xs)
   | (J x | BEq(_,_,x,_) | BLT(_,_,x,_) | BLE(_,_,x,_) | FBEq(_,_,x,_) | FBLT(_,_,x,_) | FBLE(_,_,x,_))::(Label y)::xs when x = y ->
-      (match r with
-      | [] -> find env m r (Label y::xs)
-      | p::q -> find env m q (p::Label y::xs))
+      find env m r o (Label y::xs)
   | (Label s)::Return::xs when not !lr ->
       let l = Id.genid "return" in
       lr := true;
       ret := l;
-      find (addre s l env) m (Return::Label l::r) xs
-  | (Label s)::Return::xs when s <> !ret ->
-      (match r with
-      | [] ->  find (addre s !ret env) m [] (Return::xs)
-      | [x] -> find (addre s !ret env) m [] (x::Return::xs)
-      | x::y::z -> find (addre s !ret env) m z (y::x::Return::xs))
-  | (Label s)::x::((Jr _ | J _ | Return) as y)::xs ->
-      (try let t = List.assoc [x;y] m in
-          find (addre s t env) m (x::r) (y::xs)
-      with Not_found -> find env (([x;y],s)::m) (x::Label s::r) (y::xs))
-  | (Label s)::x::(Label u as y)::xs ->
-      (try let t = List.assoc [x;J u] m in
-          find (addre s t env) m (x::r) (y::xs)
-      with Not_found -> find env (([x;J u],s)::m) (x::Label s::r) (y::xs))
-  | x::xs -> find env m (x::r) xs
+      find (addre s l env) m r o (Label l::Return::xs)
+  | ((Jr _ | J _ | Return) as y)::xs ->
+      (try let (s,t) = findm m (y::o) in
+          find (addre s t env) m (y::o@r) [] xs
+      with Not_found -> find env (addm m (y::o)) (y::o@r) [] xs)
+  | (Label u as y)::xs -> find env (addm m (J u::o)) r (y::o) xs
+  | x::xs -> find env m r (x::o) xs
   
 
 (* コード中のラベルへのジャンプを別のラベルへのジャンプに書き換える関数 *)
@@ -103,7 +112,7 @@ let h all = h'' [] (h' S.empty all) all
 let f code =
   Format.eprintf "eliminating jumps ...@.";
   let rec f' code =
-    let (env, code1) = find M.empty [] [] code in
+    let (env, code1) = find M.empty [] [] [] code in
     let code2 = rename env [] code1 in
     let code3 = h code2 in
     let code4 = g [] code3 in
