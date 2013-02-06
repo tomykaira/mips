@@ -4,10 +4,9 @@ open ANormal
 let threshold = ref 0
 
 
-(* その関数が末尾再帰のみか判定 *)
+(* その関数が末尾再帰か判定 *)
 let rec tailrec x = function
-  | Let(_,exp,e) -> not (recur' x exp) && tailrec x e
-  | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> tailrec x e
+  | Let(_,_,e) | LetRec(_,e) | LetTuple(_,_,e) | LetList(_,_,e) -> tailrec x e
   | Ans(exp) -> tailrec' x exp
 and tailrec' x = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfLT(_, _, e1, e2) | IfNil(_, e1, e2) 
@@ -27,7 +26,7 @@ and recur' x = function
 
 let lp = ref 0
 
-let rectimes = 1
+let rectimes = 4
 let recratio = 20
 
 let rec g env = function (* インライン展開ルーチン本体 *)

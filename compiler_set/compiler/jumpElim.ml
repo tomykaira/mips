@@ -27,12 +27,11 @@ let findm m o =
 
 (* ラベルとジャンプ等に囲まれた部分を全てmに追加 *)
 let addm m o =
-  let o' = List.rev o in
   let rec f m = function
     | [] -> m
     | (Label s)::xs -> f ((xs,s)::m) xs
     | _::xs -> f m xs in
-  f m o'	  
+  f m (List.rev o)	  
 
 (* 無駄なコードの並びを探し,それを消したコードと,
    書き換えるべきラベルの集合を返す関数. *)
@@ -51,7 +50,10 @@ let rec find env m r o = function
       (try let (s,t) = findm m (y::o) in
           find (addre s t env) m (y::o@r) [] xs
       with Not_found -> find env (addm m (y::o)) (y::o@r) [] xs)
-  | (Label u as y)::xs -> find env (addm m (J u::o)) r (y::o) xs
+  | (Label u as y)::xs ->
+      (try let (s,t) = findm m (J u::o) in
+          find (addre s t env) m r (y::o) xs
+      with Not_found -> find env (addm m (J u::o)) r (y::o) xs)
   | x::xs -> find env m r (x::o) xs
   
 
