@@ -27,7 +27,8 @@ OPTION= -b -inline 800 -offEmbedTuple -offUnfoldTuple
 %.sim: %.bin
 	$(SIMULATOR) -f $(SLD_PATH) -x $*.bin > $*.sim
 
-%.ppm: %.sim
+%.ppm: %.bin
+	$(SIMULATOR) -f $(SLD_PATH) -x $*.bin | tail -c +2 > $*.ppm
 	tail -c +2 $< > $@
 
 %.core: %.bin
